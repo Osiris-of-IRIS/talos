@@ -1,0 +1,408 @@
+# TALOS declarative test catalog (T-020). Decision IDs: ADR-0001, ADR-0018.
+#
+# Single source of truth mapping every test to its feature (docs/feature_registry.yaml)
+# and its ADRs. Consumed by tests/test_harness/runner.py, which enforces the ADR-0001
+# traceability chain (ADR <-> feature <-> test) and validates the golden OSCAL fixtures.
+# The JS tests themselves are executed by Vitest (`npm test`) and Playwright
+# (`npm run test:e2e`); the harness is an independent contract/traceability gate
+# (see ADR-0018).
+#
+# Conventions:
+#   - Every `status: implemented` suite MUST have a `file` that exists and that
+#     references its `id` in a `Covers TEST-...` header (see docs/testing.md).
+#   - `status: planned` suites describe not-yet-built tests (feature still Draft);
+#     they need no file yet and are recorded here so the catalog mirrors
+#     feature_registry implementation status.
+
+version: 1
+
+# ADRs whose runtime behaviour is already implemented and MUST keep >=1 implemented
+# test (ADR-0001 rule 4: every runtime ADR has >=1 linked test). Add an ADR here when
+# its feature lands, so the harness guards it against regression.
+adr_coverage_required:
+  - ADR-0001 # TDD methodology (every suite references it)
+  - ADR-0003 # OSCAL artifact data model / envelope codec
+  - ADR-0004 # client-side persistence + file I/O
+  - ADR-0005 # BSI library loader (lazy fetch, cache, offline fallback, adopt)
+  - ADR-0007 # import version policy (accept 1.x with warning, reject non-1.x)
+  - ADR-0008 # external catalog viewer hand-off
+  - ADR-0009 # OSCAL markdown rendering (XSS-safe)
+  - ADR-0015 # back-matter resources + embedded-file limits
+  - ADR-0016 # reusable control-display helper
+  - ADR-0019 # mandatory creator identity (name + email), enforced at export
+
+# Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
+#   kind: oscal-document -> full document with a single wrapper key == artifact_type;
+#                           base fields + oscal-version 1.2.2 are asserted (ADR-0003/0007).
+#   kind: fragment       -> a bare sub-object (not a full document); only `id_field` asserted.
+golden_data:
+  - path: tests/data/component-definition-minimal.json
+    kind: oscal-document
+    artifact_type: component-definition
+  - path: tests/data/component-definition-referencing.json
+    kind: oscal-document
+    artifact_type: component-definition
+  - path: tests/data/catalog-minimal.json
+    kind: oscal-document
+    artifact_type: catalog
+  - path: tests/data/ssp-minimal.json
+    kind: oscal-document
+    artifact_type: system-security-plan
+  - path: tests/data/control-sample.json
+    kind: fragment
+    id_field: id
+
+suites:
+  # ---- Shared platform (PLAT-004) -------------------------------------------------
+  - id: TEST-MODEL-01
+    title: OSCAL envelope codec + lossless round-trip across every implemented shape
+    file: tests/models/envelope.test.ts
+    type: golden-roundtrip
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0003]
+    golden:
+      - tests/data/component-definition-minimal.json
+      - tests/data/component-definition-referencing.json
+      - tests/data/catalog-minimal.json
+      - tests/data/ssp-minimal.json
+
+  - id: TEST-MD-01
+    title: OSCAL markdown renderer (inline/multiline/strip, XSS-safe)
+    file: tests/shared/oscalMarkdown.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0009]
+
+  - id: TEST-BM-01
+    title: Back-matter resource helpers (externalize/embed/dedupe/size limits)
+    file: tests/models/backMatter.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0015]
+
+  - id: TEST-CTRL-01
+    title: Control-display pure helpers (headline, statement, param insertion, truncation)
+    file: tests/models/controlDisplay.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0016]
+    golden: [tests/data/control-sample.json]
+
+  - id: TEST-CTRL-02
+    title: <ControlDisplay> component (param colouring, tooltip, viewer link)
+    file: tests/features/controlDisplay.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0016]
+
+  - id: TEST-CATRES-01
+    title: Catalog resolution index + source→catalog/control/param pickers (T-142)
+    file: tests/data/catalogResolution.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0013, ADR-0016]
+    golden: [tests/data/catalog-minimal.json]
+
+  - id: TEST-CATRES-02
+    title: E2E resolved control renders headline/statement/param + viewer link
+    file: tests/e2e/catalogResolution.spec.ts
+    type: e2e
+    runner: playwright
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0008, ADR-0016]
+
+  - id: TEST-SEARCH-01
+    title: Shared entity-search typeahead over IndexedDB with scoping
+    type: component
+    runner: vitest
+    status: planned
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0013]
+
+  - id: TEST-I18N-01
+    title: i18n de/en key parity + English fallback
+    type: unit
+    runner: vitest
+    status: planned
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0012]
+
+  - id: TEST-VER-01
+    title: Import OSCAL-version policy (accept 1.x with warning, reject non-1.x)
+    file: tests/models/oscalBase.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0007]
+
+  - id: TEST-META-01
+    title: Shared MetadataEditor roles/parties/responsible-parties + referential integrity + party depth
+    file: tests/features/metadataEditor.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0003, ADR-0017, ADR-0019]
+
+  - id: TEST-CREATOR-01
+    title: Mandatory creator identity (name + email) validation
+    file: tests/models/creator.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0019]
+
+  # ---- Persistence & file I/O (PLAT-003) ------------------------------------------
+  - id: TEST-PERS-01
+    title: ArtifactRepository CRUD (create/get/update/put/delete/count, timestamps)
+    file: tests/data/artifactRepository.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: PLAT-003
+    adr_refs: [ADR-0001, ADR-0004]
+
+  - id: TEST-PERS-02
+    title: Repository store isolation + duplicate/missing guards
+    file: tests/data/artifactRepository.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: PLAT-003
+    adr_refs: [ADR-0001, ADR-0004]
+
+  - id: TEST-FILE-01
+    title: File I/O upload parse/validate/store + serialize round-trip + filename
+    file: tests/data/fileIo.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: PLAT-003
+    adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0019]
+    golden: [tests/data/component-definition-minimal.json]
+
+  # ---- BSI library (PLAT-002) -----------------------------------------------------
+  - id: TEST-LIB-01
+    title: Library manifest read at startup; bodies fetched lazily, validated and cached by sha
+    file: tests/data/libraryLoader.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: PLAT-002
+    adr_refs: [ADR-0001, ADR-0005, ADR-0004]
+
+  - id: TEST-LIB-02
+    title: Library items read-only with provenance badge; adopt copies with new uuid (origin user)
+    file: tests/features/library.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-002
+    adr_refs: [ADR-0001, ADR-0005, ADR-0010]
+
+  - id: TEST-LIB-03
+    title: Graceful offline fallback to cached copy with warning; retry on transient failure
+    file: tests/data/libraryLoader.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: PLAT-002
+    adr_refs: [ADR-0001, ADR-0005]
+
+  # ---- Landing page (PLAT-001) ----------------------------------------------------
+  - id: TEST-LAND-01
+    title: Landing page links every feature with layer colours + counts
+    type: component
+    runner: vitest
+    status: planned
+    feature: PLAT-001
+    adr_refs: [ADR-0001, ADR-0006, ADR-0010, ADR-0011]
+
+  - id: TEST-LAND-02
+    title: Landing empty-state guidance per feature
+    type: component
+    runner: vitest
+    status: planned
+    feature: PLAT-001
+    adr_refs: [ADR-0001, ADR-0006, ADR-0012]
+
+  # ---- Component-definitions (IMPL-001) -------------------------------------------
+  - id: TEST-CDEF-01
+    title: Component-definition store + list/detail pages (off-version warning + creator export gate)
+    file: tests/features/componentDefinitions.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0019]
+
+  - id: TEST-CDEF-02
+    title: E2E upload component-definition -> list -> detail + landing link
+    file: tests/e2e/componentDefinitions.spec.ts
+    type: e2e
+    runner: playwright
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0004]
+
+  - id: TEST-CDEF-EDIT-01
+    title: Component-definition editor (create/edit, type picker, control-implementations, source/param pickers)
+    file: tests/features/componentDefinitionEditor.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0015, ADR-0016]
+
+  - id: TEST-CDEF-EDIT-02
+    title: E2E create a component-definition end to end (full body flow)
+    file: tests/e2e/componentDefinitionEditor.spec.ts
+    type: e2e
+    runner: playwright
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0003, ADR-0015]
+
+  - id: TEST-CDEF-RES-01
+    title: Component-def detail renders resolved controls via <ControlDisplay>
+    file: tests/features/componentDefinitionResolve.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0016]
+
+  - id: TEST-CDEF-IMP-01
+    title: import-component-definition composition (resolved/unresolved refs, cycles)
+    type: component
+    runner: vitest
+    status: planned
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0014, ADR-0017]
+
+  # ---- SSPs (IMPL-002) ------------------------------------------------------------
+  - id: TEST-SSP-01
+    title: SSP store + list/detail pages
+    file: tests/features/ssps.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: IMPL-002
+    adr_refs: [ADR-0001, ADR-0004]
+    golden: [tests/data/ssp-minimal.json]
+
+  - id: TEST-SSP-02
+    title: E2E upload SSP -> list -> detail + landing link
+    file: tests/e2e/ssps.spec.ts
+    type: e2e
+    runner: playwright
+    status: implemented
+    feature: IMPL-002
+    adr_refs: [ADR-0001, ADR-0004]
+
+  - id: TEST-SSP-03
+    title: SSP editor core authoring + per-requirement implementation status
+    type: component
+    runner: vitest
+    status: planned
+    feature: IMPL-002
+    adr_refs: [ADR-0001, ADR-0003, ADR-0017]
+
+  # ---- Profiles (CTRL-001, deferred per ADR-0017) --------------------------------
+  - id: TEST-PROF-01
+    title: Profile CRUD + import controls from catalogs
+    type: component
+    runner: vitest
+    status: planned
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0003, ADR-0017]
+
+  - id: TEST-PROF-02
+    title: Profile OSCAL import/export round-trip (golden)
+    type: golden-roundtrip
+    runner: vitest
+    status: planned
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0003, ADR-0007]
+
+  # ---- Assessment layer (ASMT-00x) -----------------------------------------------
+  - id: TEST-AP-01
+    title: Assessment Plan CRUD + OSCAL round-trip
+    type: golden-roundtrip
+    runner: vitest
+    status: planned
+    feature: ASMT-001
+    adr_refs: [ADR-0001, ADR-0003, ADR-0007]
+
+  - id: TEST-AR-01
+    title: Assessment Results CRUD + findings + OSCAL round-trip
+    type: golden-roundtrip
+    runner: vitest
+    status: planned
+    feature: ASMT-002
+    adr_refs: [ADR-0001, ADR-0003, ADR-0007]
+
+  - id: TEST-POAM-01
+    title: POA&M CRUD + OSCAL round-trip
+    type: golden-roundtrip
+    runner: vitest
+    status: planned
+    feature: ASMT-003
+    adr_refs: [ADR-0001, ADR-0003, ADR-0007]
+
+  # ---- Assistants (ASST-00x) ------------------------------------------------------
+  - id: TEST-ASST-01
+    title: Tailored-solution assistant (profile + component-definition, base fields)
+    type: component
+    runner: vitest
+    status: planned
+    feature: ASST-001
+    adr_refs: [ADR-0001, ADR-0006]
+
+  - id: TEST-ASST-02
+    title: Bootstrap-environment assistant (asset list -> SSPs)
+    type: component
+    runner: vitest
+    status: planned
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0006]
+
+  # ---- Dashboard (DASH-00x) -------------------------------------------------------
+  - id: TEST-DASH-01
+    title: Dashboard Risk Coverage (threats vs implemented controls)
+    type: component
+    runner: vitest
+    status: planned
+    feature: DASH-001
+    adr_refs: [ADR-0001, ADR-0006, ADR-0011]
+
+  - id: TEST-DASH-02
+    title: Dashboard Control Coverage (implemented-requirement statuses)
+    type: component
+    runner: vitest
+    status: planned
+    feature: DASH-002
+    adr_refs: [ADR-0001, ADR-0006, ADR-0010]
+
+  - id: TEST-DASH-03
+    title: Dashboard Assessment State (coverage/recency/findings per SSP)
+    type: component
+    runner: vitest
+    status: planned
+    feature: DASH-003
+    adr_refs: [ADR-0001, ADR-0006, ADR-0011]
