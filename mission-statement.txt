@@ -1,0 +1,51 @@
+# Mission
+
+TALOS is a web app (hosted on GitHub pages) for the information and cybersecurity compliance workflow based on OSCAL artifacts. It can be used to create and edit OSCAL documents and execute compliance workflows based on them.
+
+# Naming background
+
+The Acronym: Trust and Assessment Lifecycle for Organizational Security
+
+The Myth: Talos was a giant bronze automaton forged to protect the island of Crete by circling its shores.
+
+# feature set
+
+(A) Compliance Workflow based on OSCAL artifacts:
+	(I) Control Layer
+		1. CRUD OSCAL profiles to select and tailor controls from OSCAL catalogs.
+	(II) Implementation Layer
+		1. CRUD OSCAL System Security Plan (SSP) to describe how a system implements controls.
+		2. CRUD OSCAL component-definitions to describe reusable tools and processes.
+	(II) Assessment Layer	
+		1. CRUD OSCAL Assessment Plans to plan assessments based on SSPs
+		2. CRUD OSCAL Assessment Results to manage findings
+		3. CRUD OSCAL Plan of Action and Milestones to ensure findings are addressed
+
+(B) Assistants for specific workflows
+	1. I want to create a new artifact describing a tailored solution? (Leads to profile for general guidelines and to a component-definition for specific solutions and ensure basic fields like metadata.remarks are filled out).
+	2. I want to bootstrap a new environment with lots of SSPs (lets you upload an asset list and bootstraps SSPs based on the target object hierarchy).
+(C) Management Dashboard to give an overview of the security posture
+1. Risk Coverage (based on the threat props of controls and their coverage by implemented controls in SSPs)
+	How many of the risks 
+2. Control Coverage
+	How many controls in the SSPs are currently in which implementation stage (planned, implemented, etc.)?
+3. Assessment State
+	How many assessments have been done on SSPs with what coverage how recently and what were the findings?
+
+[1] OSCAL profile model
+https://pages.nist.gov/OSCAL-Reference/models/v1.2.2/profile/json-outline/
+
+[2] OSCAL component-definition model
+https://pages.nist.gov/OSCAL-Reference/models/v1.2.2/component-definition/json-outline/
+
+[3] OSCAL System Security Plan (SSP) model
+https://pages.nist.gov/OSCAL/learn/concepts/layer/implementation/ssp/
+
+[4] OSCAL Assessment Plan Model
+https://pages.nist.gov/OSCAL/learn/concepts/layer/assessment/assessment-plan/
+
+[5] OSCAL Assessment Results Model
+https://pages.nist.gov/OSCAL/learn/concepts/layer/assessment/assessment-results/
+
+[6] OSCAL Plan of Action and Milestones Model
+https://pages.nist.gov/OSCAL-Reference/models/v1.2.2/plan-of-action-and-milestones/json-outline/

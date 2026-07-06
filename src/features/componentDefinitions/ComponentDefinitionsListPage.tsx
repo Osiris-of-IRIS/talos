@@ -1,0 +1,83 @@
+// Component-definition list + upload. Decision IDs: ADR-0006, ADR-0004, ADR-0014 (feature IMPL-001).
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useComponentDefinitionsStore } from './store';
+
+export function ComponentDefinitionsListPage() {
+  const { items, loading, error, warnings, load, importFromText, remove } = useComponentDefinitionsStore();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setUploadError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      await importFromText(text);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      e.target.value = '';
+    }
+  }
+
+  return (
+    <main data-testid="compdef-list">
+      <p>
+        <Link to="/">← TALOS</Link>
+      </p>
+      <h1>🧩 Component-Definitions</h1>
+
+      <div>
+        <Link to="/component-definitions/new" data-testid="compdef-new">
+          ➕ New component-definition
+        </Link>{' '}
+        <button type="button" onClick={() => fileInput.current?.click()}>
+          ⭱ Upload OSCAL file
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="application/json,.json"
+          onChange={onFileChange}
+          data-testid="compdef-upload-input"
+          hidden
+        />
+      </div>
+
+      {uploadError && (
+        <p role="alert" data-testid="compdef-upload-error">
+          ⚠️ {uploadError}
+        </p>
+      )}
+      {error && <p role="alert">⚠️ {error}</p>}
+      {warnings.length > 0 && (
+        <p role="status" data-testid="compdef-upload-warning" style={{ color: 'var(--color-warning, #a15c00)' }}>
+          ⚠️ {warnings.join(' ')}
+        </p>
+      )}
+      {loading && <p>Loading…</p>}
+
+      {!loading && items.length === 0 && (
+        <p data-testid="compdef-empty">📂 No component-definitions yet. Upload an OSCAL file to start.</p>
+      )}
+
+      <ul>
+        {items.map((r) => (
+          <li key={r.uuid} data-testid="compdef-item">
+            <Link to={`/component-definitions/${r.uuid}`}>{r.artifact.metadata.title}</Link>{' '}
+            <small>({r.origin})</small>{' '}
+            <button type="button" onClick={() => void remove(r.uuid)} aria-label={`Delete ${r.artifact.metadata.title}`}>
+              🗑️
+            </button>
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}
