@@ -1,0 +1,33 @@
+{
+  "component-definition": {
+    "uuid": "abcabcab-1111-4111-8111-abcabcabcabc",
+    "metadata": {
+      "title": "Referencing CD",
+      "last-modified": "2026-07-02T10:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.2.2"
+    },
+    "components": [
+      {
+        "uuid": "comp-ref-1",
+        "type": "policy",
+        "title": "Zuweisungs-Policy",
+        "description": "References a Kernel control.",
+        "control-implementations": [
+          {
+            "uuid": "ci-ref-1",
+            "source": "#cat",
+            "description": "Implements asset assignment.",
+            "implemented-requirements": [
+              {
+                "uuid": "ir-ref-1",
+                "control-id": "ASST.1.1.2",
+                "set-parameters": [{ "param-id": "asst.1.1.2-prm1", "values": ["den IT-Betrieb"] }]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,171 @@
+# TALOS Feature Registry
+# Anchor for tests and overall implementation status.
+# status: Draft | In-Progress | Validated
+# Test IDs (TEST-*) are catalogued in tests/tests.yaml (T-020) and gated by
+# tests/test_harness/runner.py (T-022, ADR-0018): every linked_test_id below must exist
+# in that catalog, and every implemented catalog entry must map back to a feature id here.
+
+- id: PLAT-001
+  title: "Landing page / feature hub"
+  user_story: "As a user, I want a single landing page linking every feature so I can navigate the whole app."
+  acceptance_criteria:
+    - "Cards for control/implementation/assessment layers, assistants, dashboard, and data (library/upload/export)."
+    - "Priority features (component-definitions, SSPs) visually emphasized."
+    - "Per-type artifact counts and empty-state guidance."
+    - "Layer colors (ADR-0010) and symbols (ADR-0011); i18n de/en; theme-aware."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0006", "ADR-0010", "ADR-0011", "ADR-0012"]
+  linked_test_ids: ["TEST-LAND-01", "TEST-LAND-02"]
+
+- id: PLAT-002
+  title: "BSI Stand-der-Technik library integration"
+  user_story: "As a user, I want the BSI library available at startup so I can use existing catalogs and component-definitions without uploading."
+  acceptance_criteria:
+    - "Library index read at startup; artifact bodies fetched lazily and cached (path+sha)."
+    - "Anwenderkataloge + Komponenten shown by default; Quellkataloge behind an advanced toggle."
+    - "Library items are read-only with a provenance badge; 'adopt' copies into the workspace with a new uuid."
+    - "Graceful offline fallback to cache with a warning; CC-BY-SA-4.0 attribution shown."
+  status: "In-Progress"
+  scope_note: "T-034 done: bundled library-index.json manifest (read at startup), lazy fetch from raw.githubusercontent with retry/timeout, cache-by-sha in libraryCache, offline fallback + warning, read-only provenance badge, adopt→workspace (origin user, new uuid), CC-BY-SA-4.0 attribution, Quellkataloge behind advanced toggle. Regenerate manifest via tools/gen-library-index.mjs. Deferred: background sha-refresh job, using non-adopted library catalogs directly in the T-142 pickers (adopt-first for now), real E2E over the network."
+  linked_adr_ids: ["ADR-0005", "ADR-0010", "ADR-0004"]
+  linked_test_ids: ["TEST-LIB-01", "TEST-LIB-02", "TEST-LIB-03"]
+
+- id: PLAT-003
+  title: "Persistence & file I/O"
+  user_story: "As a user, I want my work saved locally and to import/export OSCAL files so nothing is lost and artifacts are portable."
+  acceptance_criteria:
+    - "Artifacts persist in IndexedDB across sessions; data never leaves the device."
+    - "Upload validates OSCAL and stores as imported; uuid collision prompts overwrite vs import-as-copy (default copy)."
+    - "Any artifact downloads as spec-conformant OSCAL JSON; whole workspace exports/imports as zip + manifest."
+    - "Draft-friendly: editing is never blocked by validation; validity is surfaced non-blocking and enforced at export."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0004", "ADR-0003", "ADR-0007"]
+  linked_test_ids: ["TEST-PERS-01", "TEST-PERS-02", "TEST-FILE-01"]
+
+- id: PLAT-004
+  title: "Shared platform (models, i18n, theme, markup, search)"
+  user_story: "As a developer, I want reusable OSCAL models and shared UI utilities so every feature is consistent and safe."
+  acceptance_criteria:
+    - "Reusable OscalArtifact base (metadata + back-matter) extended per type; envelope codec round-trips."
+    - "OSCAL markup rendered XSS-safe everywhere via one renderer."
+    - "Entity-search typeahead over IndexedDB with scoping; i18n de/en with EN fallback; dark/light theme via data-theme."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0003", "ADR-0009", "ADR-0013", "ADR-0012", "ADR-0010"]
+  linked_test_ids: ["TEST-MODEL-01", "TEST-MD-01", "TEST-SEARCH-01", "TEST-I18N-01"]
+
+- id: CTRL-001
+  title: "OSCAL Profiles (control tailoring)"
+  user_story: "As a compliance author, I want to CRUD OSCAL profiles that select and tailor controls from catalogs."
+  acceptance_criteria:
+    - "Create/read/update/delete profiles; import controls from BSI/uploaded catalogs."
+    - "Tailoring: include/exclude, set-parameters, alter."
+    - "OSCAL import/export round-trip is lossless (golden-tested)."
+    - "Full catalog/control viewing offloaded to the external Stand-der-Technik-Viewer."
+  status: "Draft"
+  scope_note: "Deferred to a later phase (ADR-0017): no Profile feature in phase 1; SSP import-profile and source→profile references stay manual until profiles land."
+  linked_adr_ids: ["ADR-0003", "ADR-0008", "ADR-0009", "ADR-0010", "ADR-0017"]
+  linked_test_ids: ["TEST-PROF-01", "TEST-PROF-02"]
+
+- id: IMPL-001
+  title: "OSCAL Component-Definitions (PRIORITY)"
+  user_story: "As a security engineer, I want to CRUD component-definitions describing reusable tools and processes, and compose them."
+  acceptance_criteria:
+    - "CRUD list/detail; editor for components, control-implementations, implemented-requirements, set-parameters, props/links."
+    - "import-component-definition composition with resolved/unresolved refs, cycle protection, read-only transitive view."
+    - "Adopt BSI-library component-definitions into the workspace."
+    - "OSCAL import/export round-trip is lossless (golden-tested)."
+  status: "In-Progress"
+  scope_note: "Phase-1 scope per ADR-0017: source→catalog picker + import-component-definition compose in scope; component purpose/props/links/responsible-roles/protocols, statements, capabilities deferred."
+  linked_adr_ids: ["ADR-0003", "ADR-0014", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0016", "ADR-0017"]
+  linked_test_ids: ["TEST-CDEF-01", "TEST-CDEF-02", "TEST-CDEF-IMP-01"]
+
+- id: IMPL-002
+  title: "OSCAL System Security Plans / SSP (PRIORITY)"
+  user_story: "As a system owner, I want to CRUD SSPs describing how a system implements controls."
+  acceptance_criteria:
+    - "CRUD list/detail; editor for system-characteristics, system-implementation, control-implementation (implemented-requirements -> by-components -> statements)."
+    - "Link SSP to a source profile and pull in component-definitions."
+    - "Per-requirement implementation status (planned/implemented/partial/alternative/not-applicable)."
+    - "OSCAL import/export round-trip is lossless (golden-tested)."
+  status: "In-Progress"
+  scope_note: "Phase-1 editor = core authoring (ADR-0017): metadata+back-matter, import-profile (manual), system-characteristics core, implemented-requirements (control-id/description/status/by-components). Deferred: system-implementation, statements, impact-level; profile linking (T-112)."
+  linked_adr_ids: ["ADR-0003", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0017"]
+  linked_test_ids: ["TEST-SSP-01", "TEST-SSP-02", "TEST-SSP-03"]
+
+- id: ASMT-001
+  title: "OSCAL Assessment Plans"
+  user_story: "As an assessor, I want to CRUD assessment plans based on SSPs."
+  acceptance_criteria:
+    - "CRUD; based on an SSP; OSCAL round-trip lossless."
+    - "v1: round-trip + read view; full editor deferred (P2)."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0003", "ADR-0007"]
+  linked_test_ids: ["TEST-AP-01"]
+
+- id: ASMT-002
+  title: "OSCAL Assessment Results (findings)"
+  user_story: "As an assessor, I want to CRUD assessment results and manage findings."
+  acceptance_criteria:
+    - "CRUD; manage findings; OSCAL round-trip lossless."
+    - "v1: round-trip + read view; full editor deferred (P2)."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0003", "ADR-0011", "ADR-0007"]
+  linked_test_ids: ["TEST-AR-01"]
+
+- id: ASMT-003
+  title: "OSCAL Plan of Action & Milestones (POA&M)"
+  user_story: "As a risk owner, I want to CRUD POA&Ms so findings are tracked to closure."
+  acceptance_criteria:
+    - "CRUD; track findings to closure; OSCAL round-trip lossless."
+    - "v1: round-trip + read view; full editor deferred (P2)."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0003", "ADR-0007"]
+  linked_test_ids: ["TEST-POAM-01"]
+
+- id: ASST-001
+  title: "Assistant: create a tailored solution"
+  user_story: "As a user, I want guidance to create a tailored solution (profile + component-definition) with base fields filled."
+  acceptance_criteria:
+    - "Guides creation of a profile (general guidelines) and a component-definition (specific solution)."
+    - "Ensures base fields (e.g. metadata.remarks) are populated."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0006", "ADR-0003"]
+  linked_test_ids: ["TEST-ASST-01"]
+
+- id: ASST-002
+  title: "Assistant: bootstrap an environment"
+  user_story: "As a user, I want to upload an asset list and bootstrap SSPs across the target-object hierarchy."
+  acceptance_criteria:
+    - "Accepts an asset list; generates SSPs based on the target-object hierarchy."
+    - "Generated artifacts persist and are editable."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0006", "ADR-0004", "ADR-0003"]
+  linked_test_ids: ["TEST-ASST-02"]
+
+- id: DASH-001
+  title: "Dashboard: Risk Coverage"
+  user_story: "As a manager, I want to see how many risks are covered by implemented controls in SSPs."
+  acceptance_criteria:
+    - "Derives risks from control threat props and their coverage by implemented controls."
+    - "Threat field (controls>props>name:'threats' / basethreats.csv) confirmed at implementation."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0006", "ADR-0010", "ADR-0011"]
+  linked_test_ids: ["TEST-DASH-01"]
+
+- id: DASH-002
+  title: "Dashboard: Control Coverage"
+  user_story: "As a manager, I want to see how many SSP controls are in each implementation stage."
+  acceptance_criteria:
+    - "Aggregates implemented-requirement statuses across SSPs (planned/implemented/partial/...)."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0006", "ADR-0010"]
+  linked_test_ids: ["TEST-DASH-02"]
+
+- id: DASH-003
+  title: "Dashboard: Assessment State"
+  user_story: "As a manager, I want to see assessment coverage, recency, and findings per SSP."
+  acceptance_criteria:
+    - "Summarizes assessments per SSP: coverage, recency, findings."
+  status: "Draft"
+  linked_adr_ids: ["ADR-0006", "ADR-0011"]
+  linked_test_ids: ["TEST-DASH-03"]

@@ -1,0 +1,19 @@
+{
+  "component-definition": {
+    "uuid": "1b1b1b1b-1b1b-4b1b-8b1b-1b1b1b1b1b1b",
+    "metadata": {
+      "title": "Legacy-Komponente (OSCAL 1.1.2)",
+      "last-modified": "2026-07-03T10:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.1.2"
+    },
+    "components": [
+      {
+        "uuid": "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1",
+        "type": "software",
+        "title": "Alt-Tool",
+        "description": "A component-definition declared at OSCAL 1.1.2 to exercise import version handling (ADR-0007). Negative fixture: intentionally not 1.2.2, so it is not listed in the golden_data manifest."
+      }
+    ]
+  }
+}

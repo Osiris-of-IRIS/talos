@@ -1,0 +1,65 @@
+%% TALOS architecture (diagram-as-code). Decision IDs: ADR-0002..0008, 0010, 0015, 0047, 0053, 0099
+%% Render: any Mermaid renderer; also embedded in readme.md.
+flowchart TB
+    classDef ui fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef shared fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef domain fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    classDef data fill:#fef9c3,stroke:#ca8a04,color:#713f12
+    classDef ext fill:#f1f5f9,stroke:#64748b,color:#334155
+
+    subgraph Browser["Browser (static SPA, GitHub Pages — ADR-0002)"]
+        direction TB
+
+        subgraph UI["UI layer — src/features, src/app"]
+            Landing["Landing hub (ADR-0006)"]:::ui
+            CtrlF["Profiles (ADR-0003)"]:::ui
+            ImplF["Component-Defs & SSPs (ADR-0003, ADR-0014)"]:::ui
+            AsmtF["Assessment: AP/AR/POA&M (ADR-0003)"]:::ui
+            AsstF["Assistants (ADR-0006)"]:::ui
+            DashF["Dashboard (ADR-0006)"]:::ui
+        end
+
+        subgraph Shared["Shared — src/shared"]
+            MD["Markup render (ADR-0009)"]:::shared
+            Search["Entity-search (ADR-0013)"]:::shared
+            I18n["i18n de/en (ADR-0012)"]:::shared
+            Theme["Theme + tokens (ADR-0010)"]:::shared
+            Log["Structured logging (decision_ids)"]:::shared
+        end
+
+        subgraph Domain["Domain — src/models"]
+            Base["OscalArtifact base: metadata + back-matter (ADR-0003)"]:::domain
+            Types["Per-type models + codecs"]:::domain
+            Valid["Ajv validators — OSCAL v1.2.2 (ADR-0007)"]:::domain
+        end
+
+        subgraph DataL["Data — src/data + src/stores"]
+            Stores["Zustand stores"]:::data
+            Repo["Persistence repositories"]:::data
+            FileIO["File upload/download + zip bundle (ADR-0004)"]:::data
+            LibLoader["Library loader (ADR-0005)"]:::data
+            IDB[("IndexedDB: artifacts, libraryCache,\nunresolvedRefs, settings (ADR-0004)")]:::data
+        end
+
+        UI --> Shared
+        UI --> Stores --> Repo --> IDB
+        Domain <--> Repo
+        Shared --> Domain
+        UI --> FileIO
+        LibLoader --> Repo
+    end
+
+    BSI[("BSI Stand-der-Technik-Bibliothek\nraw.githubusercontent (read-only, ADR-0005)")]:::ext
+    Viewer["Stand-der-Technik-Viewer\n(external catalog viewing, ADR-0008)"]:::ext
+    Files[("OSCAL JSON files\n(user upload/download)")]:::ext
+
+    BSI -->|fetch index + lazy bodies| LibLoader
+    UI -->|open new tab + public URL| Viewer
+    FileIO <-->|import/export| Files
+
+    subgraph CI["CI/CD — GitHub Actions (ADR-0001, ADR-0002)"]
+        Build["npm ci -> lint + typecheck + tests (GATE) -> vite build"]:::ext
+        Pages["Deploy /dist -> GitHub Pages (base /talos/)"]:::ext
+        Build --> Pages
+    end
+    Pages -.serves.-> Browser

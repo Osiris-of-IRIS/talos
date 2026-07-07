@@ -1,0 +1,6 @@
+BSI Stand-der-Technik Bibliothek:
+https://github.com/BSI-Bund/Stand-der-Technik-Bibliothek
+
+I copied some ADRs from a neighbouring project in the folder (useADRs). Change their wording to tailor them to our project. (So use the gist, eg. colouring, not the 1:1 content of the ADR)
+
+For the OSCAL artifact backend, ensure features common to all OSCAL artifacts (e.g. metadata and back-matter) use a reusable OSCAL artifact data model and extend this with the artifact type specific data like controls or components.

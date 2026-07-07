@@ -1,0 +1,62 @@
+{
+  "system-security-plan": {
+    "uuid": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "metadata": {
+      "title": "Beispiel-SSP Webserver",
+      "last-modified": "2026-07-02T10:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.2.2"
+    },
+    "import-profile": { "href": "#bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
+    "system-characteristics": {
+      "system-ids": [{ "id": "web-01" }],
+      "system-name": "Webserver Cluster",
+      "description": "Public web hosting cluster.",
+      "system-information": {
+        "information-types": [
+          {
+            "uuid": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+            "title": "Web content",
+            "description": "Publicly served web content."
+          }
+        ]
+      },
+      "status": { "state": "operational" },
+      "authorization-boundary": { "description": "The cluster and its load balancer." }
+    },
+    "system-implementation": {
+      "users": [
+        {
+          "uuid": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+          "title": "Administrator",
+          "role-ids": ["admin"]
+        }
+      ],
+      "components": [
+        {
+          "uuid": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "type": "software",
+          "title": "nginx",
+          "description": "Reverse proxy and web server.",
+          "status": { "state": "operational" }
+        }
+      ]
+    },
+    "control-implementation": {
+      "description": "Implements the tailored controls for the web cluster.",
+      "implemented-requirements": [
+        {
+          "uuid": "ffffffff-ffff-4fff-8fff-ffffffffffff",
+          "control-id": "IA-5",
+          "by-components": [
+            {
+              "component-uuid": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+              "uuid": "10101010-1010-4010-8010-101010101010",
+              "description": "nginx enforces password policy for admin access."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

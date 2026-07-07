@@ -1,0 +1,28 @@
+{
+  "id": "ASST.1.1.2",
+  "title": "Zuweisung",
+  "class": "BSI-Stand-der-Technik-Kernel",
+  "params": [
+    {
+      "id": "asst.1.1.2-prm1",
+      "label": "zuständigen Personen oder Rollen",
+      "props": [{ "name": "alt-identifier", "value": "c2e8fafc-2e0d-40ad-b3ec-c572bf70a2b7" }]
+    }
+  ],
+  "props": [
+    { "name": "alt-identifier", "value": "b3a2e5a0-380a-4770-86e6-ea1d8d586ad7" },
+    { "name": "sec_level", "value": "normal-SdT" }
+  ],
+  "parts": [
+    {
+      "id": "ASST.1.1.2_stm",
+      "name": "statement",
+      "prose": "Informationen und Assets MUSS die mit den Verfahren und Regelungen verbundenen Aufgaben {{ insert: param, asst.1.1.2-prm1 }} zuweisen."
+    },
+    {
+      "id": "ASST.1.1.2_gdn",
+      "name": "guidance",
+      "prose": "Die Zuweisung von Verantwortlichkeiten sollte eindeutig und nachvollziehbar dokumentiert werden."
+    }
+  ]
+}

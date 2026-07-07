@@ -1,0 +1,35 @@
+{
+  "catalog": {
+    "uuid": "cccccccc-0000-4000-8000-000000000001",
+    "metadata": {
+      "title": "BSI Kernel (excerpt)",
+      "last-modified": "2026-07-02T10:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.2.2"
+    },
+    "groups": [
+      {
+        "id": "ASST",
+        "title": "Asset-Management",
+        "controls": [
+          {
+            "id": "ASST.1.1.2",
+            "title": "Zuweisung",
+            "class": "BSI-Stand-der-Technik-Kernel",
+            "params": [
+              { "id": "asst.1.1.2-prm1", "label": "zuständigen Personen oder Rollen" }
+            ],
+            "props": [{ "name": "alt-identifier", "value": "b3a2e5a0-380a-4770-86e6-ea1d8d586ad7" }],
+            "parts": [
+              {
+                "id": "ASST.1.1.2_stm",
+                "name": "statement",
+                "prose": "Informationen und Assets MUSS die mit den Verfahren verbundenen Aufgaben {{ insert: param, asst.1.1.2-prm1 }} zuweisen."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
