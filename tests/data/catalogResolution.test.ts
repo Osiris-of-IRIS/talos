@@ -1,6 +1,7 @@
 /**
- * Catalog control resolution. Decision IDs: ADR-0001, ADR-0016 (T-120).
- * Catalog fixture derived from BSI Stand-der-Technik-Bibliothek (CC-BY-SA-4.0). Covers TEST-CATRES-01.
+ * Catalog control resolution. Decision IDs: ADR-0001, ADR-0016, ADR-0021 (T-120).
+ * Catalog fixture derived from BSI Stand-der-Technik-Bibliothek (CC-BY-SA-4.0). Covers
+ * TEST-CATRES-01 and TEST-CTRLID-01.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
@@ -15,6 +16,7 @@ import {
   catalogSourceOptions,
   controlIdsForSource,
   paramsForControl,
+  normalizeControlIdKey,
 } from '@/data/catalogResolution';
 import { parseOscalUpload } from '@/data/fileIo';
 import type { Catalog } from '@/models/catalog';
@@ -74,7 +76,12 @@ describe('source→catalog + param pickers (T-142)', () => {
 
   it('lists control-ids for a chosen source, and params for a chosen control', () => {
     const { idx, catalogUuid } = build();
-    expect(controlIdsForSource(idx, `#${catalogUuid}`)).toEqual(['ASST.1.1.2']);
+    // The fixture control also carries an alt-identifier (ADR-0021), so it is indexed under
+    // both its literal id and the `_{uuid}` form.
+    const ids = controlIdsForSource(idx, `#${catalogUuid}`);
+    expect(ids).toHaveLength(2);
+    expect(ids).toContain('ASST.1.1.2');
+    expect(ids).toContain('_b3a2e5a0-380a-4770-86e6-ea1d8d586ad7');
     expect(paramsForControl(idx, `#${catalogUuid}`, 'ASST.1.1.2').map((p) => p.id)).toEqual([
       'asst.1.1.2-prm1',
     ]);
@@ -84,6 +91,49 @@ describe('source→catalog + param pickers (T-142)', () => {
     const { idx } = build();
     expect(controlIdsForSource(idx, '#cat-1')).toEqual([]);
     expect(paramsForControl(idx, '#cat-1', 'ASST.1.1.2')).toEqual([]);
+  });
+});
+
+describe('alt-identifier resolution (ADR-0021, TEST-CTRLID-01)', () => {
+  it('indexCatalogControls indexes a control under both its literal id and _{alt-identifier}', () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    const index = indexCatalogControls(record.artifact);
+    expect(index.get('ASST.1.1.2')?.title).toBe('Zuweisung');
+    expect(index.get('_b3a2e5a0-380a-4770-86e6-ea1d8d586ad7')?.title).toBe('Zuweisung');
+  });
+
+  it('resolveControl resolves the _{uuid} form to the same control as the literal id', () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    const idx = buildCatalogIndex([record] as never);
+    const byLiteral = resolveControl(idx, 'ASST.1.1.2');
+    const byAltId = resolveControl(idx, '_b3a2e5a0-380a-4770-86e6-ea1d8d586ad7');
+    expect(byAltId?.control).toBe(byLiteral?.control);
+  });
+
+  it('resolves the _{uuid} form case-insensitively', () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    const idx = buildCatalogIndex([record] as never);
+    expect(resolveControl(idx, '_B3A2E5A0-380A-4770-86E6-EA1D8D586AD7')?.control.title).toBe('Zuweisung');
+  });
+
+  it('returns undefined for a well-formed but non-matching _{uuid} reference', () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    const idx = buildCatalogIndex([record] as never);
+    expect(resolveControl(idx, '_00000000-0000-4000-8000-000000000000')).toBeUndefined();
+  });
+
+  it('paramsForControl resolves params when the requirement references the alt-identifier form', () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    const idx = buildCatalogIndex([record] as never);
+    const params = paramsForControl(idx, `#${record.uuid}`, '_b3a2e5a0-380a-4770-86e6-ea1d8d586ad7');
+    expect(params.map((p) => p.id)).toEqual(['asst.1.1.2-prm1']);
+  });
+
+  it('normalizeControlIdKey lowercases only the _{uuid} form, leaving literal ids untouched', () => {
+    expect(normalizeControlIdKey('_B3A2E5A0-380A-4770-86E6-EA1D8D586AD7')).toBe(
+      '_b3a2e5a0-380a-4770-86e6-ea1d8d586ad7',
+    );
+    expect(normalizeControlIdKey('ASST.1.1.2')).toBe('ASST.1.1.2');
   });
 });
 

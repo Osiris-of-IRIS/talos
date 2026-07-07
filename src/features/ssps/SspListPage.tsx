@@ -2,8 +2,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSspsStore } from './store';
+import { useI18n } from '@/shared/i18n';
 
 export function SspListPage() {
+  const { t } = useI18n();
   const { items, loading, error, warnings, load, importFromText, remove } = useSspsStore();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -29,13 +31,13 @@ export function SspListPage() {
   return (
     <main data-testid="ssp-list">
       <p>
-        <Link to="/">← TALOS</Link>
+        <Link to="/">← {t('app_title')}</Link>
       </p>
-      <h1>🖥️ System Security Plans</h1>
+      <h1>🖥️ {t('landing_feature_ssps')}</h1>
 
       <div>
         <button type="button" onClick={() => fileInput.current?.click()}>
-          ⭱ Upload OSCAL file
+          ⭱ {t('common_upload_oscal')}
         </button>
         <input
           ref={fileInput}
@@ -58,10 +60,10 @@ export function SspListPage() {
           ⚠️ {warnings.join(' ')}
         </p>
       )}
-      {loading && <p>Loading…</p>}
+      {loading && <p>{t('common_loading')}</p>}
 
       {!loading && items.length === 0 && (
-        <p data-testid="ssp-empty">📂 No system security plans yet. Upload an OSCAL file to start.</p>
+        <p data-testid="ssp-empty">📂 {t('ssp_empty')}</p>
       )}
 
       <ul>
@@ -71,7 +73,7 @@ export function SspListPage() {
             <button
               type="button"
               onClick={() => void remove(r.uuid)}
-              aria-label={`Delete ${r.artifact.metadata.title}`}
+              aria-label={t('ssp_delete', { title: r.artifact.metadata.title })}
             >
               🗑️
             </button>

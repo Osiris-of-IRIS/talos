@@ -1,7 +1,8 @@
-// Reusable metadata editor — used by every artifact type. Decision IDs: ADR-0003, ADR-0015, ADR-0017, ADR-0019.
+// Reusable metadata editor — used by every artifact type. Decision IDs: ADR-0003, ADR-0015, ADR-0017, ADR-0019, ADR-0012.
 import { useState } from 'react';
 import { externalizeLink, isExternalUrl } from '@/models/backMatter';
 import { validateCreator } from '@/models/creator';
+import { useI18n } from '@/shared/i18n';
 import type { OscalArtifact, Party } from '@/models/oscalBase';
 
 interface Props<T extends OscalArtifact> {
@@ -10,6 +11,7 @@ interface Props<T extends OscalArtifact> {
 }
 
 export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: Props<T>) {
+  const { t } = useI18n();
   const [linkHref, setLinkHref] = useState('');
   const [linkText, setLinkText] = useState('');
   const [roleId, setRoleId] = useState('');
@@ -45,7 +47,7 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
     const title = roleTitle.trim();
     if (!id || !title) return;
     if (roles.some((r) => r.id === id)) {
-      setRoleError(`A role with id "${id}" already exists.`);
+      setRoleError(t('md_role_duplicate_error', { id }));
       return;
     }
     patch((d) => ((d.metadata.roles ??= []).push({ id, title })));
@@ -170,10 +172,10 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
 
   return (
     <fieldset data-testid="metadata-editor">
-      <legend>Metadata</legend>
+      <legend>{t('md_legend')}</legend>
 
       <label>
-        Title
+        {t('md_title_label')}
         <input
           data-testid="md-title"
           value={md.title}
@@ -182,7 +184,7 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
       </label>
 
       <label>
-        Version
+        {t('md_version_label')}
         <input
           data-testid="md-version"
           value={md.version}
@@ -191,7 +193,7 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
       </label>
 
       <label>
-        Remarks
+        {t('md_remarks_label')}
         <textarea
           data-testid="md-remarks"
           value={md.remarks ?? ''}
@@ -200,12 +202,16 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
       </label>
 
       <div data-testid="md-roles">
-        <strong>Roles</strong> <small>(referenceable by responsible-parties)</small>
+        <strong>{t('md_roles_heading')}</strong> <small>{t('md_roles_hint')}</small>
         <ul>
           {roles.map((r) => (
             <li key={r.id} data-testid="md-role">
               🧑‍💼 <strong>{r.title}</strong> <small>({r.id})</small>{' '}
-              <button type="button" aria-label={`Remove role ${r.id}`} onClick={() => removeRole(r.id)}>
+              <button
+                type="button"
+                aria-label={t('md_remove_role', { id: r.id })}
+                onClick={() => removeRole(r.id)}
+              >
                 ✕
               </button>
             </li>
@@ -213,18 +219,18 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
         </ul>
         <input
           data-testid="md-role-id"
-          placeholder="id (e.g. provider)"
+          placeholder={t('md_role_id_placeholder')}
           value={roleId}
           onChange={(e) => setRoleId(e.target.value)}
         />
         <input
           data-testid="md-role-title"
-          placeholder="title"
+          placeholder={t('md_role_title_placeholder')}
           value={roleTitle}
           onChange={(e) => setRoleTitle(e.target.value)}
         />
         <button type="button" data-testid="md-add-role" onClick={addRole}>
-          ➕ Add role
+          ➕ {t('md_add_role')}
         </button>
         {roleError && (
           <p role="alert" data-testid="md-role-error">
@@ -234,55 +240,59 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
       </div>
 
       <div data-testid="md-parties">
-        <strong>Parties</strong> <small>(persons/organizations)</small>
+        <strong>{t('md_parties_heading')}</strong> <small>{t('md_parties_hint')}</small>
         <ul>
           {parties.map((p) => (
             <li key={p.uuid} data-testid="md-party">
               {p.type === 'person' ? '👤' : '🏢'} <strong>{p.name}</strong>{' '}
               <small>{p.emailAddresses?.[0] ? `✉️ ${p.emailAddresses[0]}` : ''}</small>{' '}
-              <button type="button" aria-label={`Remove party ${p.name}`} onClick={() => removeParty(p.uuid)}>
+              <button
+                type="button"
+                aria-label={t('md_remove_party', { name: p.name ?? '' })}
+                onClick={() => removeParty(p.uuid)}
+              >
                 ✕
               </button>
               <details data-testid={`md-party-details-${p.uuid}`}>
-                <summary>Details (optional)</summary>
+                <summary>{t('md_party_details_summary')}</summary>
                 <label>
-                  Email
+                  {t('md_email_label')}
                   <input
-                    aria-label={`Email for ${p.name}`}
+                    aria-label={t('md_email_for', { name: p.name ?? '' })}
                     value={p.emailAddresses?.[0] ?? ''}
                     onChange={(e) => setPartyEmailValue(p.uuid, e.target.value)}
                   />
                 </label>
                 <fieldset>
-                  <legend>Address</legend>
+                  <legend>{t('md_address_legend')}</legend>
                   <input
-                    aria-label={`Address line for ${p.name}`}
-                    placeholder="street / line"
+                    aria-label={t('md_address_line_for', { name: p.name ?? '' })}
+                    placeholder={t('md_address_line_placeholder')}
                     value={p.addresses?.[0]?.addrLines?.[0] ?? ''}
                     onChange={(e) => setAddressField(p.uuid, 'line', e.target.value)}
                   />
                   <input
-                    aria-label={`City for ${p.name}`}
-                    placeholder="city"
+                    aria-label={t('md_city_for', { name: p.name ?? '' })}
+                    placeholder={t('md_city_placeholder')}
                     value={p.addresses?.[0]?.city ?? ''}
                     onChange={(e) => setAddressField(p.uuid, 'city', e.target.value)}
                   />
                   <input
-                    aria-label={`Postal code for ${p.name}`}
-                    placeholder="postal code"
+                    aria-label={t('md_postal_code_for', { name: p.name ?? '' })}
+                    placeholder={t('md_postal_code_placeholder')}
                     value={p.addresses?.[0]?.postalCode ?? ''}
                     onChange={(e) => setAddressField(p.uuid, 'postalCode', e.target.value)}
                   />
                   <input
-                    aria-label={`Country for ${p.name}`}
-                    placeholder="country"
+                    aria-label={t('md_country_for', { name: p.name ?? '' })}
+                    placeholder={t('md_country_placeholder')}
                     value={p.addresses?.[0]?.country ?? ''}
                     onChange={(e) => setAddressField(p.uuid, 'country', e.target.value)}
                   />
                 </fieldset>
                 {organizations.some((o) => o.uuid !== p.uuid) && (
                   <fieldset>
-                    <legend>Member of organizations</legend>
+                    <legend>{t('md_member_of_orgs_legend')}</legend>
                     {organizations
                       .filter((o) => o.uuid !== p.uuid)
                       .map((o) => (
@@ -306,36 +316,35 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
           value={partyType}
           onChange={(e) => setPartyType(e.target.value as Party['type'])}
         >
-          <option value="organization">Organization</option>
-          <option value="person">Person</option>
+          <option value="organization">{t('md_party_type_organization')}</option>
+          <option value="person">{t('md_party_type_person')}</option>
         </select>
         <input
           data-testid="md-party-name"
-          placeholder="name"
+          placeholder={t('md_party_name_placeholder')}
           value={partyName}
           onChange={(e) => setPartyName(e.target.value)}
         />
         <input
           data-testid="md-party-email"
-          placeholder="email (required for a creator)"
+          placeholder={t('md_party_email_placeholder')}
           value={partyEmail}
           onChange={(e) => setPartyEmail(e.target.value)}
         />
         <button type="button" data-testid="md-add-party" onClick={addParty}>
-          ➕ Add party
+          ➕ {t('md_add_party')}
         </button>
       </div>
 
       <div data-testid="md-responsible-parties">
-        <strong>Responsible parties</strong>{' '}
-        <small>(assign a defined party to a defined role)</small>
+        <strong>{t('md_responsible_parties_heading')}</strong> <small>{t('md_responsible_parties_hint')}</small>
         {creatorProblems.length > 0 ? (
           <p role="status" data-testid="md-creator-status" style={{ color: 'var(--color-warning, #a15c00)' }}>
-            ⚠️ Creator required: {creatorProblems.join(' ')}
+            ⚠️ {t('md_creator_required', { problems: creatorProblems.join(' ') })}
           </p>
         ) : (
           <p data-testid="md-creator-status" style={{ color: 'var(--color-ok, #1a7f37)' }}>
-            ✓ Creator set
+            ✓ {t('md_creator_set')}
           </p>
         )}
         <ul>
@@ -344,7 +353,7 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
               <strong>{roleTitleById(rp.roleId)}</strong>: {rp.partyUuids.map(partyNameByUuid).join(', ')}{' '}
               <button
                 type="button"
-                aria-label={`Remove responsible party ${rp.roleId}`}
+                aria-label={t('md_remove_responsible_party', { roleId: rp.roleId })}
                 onClick={() =>
                   patch(
                     (d) =>
@@ -366,7 +375,7 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
               value={rpRoleId}
               onChange={(e) => setRpRoleId(e.target.value)}
             >
-              <option value="">— select role —</option>
+              <option value="">{t('md_rp_role_placeholder')}</option>
               {availableRoles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.title} ({r.id})
@@ -374,7 +383,7 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
               ))}
             </select>
             <fieldset data-testid="md-rp-parties">
-              <legend>Parties</legend>
+              <legend>{t('md_parties_heading')}</legend>
               {parties.map((p) => (
                 <label key={p.uuid}>
                   <input
@@ -392,30 +401,29 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
               disabled={!rpRoleId || rpPartyUuids.size === 0}
               onClick={addResponsibleParty}
             >
-              ➕ Assign responsible party
+              ➕ {t('md_assign_responsible_party')}
             </button>
           </div>
         ) : (
           <p data-testid="md-rp-guidance">
             <small>
               {roles.length === 0 || parties.length === 0
-                ? 'Define at least one role and one party to assign responsible parties.'
-                : 'All roles already have a responsible party.'}
+                ? t('md_rp_guidance_need_both')
+                : t('md_rp_guidance_all_assigned')}
             </small>
           </p>
         )}
       </div>
 
       <div>
-        <strong>Links</strong>{' '}
-        <small>(external URLs become back-matter resources — ADR-0015)</small>
+        <strong>{t('md_links_heading')}</strong> <small>{t('md_links_hint')}</small>
         <ul>
           {links.map((l, i) => (
             <li key={`${l.href}-${i}`} data-testid="md-link">
               🔗 {l.text ?? l.href} <small>({l.href})</small>{' '}
               <button
                 type="button"
-                aria-label={`Remove link ${l.text ?? l.href}`}
+                aria-label={t('md_remove_link', { text: l.text ?? l.href })}
                 onClick={() => patch((d) => d.metadata.links?.splice(i, 1))}
               >
                 ✕
@@ -425,20 +433,20 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
         </ul>
         <input
           data-testid="md-link-href"
-          placeholder="https://… or #ref"
+          placeholder={t('md_link_href_placeholder')}
           value={linkHref}
           onChange={(e) => setLinkHref(e.target.value)}
         />
         <input
           data-testid="md-link-text"
-          placeholder="link text (optional)"
+          placeholder={t('md_link_text_placeholder')}
           value={linkText}
           onChange={(e) => setLinkText(e.target.value)}
         />
         <button type="button" data-testid="md-add-link" onClick={addLink}>
-          ➕ Add link
+          ➕ {t('md_add_link')}
         </button>
-        {isExternalUrl(linkHref) && <small> → will be stored in back-matter</small>}
+        {isExternalUrl(linkHref) && <small> {t('md_link_backmatter_hint')}</small>}
       </div>
     </fieldset>
   );

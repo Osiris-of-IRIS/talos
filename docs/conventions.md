@@ -29,6 +29,13 @@ Engineering conventions for TALOS. Decision IDs referenced inline.
 - Colors/tokens per `[ADR-0010]`; symbols per `[ADR-0011]` (interactive symbols need
   `aria-label` + `title`). Theme via `data-theme`, never `@media (prefers-color-scheme)`.
 - All user-facing strings via `t('key')` `[ADR-0012]`; no hard-coded copy. Default language `de`.
+  Add a key to **both** `src/locales/en.json` and `src/locales/de.json` (parity is enforced by
+  `TEST-I18N-01`). Isolated component tests render without an `<I18nProvider>` on purpose — the
+  `useI18n()` context default resolves against English, so keep the English catalog value
+  identical to what a test asserts if the test predates translation.
+  Default seed values written into new artifacts (e.g. a blank component's title, the seeded
+  `Creator` role title) are **not** translated — they're user-editable document content, not UI
+  chrome.
 
 ## State & data
 - Views read/write via Zustand stores; stores persist through repositories; **never** touch

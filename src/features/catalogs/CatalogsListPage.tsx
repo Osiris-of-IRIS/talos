@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCatalogsStore } from './store';
 import { VIEWER_URL } from '@/config';
+import { useI18n } from '@/shared/i18n';
 
 export function CatalogsListPage() {
+  const { t } = useI18n();
   const { items, loading, error, warnings, load, importFromText, remove } = useCatalogsStore();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -29,16 +31,16 @@ export function CatalogsListPage() {
   return (
     <main data-testid="catalog-list">
       <p>
-        <Link to="/">← TALOS</Link>
+        <Link to="/">← {t('app_title')}</Link>
       </p>
-      <h1>📘 Catalogs</h1>
+      <h1>📘 {t('landing_feature_catalogs')}</h1>
       <p>
-        <small>Catalogs are read-only sources; open them in the Stand-der-Technik-Viewer for full browsing.</small>
+        <small>{t('catalog_readonly_hint')}</small>
       </p>
 
       <div>
         <button type="button" onClick={() => fileInput.current?.click()}>
-          ⭱ Upload catalog (OSCAL JSON)
+          ⭱ {t('catalog_upload')}
         </button>
         <input
           ref={fileInput}
@@ -61,9 +63,9 @@ export function CatalogsListPage() {
           ⚠️ {warnings.join(' ')}
         </p>
       )}
-      {loading && <p>Loading…</p>}
+      {loading && <p>{t('common_loading')}</p>}
       {!loading && items.length === 0 && (
-        <p data-testid="catalog-empty">📂 No catalogs yet. Upload one, or (soon) load from the BSI library.</p>
+        <p data-testid="catalog-empty">📂 {t('catalog_empty')}</p>
       )}
 
       <ul>
@@ -71,9 +73,13 @@ export function CatalogsListPage() {
           <li key={r.uuid} data-testid="catalog-item">
             {r.artifact.metadata.title} <small>({r.origin})</small>{' '}
             <a href={VIEWER_URL} target="_blank" rel="noopener noreferrer">
-              ≡ view in SdT-Viewer
+              ≡ {t('catalog_view_in_viewer')}
             </a>{' '}
-            <button type="button" aria-label={`Delete ${r.artifact.metadata.title}`} onClick={() => void remove(r.uuid)}>
+            <button
+              type="button"
+              aria-label={t('catalog_delete', { title: r.artifact.metadata.title })}
+              onClick={() => void remove(r.uuid)}
+            >
               🗑️
             </button>
           </li>

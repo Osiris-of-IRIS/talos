@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Markup } from './Markup';
 import { Modal } from './Modal';
 import { stripMarkdown } from './oscalMarkdown';
+import { useI18n } from './i18n';
 import './markupView.css';
 
 const INLINE_BUDGET = 120;
@@ -19,6 +20,7 @@ interface MarkupViewProps {
 }
 
 export function MarkupView({ value, multiline = false, className, label }: MarkupViewProps) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const plain = stripMarkdown(value).trim();
   if (!plain) return null;
@@ -46,8 +48,8 @@ export function MarkupView({ value, multiline = false, className, label }: Marku
         type="button"
         className="markup-view-expand"
         data-testid="markup-view-expand"
-        aria-label={label ? `Expand ${label}` : 'Expand full content'}
-        title="Expand"
+        aria-label={label ? t('markup_view_expand_labeled', { label }) : t('markup_view_expand_generic')}
+        title={t('markup_view_expand_title')}
         onClick={() => setExpanded(true)}
       >
         ⤢

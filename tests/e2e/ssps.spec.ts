@@ -4,6 +4,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
+import { useEnglishUi } from './i18nHelpers';
 
 const fixture = fileURLToPath(new URL('../data/ssp-minimal.json', import.meta.url));
 
@@ -26,6 +27,7 @@ test('upload an SSP, see it listed, open its detail', async ({ page }) => {
 
 test('landing page links to SSPs', async ({ page }) => {
   await page.goto('/');
+  await useEnglishUi(page);
   await page.getByRole('link', { name: /System Security Plans/ }).click();
   await expect(page).toHaveURL(/#\/ssps/);
   await expect(page.getByRole('heading', { name: /System Security Plans/ })).toBeVisible();

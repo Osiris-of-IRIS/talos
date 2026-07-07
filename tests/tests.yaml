@@ -31,6 +31,8 @@ adr_coverage_required:
   - ADR-0016 # reusable control-display helper
   - ADR-0019 # mandatory creator identity (name + email), enforced at export
   - ADR-0022 # markup truncate-and-expand display helper
+  - ADR-0012 # i18n (de/en, t() with English fallback, language stored in settings)
+  - ADR-0021 # control-id resolution: literal id vs. _{uuid} alt-identifier reference
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -143,20 +145,23 @@ suites:
     adr_refs: [ADR-0001, ADR-0013]
 
   - id: TEST-I18N-01
-    title: i18n de/en key parity + English fallback
+    title: "i18n: de/en key parity, interpolation, fallback chain, provider default + persistence"
+    file: tests/shared/i18n.test.tsx
     type: unit
     runner: vitest
-    status: planned
+    status: implemented
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0012]
 
   - id: TEST-CTRLID-01
     title: "Control-id resolution: literal id vs. \"_{uuid}\" alt-identifier reference"
+    file: tests/data/catalogResolution.test.ts
     type: unit
     runner: vitest
-    status: planned
+    status: implemented
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0021, ADR-0016]
+    golden: [tests/data/catalog-minimal.json]
 
   - id: TEST-VER-01
     title: Import OSCAL-version policy (accept 1.x with warning, reject non-1.x)
@@ -279,7 +284,7 @@ suites:
     adr_refs: [ADR-0001, ADR-0004]
 
   - id: TEST-CDEF-EDIT-01
-    title: Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance)
+    title: Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance, component list collapse/expand)
     file: tests/features/componentDefinitionEditor.test.tsx
     type: component
     runner: vitest

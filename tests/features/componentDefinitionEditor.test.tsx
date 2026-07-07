@@ -208,3 +208,78 @@ describe('edit', () => {
     expect(rec?.artifact.metadata.title).toBe('New Title');
   });
 });
+
+describe('component list — collapse/expand (item 2)', () => {
+  const uuid = '88888888-8888-4888-8888-888888888888';
+
+  async function seedTwoComponents() {
+    await repo().create({
+      uuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid,
+        metadata: { title: 'Multi', version: '1.0.0', oscalVersion: '1.2.2' },
+        components: [
+          {
+            uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            type: 'software',
+            title: 'nginx',
+            description: 'web server',
+            controlImplementations: [
+              {
+                uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+                source: '#cat-1',
+                description: 'ci',
+                implementedRequirements: [
+                  { uuid: 'r1', controlId: 'ASST.1.1.2' },
+                  { uuid: 'r2', controlId: 'ASST.1.1.3' },
+                ],
+              },
+            ],
+          },
+          {
+            uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            type: 'policy',
+            title: 'password policy',
+            description: 'policy doc',
+          },
+        ],
+      },
+    });
+  }
+
+  it('renders existing components collapsed (title/type/requirement count), and expands on click', async () => {
+    await seedTwoComponents();
+    const user = userEvent.setup();
+    renderAt(`/component-definitions/${uuid}/edit`);
+    await waitFor(() => expect(screen.getByTestId('md-title')).toHaveValue('Multi'));
+
+    const summaries = screen.getAllByTestId('compdef-component-summary');
+    expect(summaries).toHaveLength(2);
+    expect(summaries[0]).toHaveTextContent('nginx');
+    expect(summaries[0]).toHaveTextContent('software');
+    expect(summaries[0]).toHaveTextContent('2'); // 2 implemented-requirements
+    expect(summaries[1]).toHaveTextContent('password policy');
+    expect(summaries[1]).toHaveTextContent('0');
+
+    // collapsed by default: no field inputs visible yet
+    expect(screen.queryAllByTestId('component-title')).toHaveLength(0);
+
+    await user.click(summaries[0]!);
+    expect(screen.getByTestId('component-title')).toHaveValue('nginx');
+
+    // the other component is still collapsed
+    expect(screen.queryAllByTestId('component-title')).toHaveLength(1);
+
+    await user.click(summaries[0]!);
+    expect(screen.queryAllByTestId('component-title')).toHaveLength(0);
+  });
+
+  it('auto-expands a newly-added component', async () => {
+    const user = userEvent.setup();
+    renderAt('/component-definitions/new');
+    await user.click(screen.getByTestId('add-component'));
+    expect(screen.getByTestId('component-title')).toBeInTheDocument();
+  });
+});

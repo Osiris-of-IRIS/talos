@@ -1,5 +1,6 @@
-// Reusable control renderer. Decision IDs: ADR-0016, ADR-0008, ADR-0009, ADR-0010.
+// Reusable control renderer. Decision IDs: ADR-0016, ADR-0008, ADR-0009, ADR-0010, ADR-0012.
 import { Markup } from '@/shared/Markup';
+import { useI18n } from '@/shared/i18n';
 import {
   getControlHeadline,
   getControlAltIdentifier,
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export function ControlDisplay({ control, setParameters, viewerUrl, statementMaxChars }: Props) {
+  const { t } = useI18n();
   const headline = getControlHeadline(control);
   const altId = getControlAltIdentifier(control);
   const segments = getStatementSegments(control, setParameters, statementMaxChars);
@@ -33,7 +35,7 @@ export function ControlDisplay({ control, setParameters, viewerUrl, statementMax
           href={viewerUrl}
           target="_blank"
           rel="noopener noreferrer"
-          title="Open catalog in the Stand-der-Technik-Viewer"
+          title={t('control_viewer_link_title')}
         >
           {headline}
         </a>
@@ -58,13 +60,13 @@ export function ControlDisplay({ control, setParameters, viewerUrl, statementMax
 
       <span className="control-tooltip" role="tooltip" data-testid="control-tooltip">
         <div>
-          <strong>id:</strong> {control.id}
+          <strong>{t('control_tooltip_id_label')}</strong> {control.id}
         </div>
         <div>
-          <strong>uuid:</strong> {altId ?? '—'}
+          <strong>{t('control_tooltip_uuid_label')}</strong> {altId ?? '—'}
         </div>
         <div>
-          <strong>class:</strong> {control.class ?? '—'}
+          <strong>{t('control_tooltip_class_label')}</strong> {control.class ?? '—'}
         </div>
         {allParts.map((p, i) => (
           <div key={i} data-testid="control-tooltip-part">

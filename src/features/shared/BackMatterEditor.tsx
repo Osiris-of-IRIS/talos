@@ -1,4 +1,4 @@
-// Reusable back-matter (resources) editor. Decision IDs: ADR-0003, ADR-0015.
+// Reusable back-matter (resources) editor. Decision IDs: ADR-0003, ADR-0015, ADR-0012.
 import { useRef, useState } from 'react';
 import {
   addFileResource,
@@ -7,6 +7,7 @@ import {
   shouldWarnFileSize,
   DEFAULT_MAX_EMBEDDED_FILE_BYTES,
 } from '@/models/backMatter';
+import { useI18n } from '@/shared/i18n';
 import type { OscalArtifact } from '@/models/oscalBase';
 
 interface Props<T extends OscalArtifact> {
@@ -20,6 +21,7 @@ export function BackMatterEditor<T extends OscalArtifact>({
   onChange,
   maxEmbeddedFileBytes = DEFAULT_MAX_EMBEDDED_FILE_BYTES,
 }: Props<T>) {
+  const { t } = useI18n();
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,10 @@ export function BackMatterEditor<T extends OscalArtifact>({
       const bytes = new Uint8Array(await file.arrayBuffer());
       if (shouldWarnFileSize(bytes.length)) {
         setWarning(
-          `"${file.name}" is ${(bytes.length / (1024 * 1024)).toFixed(1)} MiB — this enlarges the document. Consider referencing by URL.`,
+          t('bm_file_size_warning', {
+            name: file.name,
+            mib: (bytes.length / (1024 * 1024)).toFixed(1),
+          }),
         );
       }
       patch((d) =>
@@ -70,7 +75,7 @@ export function BackMatterEditor<T extends OscalArtifact>({
 
   return (
     <fieldset data-testid="backmatter-editor">
-      <legend>Back-matter resources</legend>
+      <legend>{t('bm_legend')}</legend>
 
       <ul>
         {resources.map((r) => (
@@ -78,7 +83,7 @@ export function BackMatterEditor<T extends OscalArtifact>({
             {r.base64 ? '📄' : '🔗'} {r.title ?? r.base64?.filename ?? r.rlinks?.[0]?.href ?? r.uuid}{' '}
             <button
               type="button"
-              aria-label={`Remove resource ${r.title ?? r.uuid}`}
+              aria-label={t('bm_remove_resource', { title: r.title ?? r.uuid })}
               onClick={() => patch((d) => removeResource(d, r.uuid))}
             >
               🗑️
@@ -90,27 +95,27 @@ export function BackMatterEditor<T extends OscalArtifact>({
       <div>
         <input
           data-testid="bm-url"
-          placeholder="https://…"
+          placeholder={t('bm_url_placeholder')}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
         />
         <input
           data-testid="bm-title"
-          placeholder="title (optional)"
+          placeholder={t('bm_title_placeholder')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <button type="button" data-testid="bm-add-url" onClick={addUrl}>
-          ➕ Add URL resource
+          ➕ {t('bm_add_url')}
         </button>
       </div>
 
       <div>
         <button type="button" onClick={() => fileInput.current?.click()}>
-          📄 Embed file…
+          📄 {t('bm_embed_file')}
         </button>
         <input ref={fileInput} type="file" hidden data-testid="bm-file-input" onChange={onFile} />
-        <small> (max {(maxEmbeddedFileBytes / (1024 * 1024)).toFixed(0)} MiB)</small>
+        <small> {t('bm_max_size', { mib: (maxEmbeddedFileBytes / (1024 * 1024)).toFixed(0) })}</small>
       </div>
 
       {warning && (

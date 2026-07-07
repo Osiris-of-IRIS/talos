@@ -5,7 +5,7 @@
  * still allowed; origin-agnostic so T-034 library catalogs slot into the same lists). The full
  * ADR-0013 entity-search widget (T-036) can later replace the datalists. When the workspace has
  * zero catalogs, shows an info message linking to upload/library (T-161).
- * Decision IDs: ADR-0003, ADR-0013, ADR-0016 (feature IMPL-001, T-101/T-142/T-161).
+ * Decision IDs: ADR-0003, ADR-0013, ADR-0016, ADR-0012 (feature IMPL-001, T-101/T-142/T-161).
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -16,6 +16,7 @@ import {
   paramsForControl,
   type CatalogIndex,
 } from '@/data/catalogResolution';
+import { useI18n } from '@/shared/i18n';
 import type { Parameter } from '@/models/control';
 import type {
   ControlImplementation,
@@ -60,15 +61,16 @@ function SetParameterRow({
   paramOptions: Parameter[];
   datalistId: string;
 }) {
+  const { t } = useI18n();
   const [rawValues, setRawValues] = useState((value.values ?? []).join(', '));
   return (
     <div data-testid="set-parameter">
       <input
-        aria-label="Parameter id"
+        aria-label={t('ci_param_id_aria')}
         data-testid="sp-param-id"
         list={datalistId}
         value={value.paramId}
-        placeholder="param id (pick from source catalog)"
+        placeholder={t('ci_param_id_placeholder')}
         onChange={(e) => onChange({ ...value, paramId: e.target.value })}
       />
       <datalist id={datalistId}>
@@ -79,16 +81,16 @@ function SetParameterRow({
         ))}
       </datalist>
       <input
-        aria-label="Parameter values"
+        aria-label={t('ci_param_values_aria')}
         data-testid="sp-values"
         value={rawValues}
-        placeholder="values, comma-separated"
+        placeholder={t('ci_param_values_placeholder')}
         onChange={(e) => {
           setRawValues(e.target.value);
           onChange({ ...value, values: parseValues(e.target.value) });
         }}
       />
-      <button type="button" aria-label="Remove set-parameter" onClick={onRemove}>
+      <button type="button" aria-label={t('ci_remove_set_parameter')} onClick={onRemove}>
         ✕
       </button>
     </div>
@@ -96,6 +98,7 @@ function SetParameterRow({
 }
 
 export function ControlImplementationsEditor({ value, onChange, catalogIndex }: Props) {
+  const { t } = useI18n();
   const cis = value.controlImplementations ?? [];
   const sourceOptions = catalogIndex ? catalogSourceOptions(catalogIndex) : [];
 
@@ -127,17 +130,17 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
 
   return (
     <div data-testid="control-implementations">
-      <strong>Control implementations ({cis.length})</strong>
+      <strong>{t('ci_heading', { count: cis.length })}</strong>
       {cis.map((ci, ciIdx) => (
         <fieldset key={ci.uuid} data-testid="control-implementation">
-          <legend>Control implementation</legend>
+          <legend>{t('ci_legend')}</legend>
           <label>
-            Source (pick a workspace catalog, or enter a catalog/profile href)
+            {t('ci_source_label')}
             <input
               data-testid="ci-source"
               list={`source-options-${ci.uuid}`}
               value={ci.source}
-              placeholder="#<uuid> or catalog/profile reference"
+              placeholder={t('ci_source_placeholder')}
               onChange={(e) => update((c) => (c.controlImplementations![ciIdx]!.source = e.target.value))}
             />
             <datalist id={`source-options-${ci.uuid}`}>
@@ -154,18 +157,19 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
                   ✓ {findCatalogEntry(catalogIndex, ci.source)!.title}
                 </small>
               ) : (
-                ci.source && <small> (unresolved — free-text href)</small>
+                ci.source && <small> {t('ci_source_unresolved')}</small>
               ))}
           </label>
           {catalogIndex && catalogIndex.catalogCount === 0 && (
             <p data-testid="no-catalogs-hint">
-              No catalogs in your workspace yet, so control ids can't be searched. Upload a
-              catalog on the <Link to="/catalogs">Catalogs</Link> page, or adopt one from the{' '}
-              <Link to="/library">BSI Library</Link>.
+              {t('ci_no_catalogs_hint_pre')}{' '}
+              <Link to="/catalogs">{t('landing_feature_catalogs')}</Link>
+              {t('ci_no_catalogs_hint_mid')}{' '}
+              <Link to="/library">{t('landing_feature_library')}</Link>.
             </p>
           )}
           <label>
-            Description
+            {t('common_description')}
             <textarea
               data-testid="ci-description"
               value={ci.description}
@@ -174,7 +178,7 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
           </label>
 
           <div>
-            <em>Implemented requirements ({ci.implementedRequirements.length})</em>
+            <em>{t('ci_requirements_heading', { count: ci.implementedRequirements.length })}</em>
             {ci.implementedRequirements.map((ir, irIdx) => {
               const paramOptions = catalogIndex
                 ? paramsForControl(catalogIndex, ci.source, ir.controlId)
@@ -183,12 +187,12 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
               return (
               <fieldset key={ir.uuid} data-testid="implemented-requirement">
                 <label>
-                  Control ID
+                  {t('ci_control_id_label')}
                   <input
                     data-testid="ir-control-id"
                     list={`controlids-${ir.uuid}`}
                     value={ir.controlId}
-                    placeholder="e.g. ASST.1.1.2"
+                    placeholder={t('ci_control_id_placeholder')}
                     onChange={(e) =>
                       update((c) => (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.controlId = e.target.value))
                     }
@@ -200,7 +204,7 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
                   </datalist>
                 </label>
                 <label>
-                  Description
+                  {t('common_description')}
                   <textarea
                     data-testid="ir-description"
                     value={ir.description ?? ''}
@@ -214,7 +218,7 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
                   />
                 </label>
                 <label>
-                  Remarks
+                  {t('md_remarks_label')}
                   <textarea
                     data-testid="ir-remarks"
                     value={ir.remarks ?? ''}
@@ -229,7 +233,7 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
                 </label>
 
                 <div data-testid="set-parameters">
-                  <em>Set parameters</em>
+                  <em>{t('ci_set_parameters_heading')}</em>
                   {(ir.setParameters ?? []).map((sp, spIdx) => (
                     <SetParameterRow
                       key={spIdx}
@@ -259,38 +263,38 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
                       })
                     }
                   >
-                    ➕ Set parameter
+                    ➕ {t('ci_add_set_parameter')}
                   </button>
                 </div>
 
                 <button
                   type="button"
-                  aria-label="Remove implemented requirement"
+                  aria-label={t('ci_remove_requirement_aria')}
                   onClick={() =>
                     update((c) => c.controlImplementations![ciIdx]!.implementedRequirements.splice(irIdx, 1))
                   }
                 >
-                  🗑️ Remove requirement
+                  🗑️ {t('ci_remove_requirement_button')}
                 </button>
               </fieldset>
               );
             })}
             <button type="button" data-testid="add-requirement" onClick={() => addRequirement(ciIdx)}>
-              ➕ Add requirement
+              ➕ {t('ci_add_requirement')}
             </button>
           </div>
 
           <button
             type="button"
-            aria-label="Remove control implementation"
+            aria-label={t('ci_remove_ci_aria')}
             onClick={() => update((c) => c.controlImplementations!.splice(ciIdx, 1))}
           >
-            🗑️ Remove control implementation
+            🗑️ {t('ci_remove_ci_button')}
           </button>
         </fieldset>
       ))}
       <button type="button" data-testid="add-control-implementation" onClick={addCi}>
-        ➕ Add control implementation
+        ➕ {t('ci_add_ci')}
       </button>
     </div>
   );

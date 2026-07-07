@@ -2,6 +2,7 @@
 // Plain overlay + role="dialog" (not the native <dialog>/showModal()) so behaviour is identical
 // and testable across browsers and jsdom.
 import { useEffect } from 'react';
+import { useI18n } from './i18n';
 import './modal.css';
 
 interface ModalProps {
@@ -12,6 +13,7 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children }: ModalProps) {
+  const { t } = useI18n();
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -36,8 +38,8 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
           type="button"
           className="modal-close"
           data-testid="modal-close"
-          aria-label="Close"
-          title="Close"
+          aria-label={t('modal_close')}
+          title={t('modal_close')}
           onClick={onClose}
         >
           ✕

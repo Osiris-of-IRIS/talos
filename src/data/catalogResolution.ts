@@ -1,15 +1,33 @@
 /**
  * Catalog control resolution: index catalog controls by id and resolve `control-id → Control`
- * across the workspace's cached catalogs. Decision IDs: ADR-0005, ADR-0008, ADR-0016.
+ * across the workspace's cached catalogs. Decision IDs: ADR-0005, ADR-0008, ADR-0016, ADR-0021.
  *
  * MVP resolves a control-id against all available catalogs (BSI control ids are globally
  * distinctive, e.g. ASST.1.1.2). Source-scoped and profile→catalog resolution are refined in the
  * scoping task (T-140).
+ *
+ * Alt-identifier form (ADR-0021): BSI data sometimes references a control by a synthetic,
+ * underscore-prefixed UUID (`_0573247f-...`) instead of its literal id, because OSCAL ids must be
+ * valid NCNames. Such a reference resolves by matching the referenced control's `alt-identifier`
+ * prop (case-insensitively), not its `id`. `indexCatalogControls` indexes every control under
+ * both forms in the same map — a `_`-prefixed key can never collide with a real BSI mnemonic id.
  */
 import { ArtifactRepository } from './artifactRepository';
 import type { StoredArtifact } from './db';
 import type { Catalog, CatalogGroup } from '@/models/catalog';
 import type { Control, Parameter } from '@/models/control';
+import { getControlAltIdentifier } from '@/models/controlDisplay';
+
+const ALT_ID_REF_RE = /^_[0-9a-fA-F-]{36}$/;
+
+/**
+ * Normalizes a `control-id` reference for map lookup/indexing: the `_{uuid}` alt-identifier form
+ * (ADR-0021) is lowercased for case-insensitive matching; a literal BSI id passes through
+ * unchanged (those are case-sensitive mnemonics, e.g. `SENS.4.1.2`).
+ */
+export function normalizeControlIdKey(controlId: string): string {
+  return ALT_ID_REF_RE.test(controlId) ? controlId.toLowerCase() : controlId;
+}
 
 export interface ResolvedControl {
   control: Control;
@@ -41,6 +59,12 @@ export function indexCatalogControls(catalog: Catalog): Map<string, Control> {
   const index = new Map<string, Control>();
   const add = (c: Control) => {
     if (!index.has(c.id)) index.set(c.id, c);
+    // ADR-0021: also index by the `_{uuid}` alt-identifier form, when the control carries one.
+    const altId = getControlAltIdentifier(c);
+    if (altId) {
+      const key = normalizeControlIdKey(`_${altId}`);
+      if (!index.has(key)) index.set(key, c);
+    }
   };
   walkControls(catalog.controls, add);
   walkGroups(catalog.groups, add);
@@ -114,7 +138,7 @@ export function paramsForControl(
   controlId: string,
 ): Parameter[] {
   const entry = findCatalogEntry(index, source);
-  return entry?.controlsById.get(controlId)?.params ?? [];
+  return entry?.controlsById.get(normalizeControlIdKey(controlId))?.params ?? [];
 }
 
 /** Load all workspace catalogs and build the resolution index. */
@@ -124,5 +148,5 @@ export async function loadCatalogIndex(): Promise<CatalogIndex> {
 }
 
 export function resolveControl(index: CatalogIndex, controlId: string): ResolvedControl | undefined {
-  return index.byControlId.get(controlId);
+  return index.byControlId.get(normalizeControlIdKey(controlId));
 }
