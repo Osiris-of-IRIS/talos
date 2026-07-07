@@ -19,6 +19,8 @@ test('resolved control renders with headline, statement param, and viewer link',
   await page.goto('/#/component-definitions');
   await page.getByTestId('compdef-upload-input').setInputFiles(compdef);
   await page.getByTestId('compdef-item').getByText('Referencing CD').click();
+  // Components are collapsed by default (item 3) — expand to see the resolved control.
+  await page.getByTestId('compdef-component-summary').click();
 
   // 3. The control resolves: headline "{id} {title}" + coloured param token from set-parameters.
   await expect(page.getByTestId('control-display')).toBeVisible();

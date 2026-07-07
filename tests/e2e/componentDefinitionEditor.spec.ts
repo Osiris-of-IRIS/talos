@@ -31,9 +31,10 @@ test('create a component-definition end to end', async ({ page }) => {
 
   await page.getByTestId('save-compdef').click();
 
-  // Landed on detail; the requirement and its set-parameter render.
+  // Landed on detail; the requirement and its set-parameter render once expanded (item 3).
   await expect(page.getByTestId('compdef-detail')).toBeVisible();
   await expect(page.getByText('E2E Policy')).toBeVisible();
+  await page.getByTestId('compdef-component-summary').click();
   await expect(page.getByTestId('compdef-requirement')).toContainText('ASST.1.1.2');
   await expect(page.getByTestId('compdef-set-parameters')).toContainText('asst.1.1.2-prm1');
 

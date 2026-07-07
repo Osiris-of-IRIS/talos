@@ -12,7 +12,7 @@
 .markup-view-expand {
   background: transparent;
   border: none;
-  color: var(--color-accent-gold);
+  color: var(--color-accent-bronze);
   cursor: pointer;
   font-size: 0.85rem;
   padding: 0;
@@ -20,5 +20,5 @@
 
 .markup-view-expand:hover,
 .markup-view-expand:focus-visible {
-  color: var(--color-accent-gold-bright);
+  color: var(--color-accent-bronze-bright);
 }

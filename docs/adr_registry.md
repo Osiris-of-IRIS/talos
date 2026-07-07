@@ -24,7 +24,7 @@ the order decisions were made.
 | [ADR-0017](adr/ADR-0017-authoring-scope-phase1.md) | Authoring Scope & Cross-Artifact Reference-Picking (Phase 1) | Approved | ADR-0017 |
 | [ADR-0018](adr/ADR-0018-test-harness-scope.md) | Test-Harness Scope (Python contract & traceability checker) | Approved | ADR-0018 |
 | [ADR-0019](adr/ADR-0019-mandatory-creator-identity.md) | Mandatory Creator Identity (name + email), enforced at export | Approved | ADR-0019 |
-| [ADR-0020](adr/ADR-0020-visual-theme-stargate-egyptian.md) | Visual Theme — "Ancient Guardian" (Stargate / Egyptian Motif) | Approved | ADR-0020 |
+| [ADR-0020](adr/ADR-0020-visual-theme-cretan-bronze.md) | Visual Theme — "Ancient Guardian" (Cretan Bronze Motif) | Approved | ADR-0020 |
 | [ADR-0021](adr/ADR-0021-control-id-resolution.md) | Control-ID Resolution (Literal ID vs. Alt-Identifier UUID Reference) | Approved | ADR-0021 |
 | [ADR-0022](adr/ADR-0022-markup-truncate-expand.md) | Markup Truncate-and-Expand Display Helper | Approved | ADR-0022 |
 

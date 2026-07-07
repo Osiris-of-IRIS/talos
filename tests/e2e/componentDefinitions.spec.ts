@@ -28,6 +28,9 @@ test('upload a component-definition, see it listed, open its detail', async ({ p
   await item.getByText('Passwortrichtlinie').click();
   await expect(page.getByTestId('compdef-detail')).toBeVisible();
   await expect(page.getByText('Password Policy')).toBeVisible();
+
+  // Components are collapsed by default (item 3) — expand to see requirements.
+  await page.getByTestId('compdef-component-summary').click();
   await expect(page.getByTestId('compdef-requirement')).toContainText('IA-5');
 });
 

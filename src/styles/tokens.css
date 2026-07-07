@@ -6,16 +6,16 @@
  */
 
 :root {
-  /* ---- neutrals: "papyrus by day" (ADR-0020) ---- */
+  /* ---- neutrals: "Aegean marble by day" (ADR-0020) ---- */
   --color-bg: #faf3e3;
   --color-bg-elevated: #fffaf0;
   --color-text: #2b1d0e;
   --color-text-muted: #6b5842;
   --color-border: #d8c39a;
-  --color-border-strong: #a9822f;
+  --color-border-strong: #9c6b2f;
   --color-shadow: rgba(60, 40, 10, 0.14);
-  --color-accent-gold: #b8860b;
-  --color-accent-gold-bright: #d4af37;
+  --color-accent-bronze: #a8622a;
+  --color-accent-bronze-bright: #c17d3f;
 
   /* ---- status (referenced inline today by list/upload pages) ---- */
   --color-warning: #a15c00;
@@ -44,16 +44,16 @@
 }
 
 [data-theme='dark'] {
-  /* ---- neutrals: "event horizon by night" (ADR-0020) ---- */
+  /* ---- neutrals: "bronze forge by night" (ADR-0020) ---- */
   --color-bg: #0b0f1a;
   --color-bg-elevated: #131a2b;
   --color-text: #f1e9d2;
   --color-text-muted: #a9a08a;
   --color-border: #2c3550;
-  --color-border-strong: #d4af37;
+  --color-border-strong: #d99a5c;
   --color-shadow: rgba(0, 0, 0, 0.55);
-  --color-accent-gold: #e5c76b;
-  --color-accent-gold-bright: #f2d675;
+  --color-accent-bronze: #e0a868;
+  --color-accent-bronze-bright: #edc08a;
 
   --color-warning: #f0b429;
   --color-error: #ff6b6b;

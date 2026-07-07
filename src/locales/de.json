@@ -174,5 +174,7 @@
 
   "cdef_component_expand_aria": "{title} erweitern",
   "cdef_component_collapse_aria": "{title} einklappen",
-  "cdef_component_requirements_count": "{count} Anforderung(en)"
+  "cdef_component_requirements_count": "{count} Anforderung(en)",
+  "cdef_requirements_col_control": "Control",
+  "cdef_requirements_col_description": "Beschreibung"
 }

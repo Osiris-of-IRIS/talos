@@ -10,7 +10,12 @@ import { resolveControl } from '@/data/catalogResolution';
 import { viewerHref } from '@/config';
 import { useI18n } from '@/shared/i18n';
 import type { StoredArtifact } from '@/data/db';
-import type { ComponentDefinition } from '@/models/componentDefinition';
+import type { ComponentDefinition, DefinedComponent } from '@/models/componentDefinition';
+import './componentDefinitionDetail.css';
+
+function requirementCount(c: DefinedComponent): number {
+  return (c.controlImplementations ?? []).reduce((sum, ci) => sum + ci.implementedRequirements.length, 0);
+}
 
 export function ComponentDefinitionDetailPage() {
   const { uuid = '' } = useParams();
@@ -18,6 +23,17 @@ export function ComponentDefinitionDetailPage() {
   const catalogIndex = useCatalogIndex();
   const [record, setRecord] = useState<StoredArtifact<ComponentDefinition> | null | undefined>(undefined);
   const [exportError, setExportError] = useState<string | null>(null);
+  // Every component starts collapsed (item 3): a scannable list first, full detail on click.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggleExpanded(componentUuid: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(componentUuid)) next.delete(componentUuid);
+      else next.add(componentUuid);
+      return next;
+    });
+  }
 
   function onDownload(r: StoredArtifact<ComponentDefinition>) {
     try {
@@ -81,58 +97,90 @@ export function ComponentDefinitionDetailPage() {
       )}
 
       <h2>{t('compdef_components_count', { count: cd.components?.length ?? 0 })}</h2>
-      {cd.components?.map((c) => (
+      {cd.components?.map((c) => {
+        const isOpen = expanded.has(c.uuid);
+        return (
         <section key={c.uuid} data-testid="compdef-component">
-          <h3>
-            <MarkupView value={c.title} label={t('cdef_field_component_title')} /> <small>[{c.type}]</small>
-          </h3>
-          <MarkupView value={c.description} multiline label={t('cdef_field_component_description')} />
-          {c.controlImplementations?.map((ci) => (
-            <div key={ci.uuid}>
-              <h4>{t('cdef_control_implementation_heading')}</h4>
-              <MarkupView value={ci.description} multiline label={t('cdef_field_ci_description')} />
-              <ul>
-                {ci.implementedRequirements.map((ir) => (
-                  <li key={ir.uuid} data-testid="compdef-requirement">
-                    {(() => {
-                      const resolved = catalogIndex ? resolveControl(catalogIndex, ir.controlId) : undefined;
-                      return resolved ? (
-                        <ControlDisplay
-                          control={resolved.control}
-                          setParameters={ir.setParameters}
-                          viewerUrl={viewerHref(resolved.catalogLibraryPath)}
-                        />
-                      ) : (
-                        <code data-testid="compdef-requirement-unresolved">{ir.controlId}</code>
-                      );
-                    })()}
-                    {ir.description ? (
-                      <>
-                        {' — '}
-                        <MarkupView value={ir.description} label={t('cdef_field_ir_description')} />
-                      </>
-                    ) : null}
-                    {ir.setParameters && ir.setParameters.length > 0 && (
-                      <ul data-testid="compdef-set-parameters">
-                        {ir.setParameters.map((sp) => (
-                          <li key={sp.paramId}>
-                            λ <code>{sp.paramId}</code> = {(sp.values ?? []).join(', ') || '—'}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {ir.remarks ? (
-                      <div data-testid="compdef-requirement-remarks">
-                        <small>📝 <MarkupView value={ir.remarks} label={t('md_remarks_label')} /></small>
-                      </div>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
+          <button
+            type="button"
+            data-testid="compdef-component-summary"
+            aria-expanded={isOpen}
+            aria-label={t(isOpen ? 'cdef_component_collapse_aria' : 'cdef_component_expand_aria', {
+              title: c.title,
+            })}
+            onClick={() => toggleExpanded(c.uuid)}
+          >
+            {isOpen ? '▾' : '▸'} {c.title} <small>[{c.type}]</small>{' '}
+            <small>· {t('cdef_component_requirements_count', { count: requirementCount(c) })}</small>
+          </button>
+          {isOpen && (
+            <div data-testid="compdef-component-body">
+              <h3>
+                <MarkupView value={c.title} label={t('cdef_field_component_title')} /> <small>[{c.type}]</small>
+              </h3>
+              <MarkupView value={c.description} multiline label={t('cdef_field_component_description')} />
+              {c.controlImplementations?.map((ci) => (
+                <div key={ci.uuid}>
+                  <h4>{t('cdef_control_implementation_heading')}</h4>
+                  <MarkupView value={ci.description} multiline label={t('cdef_field_ci_description')} />
+                  <table className="compdef-requirements-table" data-testid="compdef-requirements-table">
+                    <colgroup>
+                      <col className="compdef-requirements-col-control" />
+                      <col className="compdef-requirements-col-description" />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th>{t('cdef_requirements_col_control')}</th>
+                        <th>{t('cdef_requirements_col_description')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ci.implementedRequirements.map((ir) => {
+                        const resolved = catalogIndex ? resolveControl(catalogIndex, ir.controlId) : undefined;
+                        return (
+                          <tr key={ir.uuid} data-testid="compdef-requirement">
+                            <td>
+                              {resolved ? (
+                                <ControlDisplay
+                                  control={resolved.control}
+                                  setParameters={ir.setParameters}
+                                  viewerUrl={viewerHref(resolved.catalogLibraryPath)}
+                                />
+                              ) : (
+                                <code data-testid="compdef-requirement-unresolved">{ir.controlId}</code>
+                              )}
+                            </td>
+                            <td>
+                              {ir.description ? (
+                                <MarkupView value={ir.description} label={t('cdef_field_ir_description')} />
+                              ) : null}
+                              {ir.setParameters && ir.setParameters.length > 0 && (
+                                <ul data-testid="compdef-set-parameters">
+                                  {ir.setParameters.map((sp) => (
+                                    <li key={sp.paramId}>
+                                      λ <code>{sp.paramId}</code> = {(sp.values ?? []).join(', ') || '—'}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              {ir.remarks ? (
+                                <div data-testid="compdef-requirement-remarks">
+                                  <small>📝 <MarkupView value={ir.remarks} label={t('md_remarks_label')} /></small>
+                                </div>
+                              ) : null}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </section>
-      ))}
+        );
+      })}
     </main>
   );
 }

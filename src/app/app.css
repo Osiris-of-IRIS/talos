@@ -44,7 +44,7 @@
 
 .theme-toggle:hover,
 .theme-toggle:focus-visible {
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.35), 0 1px 2px var(--color-shadow);
+  box-shadow: 0 0 0 3px rgba(193, 125, 63, 0.35), 0 1px 2px var(--color-shadow);
   transform: translateY(-1px);
 }
 
@@ -66,7 +66,7 @@ main {
   width: 100%;
 }
 
-/* Monumental heading + "gate ring" glow (decorative only, never reduces contrast). */
+/* Monumental heading + "guardian's ring" bronze glow (decorative only, never reduces contrast). */
 h1 {
   position: relative;
   z-index: 0;
@@ -76,7 +76,7 @@ h1 {
   font-size: 1.7rem;
   margin: 0.5rem 0 1rem;
   padding-bottom: 0.4rem;
-  background-image: linear-gradient(90deg, var(--color-accent-gold-bright), transparent 85%);
+  background-image: linear-gradient(90deg, var(--color-accent-bronze-bright), transparent 85%);
   background-repeat: no-repeat;
   background-position: bottom left;
   background-size: 100% 3px;
@@ -88,7 +88,7 @@ h1::before {
   z-index: -1;
   inset: -2rem -1.5rem auto -1.5rem;
   height: 5.5rem;
-  background: radial-gradient(ellipse at center, var(--color-accent-gold) 0%, transparent 72%);
+  background: radial-gradient(ellipse at center, var(--color-accent-bronze) 0%, transparent 72%);
   opacity: 0.14;
   filter: blur(18px);
   pointer-events: none;
@@ -125,11 +125,11 @@ a {
 
 a:hover,
 a:focus-visible {
-  background: rgba(212, 175, 55, 0.16);
+  background: rgba(193, 125, 63, 0.16);
 }
 
 a:focus-visible {
-  outline: 2px solid var(--color-accent-gold-bright);
+  outline: 2px solid var(--color-accent-bronze-bright);
   outline-offset: 2px;
 }
 
@@ -148,7 +148,7 @@ button {
 }
 
 button:hover:not(:disabled) {
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3), 0 1px 2px var(--color-shadow);
+  box-shadow: 0 0 0 3px rgba(193, 125, 63, 0.3), 0 1px 2px var(--color-shadow);
 }
 
 button:disabled {
@@ -157,7 +157,7 @@ button:disabled {
 }
 
 button:focus-visible {
-  outline: 2px solid var(--color-accent-gold-bright);
+  outline: 2px solid var(--color-accent-bronze-bright);
   outline-offset: 2px;
 }
 
@@ -182,7 +182,7 @@ legend {
   font-variant: small-caps;
   letter-spacing: 0.05em;
   font-weight: 700;
-  color: var(--color-accent-gold);
+  color: var(--color-accent-bronze);
 }
 
 label {
@@ -204,7 +204,7 @@ textarea {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--color-accent-gold-bright);
+  outline: 2px solid var(--color-accent-bronze-bright);
   outline-offset: 1px;
 }
 
@@ -315,7 +315,7 @@ p[role='status'] {
 }
 
 .priority-badge {
-  color: var(--color-accent-gold);
+  color: var(--color-accent-bronze);
 }
 
 section[data-layer='Control'] .feature-card {
@@ -331,5 +331,5 @@ section[data-layer='Assessment'] .feature-card {
 }
 
 section[data-layer='Data'] .feature-card {
-  border-left-color: var(--color-accent-gold);
+  border-left-color: var(--color-accent-bronze);
 }

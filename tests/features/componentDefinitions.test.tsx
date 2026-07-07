@@ -78,7 +78,8 @@ describe('list page', () => {
 });
 
 describe('detail page', () => {
-  it('renders metadata, components, and control requirements', async () => {
+  it('renders metadata, components (collapsed by default), and control requirements once expanded', async () => {
+    const user = userEvent.setup();
     const uuid = await useComponentDefinitionsStore.getState().importFromText(goldenText);
     render(
       <MemoryRouter initialEntries={[`/component-definitions/${uuid}`]}>
@@ -88,7 +89,12 @@ describe('detail page', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByTestId('compdef-detail')).toBeInTheDocument();
-    expect(screen.getByText('Password Policy')).toBeInTheDocument();
+    const summary = screen.getByTestId('compdef-component-summary');
+    expect(summary).toHaveTextContent('Password Policy');
+    // collapsed by default (item 3): requirement detail is not yet in the DOM
+    expect(screen.queryByText('IA-5')).not.toBeInTheDocument();
+
+    await user.click(summary);
     expect(screen.getByText('IA-5')).toBeInTheDocument();
   });
 

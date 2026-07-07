@@ -77,9 +77,9 @@
     - "Adopt BSI-library component-definitions into the workspace."
     - "OSCAL import/export round-trip is lossless (golden-tested)."
   status: "In-Progress"
-  scope_note: "Phase-1 scope per ADR-0017: source→catalog picker + import-component-definition compose in scope; component purpose/props/links/responsible-roles/protocols, statements, capabilities deferred. T-161: control-implementation editor now shows an info message linking to catalog upload/library when the workspace has zero catalogs, closing the last T-142 acceptance gap. T-162: control-id resolution now also matches BSI's underscore-prefixed-UUID alt-identifier form (ADR-0021), not just the literal id. T-163: the editor's component list shows collapsed summary rows (title/type/requirement count) that expand to the full per-component editor on click; a newly-added component auto-expands."
+  scope_note: "Phase-1 scope per ADR-0017: source→catalog picker + import-component-definition compose in scope; component purpose/props/links/responsible-roles/protocols, statements, capabilities deferred. T-161: control-implementation editor now shows an info message linking to catalog upload/library when the workspace has zero catalogs, closing the last T-142 acceptance gap. T-162: control-id resolution now also matches BSI's underscore-prefixed-UUID alt-identifier form (ADR-0021), not just the literal id. T-163: the editor's component list shows collapsed summary rows (title/type/requirement count) that expand to the full per-component editor on click; a newly-added component auto-expands. T-164: the detail view's component list is likewise collapsed by default (summary row, click to expand), and each control-implementation's implemented-requirements render as a control(40%)|description(60%) table instead of a flat list."
   linked_adr_ids: ["ADR-0003", "ADR-0014", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0016", "ADR-0017", "ADR-0021"]
-  linked_test_ids: ["TEST-CDEF-01", "TEST-CDEF-02", "TEST-CDEF-IMP-01"]
+  linked_test_ids: ["TEST-CDEF-01", "TEST-CDEF-02", "TEST-CDEF-IMP-01", "TEST-CDEF-RES-01"]
 
 - id: IMPL-002
   title: "OSCAL System Security Plans / SSP (PRIORITY)"
