@@ -30,6 +30,7 @@ adr_coverage_required:
   - ADR-0015 # back-matter resources + embedded-file limits
   - ADR-0016 # reusable control-display helper
   - ADR-0019 # mandatory creator identity (name + email), enforced at export
+  - ADR-0022 # markup truncate-and-expand display helper
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -76,6 +77,15 @@ suites:
     status: implemented
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0009]
+
+  - id: TEST-MDV-01
+    title: "<MarkupView> truncate/expand helper (budget heuristic, expand modal)"
+    file: tests/shared/markupView.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0009, ADR-0022]
 
   - id: TEST-BM-01
     title: Back-matter resource helpers (externalize/embed/dedupe/size limits)
@@ -269,7 +279,7 @@ suites:
     adr_refs: [ADR-0001, ADR-0004]
 
   - id: TEST-CDEF-EDIT-01
-    title: Component-definition editor (create/edit, type picker, control-implementations, source/param pickers)
+    title: Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance)
     file: tests/features/componentDefinitionEditor.test.tsx
     type: component
     runner: vitest

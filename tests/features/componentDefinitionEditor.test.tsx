@@ -152,6 +152,39 @@ describe('source→catalog + param pickers (T-142)', () => {
   });
 });
 
+describe('no workspace catalogs — guidance message (T-161)', () => {
+  it('shows an info message linking to catalog upload/library when no catalogs exist', async () => {
+    const user = userEvent.setup();
+    renderAt('/component-definitions/new');
+    await user.type(screen.getByTestId('md-title'), 'No Catalogs');
+    await user.click(screen.getByTestId('add-component'));
+    await user.click(screen.getByTestId('add-control-implementation'));
+
+    const hint = await screen.findByTestId('no-catalogs-hint');
+    expect(hint).toHaveTextContent(/upload|adopt/i);
+    expect(screen.getByRole('link', { name: /catalogs/i })).toHaveAttribute('href', '/catalogs');
+    expect(screen.getByRole('link', { name: /library/i })).toHaveAttribute('href', '/library');
+  });
+
+  it('does not show the message once a workspace catalog exists', async () => {
+    const { record } = parseOscalUpload<Catalog>(JSON.stringify(catalogJson));
+    await ArtifactRepository.forType<Catalog>('catalog').create({
+      uuid: record.uuid,
+      type: 'catalog',
+      origin: 'imported',
+      artifact: record.artifact,
+    });
+
+    const user = userEvent.setup();
+    renderAt('/component-definitions/new');
+    await user.click(screen.getByTestId('add-component'));
+    await user.click(screen.getByTestId('add-control-implementation'));
+
+    await waitFor(() => expect(screen.getByText('BSI Kernel (excerpt)')).toBeInTheDocument());
+    expect(screen.queryByTestId('no-catalogs-hint')).not.toBeInTheDocument();
+  });
+});
+
 describe('edit', () => {
   it('updates an existing component-definition', async () => {
     const uuid = '99999999-9999-4999-8999-999999999999';

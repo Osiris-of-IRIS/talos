@@ -17,6 +17,10 @@ Engineering conventions for TALOS. Decision IDs referenced inline.
 
 ## OSCAL handling
 - Never render OSCAL markup by hand — always the shared renderer `[ADR-0009]`.
+- For *displaying* markup-line/markup-multiline content (not editing), use `<MarkupView>`
+  (`src/shared/MarkupView.tsx`), not `<Markup>` directly — it truncates long content to a
+  consistent size and offers a modal expand. `<ControlDisplay>`'s own statement/param
+  truncation is the one exception `[ADR-0022, ADR-0016]`.
 - Author/export **v1.2.2**; import any 1.x with a warning `[ADR-0007]`.
 - Preserve unknown-but-allowed fields; keep unresolved refs verbatim `[ADR-0003, ADR-0014]`.
 - All entity pickers use the shared entity-search `[ADR-0013]`.

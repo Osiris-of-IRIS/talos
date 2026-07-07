@@ -1,0 +1,48 @@
+/* Generic modal primitive styling. Decision IDs: ADR-0022, ADR-0010. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 1.5rem;
+}
+
+.modal-panel {
+  position: relative;
+  max-width: 40rem;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px var(--color-shadow);
+  padding: 1.5rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.modal-close:hover,
+.modal-close:focus-visible {
+  color: var(--color-text);
+}
+
+.modal-title {
+  margin: 0 1.5rem 0.75rem 0;
+}
+
+.modal-body {
+  color: var(--color-text);
+}

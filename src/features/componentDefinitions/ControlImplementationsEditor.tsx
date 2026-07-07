@@ -3,10 +3,12 @@
  * Source-driven pickers (T-142): `source` picks a workspace catalog, `control-id` and
  * `set-parameter.param-id` are datalist-typeaheads seeded from the resolved catalog (manual entry
  * still allowed; origin-agnostic so T-034 library catalogs slot into the same lists). The full
- * ADR-0013 entity-search widget (T-036) can later replace the datalists.
- * Decision IDs: ADR-0003, ADR-0013, ADR-0016 (feature IMPL-001, T-101/T-142).
+ * ADR-0013 entity-search widget (T-036) can later replace the datalists. When the workspace has
+ * zero catalogs, shows an info message linking to upload/library (T-161).
+ * Decision IDs: ADR-0003, ADR-0013, ADR-0016 (feature IMPL-001, T-101/T-142/T-161).
  */
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   catalogSourceOptions,
   controlIdsForSource,
@@ -155,6 +157,13 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
                 ci.source && <small> (unresolved — free-text href)</small>
               ))}
           </label>
+          {catalogIndex && catalogIndex.catalogCount === 0 && (
+            <p data-testid="no-catalogs-hint">
+              No catalogs in your workspace yet, so control ids can't be searched. Upload a
+              catalog on the <Link to="/catalogs">Catalogs</Link> page, or adopt one from the{' '}
+              <Link to="/library">BSI Library</Link>.
+            </p>
+          )}
           <label>
             Description
             <textarea

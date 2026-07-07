@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
 import { downloadArtifact } from '@/data/fileIo';
-import { Markup } from '@/shared/Markup';
+import { MarkupView } from '@/shared/MarkupView';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
 import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
 import { resolveControl } from '@/data/catalogResolution';
@@ -57,7 +57,7 @@ export function ComponentDefinitionDetailPage() {
         <Link to="/component-definitions">← Component-Definitions</Link>
       </p>
       <h1>
-        🧩 <Markup value={cd.metadata.title} />
+        🧩 <MarkupView value={cd.metadata.title} label="Title" />
       </h1>
       <p>
         <small>
@@ -82,13 +82,13 @@ export function ComponentDefinitionDetailPage() {
       {cd.components?.map((c) => (
         <section key={c.uuid} data-testid="compdef-component">
           <h3>
-            <Markup value={c.title} /> <small>[{c.type}]</small>
+            <MarkupView value={c.title} label="Component title" /> <small>[{c.type}]</small>
           </h3>
-          <Markup value={c.description} multiline />
+          <MarkupView value={c.description} multiline label="Component description" />
           {c.controlImplementations?.map((ci) => (
             <div key={ci.uuid}>
               <h4>Control implementation</h4>
-              <Markup value={ci.description} multiline />
+              <MarkupView value={ci.description} multiline label="Control implementation description" />
               <ul>
                 {ci.implementedRequirements.map((ir) => (
                   <li key={ir.uuid} data-testid="compdef-requirement">
@@ -107,7 +107,7 @@ export function ComponentDefinitionDetailPage() {
                     {ir.description ? (
                       <>
                         {' — '}
-                        <Markup value={ir.description} />
+                        <MarkupView value={ir.description} label="Requirement description" />
                       </>
                     ) : null}
                     {ir.setParameters && ir.setParameters.length > 0 && (
@@ -121,7 +121,7 @@ export function ComponentDefinitionDetailPage() {
                     )}
                     {ir.remarks ? (
                       <div data-testid="compdef-requirement-remarks">
-                        <small>📝 <Markup value={ir.remarks} /></small>
+                        <small>📝 <MarkupView value={ir.remarks} label="Remarks" /></small>
                       </div>
                     ) : null}
                   </li>

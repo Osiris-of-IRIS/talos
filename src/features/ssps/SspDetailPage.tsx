@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
 import { downloadArtifact } from '@/data/fileIo';
-import { Markup } from '@/shared/Markup';
+import { MarkupView } from '@/shared/MarkupView';
 import type { StoredArtifact } from '@/data/db';
 import type { SystemSecurityPlan } from '@/models/ssp';
 
@@ -53,7 +53,7 @@ export function SspDetailPage() {
         <Link to="/ssps">← System Security Plans</Link>
       </p>
       <h1>
-        🖥️ <Markup value={ssp.metadata.title} />
+        🖥️ <MarkupView value={ssp.metadata.title} label="Title" />
       </h1>
       <p>
         <small>
@@ -73,7 +73,7 @@ export function SspDetailPage() {
       <p data-testid="ssp-system-name">
         <strong>{ssp.systemCharacteristics?.systemName}</strong>
       </p>
-      <Markup value={ssp.systemCharacteristics?.description} multiline />
+      <MarkupView value={ssp.systemCharacteristics?.description} multiline label="Description" />
       <p>
         <small>Imports profile: <code>{ssp.importProfile?.href}</code></small>
       </p>

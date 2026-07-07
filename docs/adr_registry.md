@@ -26,6 +26,7 @@ the order decisions were made.
 | [ADR-0019](adr/ADR-0019-mandatory-creator-identity.md) | Mandatory Creator Identity (name + email), enforced at export | Approved | ADR-0019 |
 | [ADR-0020](adr/ADR-0020-visual-theme-stargate-egyptian.md) | Visual Theme — "Ancient Guardian" (Stargate / Egyptian Motif) | Approved | ADR-0020 |
 | [ADR-0021](adr/ADR-0021-control-id-resolution.md) | Control-ID Resolution (Literal ID vs. Alt-Identifier UUID Reference) | Approved | ADR-0021 |
+| [ADR-0022](adr/ADR-0022-markup-truncate-expand.md) | Markup Truncate-and-Expand Display Helper | Approved | ADR-0022 |
 
 ## Notes
 

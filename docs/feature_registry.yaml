@@ -48,10 +48,11 @@
   acceptance_criteria:
     - "Reusable OscalArtifact base (metadata + back-matter) extended per type; envelope codec round-trips."
     - "OSCAL markup rendered XSS-safe everywhere via one renderer."
+    - "Long markup-line/markup-multiline content truncates to a consistent size by default and expands to the full, beautified content in a modal (ADR-0022)."
     - "Entity-search typeahead over IndexedDB with scoping; i18n de/en with EN fallback; dark/light theme via data-theme."
   status: "Draft"
-  linked_adr_ids: ["ADR-0003", "ADR-0009", "ADR-0013", "ADR-0012", "ADR-0010", "ADR-0020", "ADR-0021"]
-  linked_test_ids: ["TEST-MODEL-01", "TEST-MD-01", "TEST-SEARCH-01", "TEST-I18N-01", "TEST-CTRLID-01"]
+  linked_adr_ids: ["ADR-0003", "ADR-0009", "ADR-0013", "ADR-0012", "ADR-0010", "ADR-0020", "ADR-0021", "ADR-0022"]
+  linked_test_ids: ["TEST-MODEL-01", "TEST-MD-01", "TEST-MDV-01", "TEST-SEARCH-01", "TEST-I18N-01", "TEST-CTRLID-01"]
 
 - id: CTRL-001
   title: "OSCAL Profiles (control tailoring)"
@@ -75,7 +76,7 @@
     - "Adopt BSI-library component-definitions into the workspace."
     - "OSCAL import/export round-trip is lossless (golden-tested)."
   status: "In-Progress"
-  scope_note: "Phase-1 scope per ADR-0017: source→catalog picker + import-component-definition compose in scope; component purpose/props/links/responsible-roles/protocols, statements, capabilities deferred."
+  scope_note: "Phase-1 scope per ADR-0017: source→catalog picker + import-component-definition compose in scope; component purpose/props/links/responsible-roles/protocols, statements, capabilities deferred. T-161: control-implementation editor now shows an info message linking to catalog upload/library when the workspace has zero catalogs, closing the last T-142 acceptance gap."
   linked_adr_ids: ["ADR-0003", "ADR-0014", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0016", "ADR-0017", "ADR-0021"]
   linked_test_ids: ["TEST-CDEF-01", "TEST-CDEF-02", "TEST-CDEF-IMP-01"]
 
