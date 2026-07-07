@@ -1,0 +1,325 @@
+/**
+ * TALOS app shell & page chrome — Tier 2/3 (ADR-0010 tier architecture, ADR-0020 motif).
+ * Reads only the Tier 1 tokens from src/styles/tokens.css; introduces no new raw colors for
+ * ADR-0010 domain accents (those tokens are reused as-is).
+ */
+
+/* ---------------------------------------------------------------- app shell / top bar */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  background: linear-gradient(180deg, var(--color-bg-elevated), var(--color-bg));
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 2px 0 var(--color-border-strong);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: 0 1px 2px var(--color-shadow);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.35), 0 1px 2px var(--color-shadow);
+  transform: translateY(-1px);
+}
+
+/* -------------------------------------------------------------------------- page body */
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem 4rem;
+  width: 100%;
+}
+
+/* Monumental heading + "gate ring" glow (decorative only, never reduces contrast). */
+h1 {
+  position: relative;
+  z-index: 0;
+  display: inline-block;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-size: 1.7rem;
+  margin: 0.5rem 0 1rem;
+  padding-bottom: 0.4rem;
+  background-image: linear-gradient(90deg, var(--color-accent-gold-bright), transparent 85%);
+  background-repeat: no-repeat;
+  background-position: bottom left;
+  background-size: 100% 3px;
+}
+
+h1::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -2rem -1.5rem auto -1.5rem;
+  height: 5.5rem;
+  background: radial-gradient(ellipse at center, var(--color-accent-gold) 0%, transparent 72%);
+  opacity: 0.14;
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+h2,
+h3 {
+  color: var(--color-text);
+  border-left: 4px solid var(--color-border-strong);
+  padding-left: 0.6rem;
+  margin-top: 2rem;
+}
+
+h3 {
+  border-left-width: 3px;
+  opacity: 0.92;
+}
+
+p {
+  color: var(--color-text);
+}
+
+small {
+  color: var(--color-text-muted);
+}
+
+/* ------------------------------------------------------------------------------- links */
+a {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  border-radius: 4px;
+}
+
+a:hover,
+a:focus-visible {
+  background: rgba(212, 175, 55, 0.16);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-accent-gold-bright);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------------------- buttons */
+button {
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 2px var(--color-shadow);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+button:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3), 0 1px 2px var(--color-shadow);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-accent-gold-bright);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------------------- forms */
+fieldset {
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem 1rem;
+  margin: 0 0 1.5rem;
+  background: var(--color-bg-elevated);
+  box-shadow: 0 1px 3px var(--color-shadow);
+}
+
+fieldset fieldset {
+  border-style: dashed;
+  box-shadow: none;
+  background: transparent;
+}
+
+legend {
+  padding: 0 0.6rem;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--color-accent-gold);
+}
+
+label {
+  color: var(--color-text);
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='file']),
+select,
+textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-accent-gold-bright);
+  outline-offset: 1px;
+}
+
+/* -------------------------------------------------------------------------------- lists */
+main > ul {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+main > ul > li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.9rem;
+  box-shadow: 0 1px 2px var(--color-shadow);
+}
+
+/* Domain accents by artifact type (ADR-0010), keyed off existing data-testid hooks —
+   no component markup changes required. */
+[data-testid='compdef-item'],
+[data-testid='ssp-item'] {
+  border-left-color: var(--color-impl);
+}
+
+[data-testid='catalog-item'] {
+  border-left-color: var(--color-catalog);
+}
+
+[data-testid='library-item'] {
+  border-left-color: var(--color-impl);
+  border-left-style: dashed;
+  background: var(--color-imported-fill);
+}
+
+[data-testid='library-badge'] {
+  border: 1px dashed var(--color-imported-border);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* -------------------------------------------------------------------------- empty state */
+[data-testid$='-empty'] {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+}
+
+/* ------------------------------------------------------------------------ status/alerts */
+p[role='alert'] {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+p[role='status'] {
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------------------- landing hub */
+.landing-hero {
+  text-align: center;
+  padding-top: 1rem;
+}
+
+.landing-hero h1 {
+  font-size: 2.1rem;
+}
+
+.landing-tagline {
+  color: var(--color-text-muted);
+  margin-top: -0.5rem;
+}
+
+.feature-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.feature-cards .feature-card {
+  border-left-width: 4px;
+}
+
+.feature-cards .feature-card.priority {
+  border-left-width: 6px;
+  font-weight: 700;
+}
+
+.feature-cards .feature-card a {
+  text-decoration: none;
+}
+
+.feature-cards .feature-card a:hover,
+.feature-cards .feature-card a:focus-visible {
+  text-decoration: underline;
+}
+
+.priority-badge {
+  color: var(--color-accent-gold);
+}
+
+section[data-layer='Control'] .feature-card {
+  border-left-color: var(--color-catalog);
+}
+
+section[data-layer='Implementation'] .feature-card {
+  border-left-color: var(--color-impl);
+}
+
+section[data-layer='Assessment'] .feature-card {
+  border-left-color: var(--color-assessment);
+}
+
+section[data-layer='Data'] .feature-card {
+  border-left-color: var(--color-accent-gold);
+}

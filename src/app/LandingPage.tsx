@@ -45,17 +45,19 @@ const GROUPS: FeatureGroup[] = [
 export function LandingPage() {
   return (
     <main>
-      <h1>TALOS</h1>
-      <p>Trust and Assessment Lifecycle for Organizational Security</p>
+      <header className="landing-hero">
+        <h1>TALOS</h1>
+        <p className="landing-tagline">Trust and Assessment Lifecycle for Organizational Security</p>
+      </header>
       {GROUPS.map((group) => (
-        <section key={group.layer}>
+        <section key={group.layer} data-layer={group.layer}>
           <h2>{group.layer} Layer</h2>
-          <ul>
+          <ul className="feature-cards">
             {group.features.map((f) => (
-              <li key={f.path}>
+              <li key={f.path} className={`feature-card${f.priority ? ' priority' : ''}`}>
                 <a href={`#${f.path}`}>
                   {f.title}
-                  {f.priority ? ' ★' : ''}
+                  {f.priority ? <span className="priority-badge"> ★</span> : null}
                 </a>
               </li>
             ))}

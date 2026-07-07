@@ -1,6 +1,7 @@
-// TALOS entry point. Decision IDs: ADR-0002.
+// TALOS entry point. Decision IDs: ADR-0002, ADR-0020.
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import './styles/tokens.css';
 import { App } from './app/App';
 
 const rootEl = document.getElementById('root');

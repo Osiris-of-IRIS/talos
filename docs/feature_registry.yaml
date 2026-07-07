@@ -14,7 +14,7 @@
     - "Per-type artifact counts and empty-state guidance."
     - "Layer colors (ADR-0010) and symbols (ADR-0011); i18n de/en; theme-aware."
   status: "Draft"
-  linked_adr_ids: ["ADR-0006", "ADR-0010", "ADR-0011", "ADR-0012"]
+  linked_adr_ids: ["ADR-0006", "ADR-0010", "ADR-0011", "ADR-0012", "ADR-0020"]
   linked_test_ids: ["TEST-LAND-01", "TEST-LAND-02"]
 
 - id: PLAT-002
@@ -50,8 +50,8 @@
     - "OSCAL markup rendered XSS-safe everywhere via one renderer."
     - "Entity-search typeahead over IndexedDB with scoping; i18n de/en with EN fallback; dark/light theme via data-theme."
   status: "Draft"
-  linked_adr_ids: ["ADR-0003", "ADR-0009", "ADR-0013", "ADR-0012", "ADR-0010"]
-  linked_test_ids: ["TEST-MODEL-01", "TEST-MD-01", "TEST-SEARCH-01", "TEST-I18N-01"]
+  linked_adr_ids: ["ADR-0003", "ADR-0009", "ADR-0013", "ADR-0012", "ADR-0010", "ADR-0020", "ADR-0021"]
+  linked_test_ids: ["TEST-MODEL-01", "TEST-MD-01", "TEST-SEARCH-01", "TEST-I18N-01", "TEST-CTRLID-01"]
 
 - id: CTRL-001
   title: "OSCAL Profiles (control tailoring)"
@@ -76,7 +76,7 @@
     - "OSCAL import/export round-trip is lossless (golden-tested)."
   status: "In-Progress"
   scope_note: "Phase-1 scope per ADR-0017: source→catalog picker + import-component-definition compose in scope; component purpose/props/links/responsible-roles/protocols, statements, capabilities deferred."
-  linked_adr_ids: ["ADR-0003", "ADR-0014", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0016", "ADR-0017"]
+  linked_adr_ids: ["ADR-0003", "ADR-0014", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0016", "ADR-0017", "ADR-0021"]
   linked_test_ids: ["TEST-CDEF-01", "TEST-CDEF-02", "TEST-CDEF-IMP-01"]
 
 - id: IMPL-002
@@ -89,7 +89,7 @@
     - "OSCAL import/export round-trip is lossless (golden-tested)."
   status: "In-Progress"
   scope_note: "Phase-1 editor = core authoring (ADR-0017): metadata+back-matter, import-profile (manual), system-characteristics core, implemented-requirements (control-id/description/status/by-components). Deferred: system-implementation, statements, impact-level; profile linking (T-112)."
-  linked_adr_ids: ["ADR-0003", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0017"]
+  linked_adr_ids: ["ADR-0003", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0017", "ADR-0021"]
   linked_test_ids: ["TEST-SSP-01", "TEST-SSP-02", "TEST-SSP-03"]
 
 - id: ASMT-001

@@ -140,6 +140,14 @@ suites:
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0012]
 
+  - id: TEST-CTRLID-01
+    title: "Control-id resolution: literal id vs. \"_{uuid}\" alt-identifier reference"
+    type: unit
+    runner: vitest
+    status: planned
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0021, ADR-0016]
+
   - id: TEST-VER-01
     title: Import OSCAL-version policy (accept 1.x with warning, reject non-1.x)
     file: tests/models/oscalBase.test.ts

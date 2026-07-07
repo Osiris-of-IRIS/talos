@@ -4,9 +4,9 @@
   display: block;
 }
 
-/* Params accent (ADR-0010: params = orange #f97316, same in both themes). */
+/* Params accent (ADR-0010: params = orange, same in both themes). */
 .control-param {
-  color: #f97316;
+  color: var(--color-param);
   font-weight: 600;
 }
 
@@ -15,10 +15,12 @@
 }
 
 .control-statement {
-  color: var(--color-text-muted, #57534e);
+  color: var(--color-text-muted);
 }
 
-/* Hover/focus tooltip (ADR-0016 §4). */
+/* Hover/focus tooltip (ADR-0016 §4). Colors come from Tier 1 tokens (src/styles/tokens.css) —
+   the single [data-theme="dark"] block there already flips these; no duplicate block here
+   (ADR-0010 tier rule). */
 .control-tooltip {
   display: none;
   position: absolute;
@@ -27,21 +29,15 @@
   left: 0;
   max-width: 36rem;
   padding: 0.6rem 0.8rem;
-  background: var(--color-bg-elevated, #ffffff);
-  color: var(--color-text, #1c1917);
-  border: 1px solid var(--color-border, #d6d3d1);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px var(--color-shadow);
   font-size: 0.85rem;
 }
 
 .control-display:hover > .control-tooltip,
 .control-display:focus-within > .control-tooltip {
   display: block;
-}
-
-[data-theme='dark'] .control-tooltip {
-  background: #0f172a;
-  color: #f1f5f9;
-  border-color: #334155;
 }

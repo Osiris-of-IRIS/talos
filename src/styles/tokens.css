@@ -1,0 +1,92 @@
+/**
+ * TALOS design tokens — Tier 1 foundation (ADR-0010 tier architecture, ADR-0020 theme).
+ * Owns ALL theme switching via the single [data-theme="dark"] block below.
+ * Never use @media (prefers-color-scheme) here — theme is the explicit `data-theme`
+ * attribute set by src/shared/theme.ts (ADR-0010, ADR-0020).
+ */
+
+:root {
+  /* ---- neutrals: "papyrus by day" (ADR-0020) ---- */
+  --color-bg: #faf3e3;
+  --color-bg-elevated: #fffaf0;
+  --color-text: #2b1d0e;
+  --color-text-muted: #6b5842;
+  --color-border: #d8c39a;
+  --color-border-strong: #a9822f;
+  --color-shadow: rgba(60, 40, 10, 0.14);
+  --color-accent-gold: #b8860b;
+  --color-accent-gold-bright: #d4af37;
+
+  /* ---- status (referenced inline today by list/upload pages) ---- */
+  --color-warning: #a15c00;
+  --color-error: #cf222e;
+  --color-ok: #1a7f37;
+  --color-impl-muted: #6b7f6b;
+
+  /* ---- ADR-0010 domain / OSCAL-layer accents (identical both themes unless noted) ---- */
+  --color-catalog: #2563eb;
+  --color-profile: #0ea5e9;
+  --color-impl: #16a34a;
+  --color-impl-mid: #22c55e;
+  --color-assessment: #d97706;
+  --color-threat: #dc2626;
+  --color-risk: #a855f7;
+  --color-param: #f97316;
+  --color-imported-fill: rgba(34, 197, 94, 0.08);
+  --color-imported-border: #15803d;
+  --color-unresolved: #f59e0b;
+
+  /* ---- typography / shape ---- */
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --radius: 8px;
+  --radius-lg: 14px;
+}
+
+[data-theme='dark'] {
+  /* ---- neutrals: "event horizon by night" (ADR-0020) ---- */
+  --color-bg: #0b0f1a;
+  --color-bg-elevated: #131a2b;
+  --color-text: #f1e9d2;
+  --color-text-muted: #a9a08a;
+  --color-border: #2c3550;
+  --color-border-strong: #d4af37;
+  --color-shadow: rgba(0, 0, 0, 0.55);
+  --color-accent-gold: #e5c76b;
+  --color-accent-gold-bright: #f2d675;
+
+  --color-warning: #f0b429;
+  --color-error: #ff6b6b;
+  --color-ok: #3ddc84;
+  --color-impl-muted: #7fa88f;
+
+  --color-catalog: #60a5fa;
+  --color-profile: #38bdf8;
+  --color-impl: #4ade80;
+  --color-impl-mid: #4ade80;
+  --color-assessment: #fbbf24;
+  --color-imported-border: #15803d;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: 1.55;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
