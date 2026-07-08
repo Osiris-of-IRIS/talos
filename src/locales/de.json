@@ -176,5 +176,53 @@
   "cdef_component_collapse_aria": "{title} einklappen",
   "cdef_component_requirements_count": "{count} Anforderung(en)",
   "cdef_requirements_col_control": "Control",
-  "cdef_requirements_col_description": "Beschreibung"
+  "cdef_requirements_col_description": "Beschreibung",
+
+  "ssp_new": "Neuer System-Sicherheitsplan",
+  "ssp_edit_heading": "System-Sicherheitsplan bearbeiten",
+  "ssp_system_implementation_heading": "Systemumsetzung",
+
+  "sc_system_name_label": "Systemname",
+  "sc_status_label": "Status",
+  "sc_authorization_boundary_label": "Autorisierungsgrenze",
+
+  "si_import_legend": "Komponente importieren",
+  "si_no_component_defs_pre": "Noch keine Komponentendefinitionen in Ihrem Workspace. Laden Sie eine hoch oder übernehmen Sie eine auf der Seite",
+  "si_cd_select_label": "Komponentendefinition",
+  "si_cd_select_placeholder": "— Komponentendefinition wählen —",
+  "si_component_select_label": "Komponente",
+  "si_component_select_placeholder": "— Komponente wählen —",
+  "si_import_button": "Komponente importieren",
+  "si_stale_label": "geändert",
+  "si_stale_title": "Die Quellkomponente hat sich seit dem Import geändert.",
+  "si_missing_label": "Quelle fehlt",
+  "si_missing_title": "Die Quell-Komponentendefinition oder -Komponente ist nicht mehr in Ihrem Workspace vorhanden.",
+  "si_refresh_button": "Von Quelle aktualisieren",
+  "si_remove_component_aria": "Komponente {title} entfernen",
+  "si_remove_component_button": "Komponente entfernen",
+
+  "ci_heading_ssp": "Control-Umsetzung ({count})",
+  "ci_untitled_requirement": "(kein Control ausgewählt)",
+  "ci_by_components_heading": "Nach Komponenten",
+  "ci_add_by_component": "By-Component hinzufügen",
+  "ci_remove_by_component_aria": "By-Component entfernen",
+
+  "bc_component_label": "Komponente",
+  "bc_component_placeholder": "— Komponente wählen —",
+  "bc_status_label": "Umsetzungsstatus",
+  "bc_status_placeholder": "— Status wählen —",
+
+  "implementation_status_planned": "Geplant",
+  "implementation_status_implemented": "Umgesetzt",
+  "implementation_status_partial": "Teilweise umgesetzt",
+  "implementation_status_alternative": "Alternativ umgesetzt",
+  "implementation_status_not-applicable": "Nicht zutreffend",
+
+  "me_toolbar_label": "Formatierung",
+  "me_bold_title": "Fett",
+  "me_italic_title": "Kursiv",
+  "me_code_title": "Code",
+  "me_link_title": "Link",
+  "me_preview_button": "Vorschau",
+  "me_edit_button": "Bearbeiten"
 }

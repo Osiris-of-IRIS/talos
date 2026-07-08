@@ -1,0 +1,35 @@
+Kuerzel,Name
+C001,"Clients der Finanzbuchhaltung"
+C002,"Clients der Geschäftsführung"
+C003,"Clients der Personalabteilung"
+C004,"Clients der Informationstechnik"
+C005,"Clients des Marketings & Vertrieb"
+C006,"Clients der Fertigung und Lager"
+C007,"Clients der Entwicklungsabteilung"
+C008,"Clients der Einkaufsabteilung"
+C009,"Clients in den Vertriebsbüros"
+L001,"Laptops der Finanzbuchhaltung"
+L002,"Laptops der Geschäftsführung"
+L003,"Laptops der Personalabteilung"
+L004,"Laptops der Informationstechnik"
+L005,"Laptops Marketing & Vertrieb"
+L006,"Laptops von Fertigung und Lager"
+L007,"Laptops der Entwicklungsabteilung"
+L008,"Laptops der Einkaufsabteilung"
+L009,"Laptops in den Vertriebsbüros"
+S001,Domänen-Controller
+S002,Dateiserver
+S003,Druckserver
+S004,Kommunikationsserver
+S005,"DB-Server der Kunden- und Auftragsbearbeitung"
+S006,"DB-Server der Finanzbuchhaltung"
+S007,Virtualisierungsserver
+S008,"Server für Produktionssteuerung"
+S009,Wiki-Server
+S010,Virtualisierungsserver2
+S011,Ticketsystem
+S012,Backupserver
+S013,Windows-Update-Server
+S014,Linux-Update-Server
+S015,"DB-Server fürs Systemmanagement"
+

@@ -91,8 +91,8 @@ describe('component body: type + control-implementations', () => {
     await user.type(screen.getByTestId('ci-source'), '#cat-1');
     await user.click(screen.getByTestId('add-requirement'));
     await user.type(screen.getByTestId('ir-control-id'), 'ASST.1.1.2');
-    await user.type(screen.getByTestId('ir-description'), 'nginx enforces the policy.');
-    await user.type(screen.getByTestId('ir-remarks'), 'reviewed 2026');
+    await user.type(screen.getByTestId('ir-description-textarea'), 'nginx enforces the policy.');
+    await user.type(screen.getByTestId('ir-remarks-textarea'), 'reviewed 2026');
     await user.click(screen.getByTestId('add-set-parameter'));
     await user.type(screen.getByTestId('sp-param-id'), 'asst.1.1.2-prm1');
     await user.type(screen.getByTestId('sp-values'), 'den IT-Betrieb, die Rolle');
@@ -141,14 +141,46 @@ describe('source→catalog + param pickers (T-142)', () => {
     await user.type(screen.getByTestId('ci-source'), `#${record.uuid}`);
     expect(await screen.findByTestId('ci-source-resolved')).toHaveTextContent('BSI Kernel (excerpt)');
 
-    // add a requirement → its control-id datalist offers the catalog's control ids
+    // add a requirement → its control-id datalist offers the catalog's control ids, with a
+    // readable "{label|id} {title}" display text, not just the raw id (item 7)
     await user.click(screen.getByTestId('add-requirement'));
     await waitFor(() => expect(optionValues()).toContain('ASST.1.1.2'));
+    expect(container.querySelector('option[value="ASST.1.1.2"]')?.textContent).toBe('ASST.1.1.2 Zuweisung');
 
     // once a control is chosen, its params are offered as set-parameter options
     await user.type(screen.getByTestId('ir-control-id'), 'ASST.1.1.2');
     await user.click(screen.getByTestId('add-set-parameter'));
     await waitFor(() => expect(optionValues()).toContain('asst.1.1.2-prm1'));
+  });
+
+  it('picking a catalog creates a back-matter resource and stores a resource-mediated source, not the raw catalog uuid (item 5)', async () => {
+    const user = userEvent.setup();
+    const { record } = parseOscalUpload<Catalog>(JSON.stringify(catalogJson));
+    await ArtifactRepository.forType<Catalog>('catalog').create({
+      uuid: record.uuid,
+      type: 'catalog',
+      origin: 'imported',
+      artifact: record.artifact,
+    });
+
+    renderAt('/component-definitions/new');
+    await user.type(screen.getByTestId('md-title'), 'Source Resolution Test');
+    await user.click(screen.getByTestId('add-component'));
+    await user.click(screen.getByTestId('add-control-implementation'));
+    await waitFor(() => expect(screen.getByText('BSI Kernel (excerpt)')).toBeInTheDocument());
+
+    await user.type(screen.getByTestId('ci-source'), `#${record.uuid}`);
+    await screen.findByTestId('ci-source-resolved');
+
+    await user.click(screen.getByTestId('save-compdef'));
+    await waitFor(() => expect(screen.getByTestId('detail-landed')).toBeInTheDocument());
+
+    const cd = (await repo().getAll())[0]!.artifact;
+    const source = cd.components![0]!.controlImplementations![0]!.source;
+    expect(source).not.toBe(`#${record.uuid}`); // not the raw catalog uuid
+    const resourceUuid = source.slice(1);
+    const resource = cd.backMatter?.resources?.find((r) => r.uuid === resourceUuid);
+    expect(resource?.documentIds?.[0]?.identifier).toBe(record.uuid);
   });
 });
 

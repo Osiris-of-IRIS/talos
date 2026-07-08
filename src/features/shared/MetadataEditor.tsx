@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { externalizeLink, isExternalUrl } from '@/models/backMatter';
 import { validateCreator } from '@/models/creator';
 import { useI18n } from '@/shared/i18n';
+import { MarkupEditor } from '@/shared/MarkupEditor';
 import type { OscalArtifact, Party } from '@/models/oscalBase';
 
 interface Props<T extends OscalArtifact> {
@@ -194,10 +195,12 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
 
       <label>
         {t('md_remarks_label')}
-        <textarea
-          data-testid="md-remarks"
+        <MarkupEditor
+          dataTestId="md-remarks"
+          ariaLabel={t('md_remarks_label')}
+          rows={7}
           value={md.remarks ?? ''}
-          onChange={(e) => patch((d) => (d.metadata.remarks = e.target.value || undefined))}
+          onChange={(v) => patch((d) => (d.metadata.remarks = v || undefined))}
         />
       </label>
 

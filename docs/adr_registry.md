@@ -27,6 +27,9 @@ the order decisions were made.
 | [ADR-0020](adr/ADR-0020-visual-theme-cretan-bronze.md) | Visual Theme — "Ancient Guardian" (Cretan Bronze Motif) | Approved | ADR-0020 |
 | [ADR-0021](adr/ADR-0021-control-id-resolution.md) | Control-ID Resolution (Literal ID vs. Alt-Identifier UUID Reference) | Approved | ADR-0021 |
 | [ADR-0022](adr/ADR-0022-markup-truncate-expand.md) | Markup Truncate-and-Expand Display Helper | Approved | ADR-0022 |
+| [ADR-0023](adr/ADR-0023-ssp-component-import-staleness.md) | SSP Component Import, Staleness Tracking & Implementation-Status Convention | Approved | ADR-0023 |
+| [ADR-0024](adr/ADR-0024-editor-ux-polish.md) | Editor UX Polish — Markup Editor, Datalist Focus Fix, Back-Matter Source Resolution, Control-ID Typeahead | Approved | ADR-0024 |
+| [ADR-0025](adr/ADR-0025-universal-markup-editor-adoption.md) | Universal `<MarkupEditor>` Adoption for OSCAL `markup-multiline` Fields | Approved | ADR-0025 |
 
 ## Notes
 

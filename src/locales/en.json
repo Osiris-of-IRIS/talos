@@ -176,5 +176,53 @@
   "cdef_component_collapse_aria": "Collapse {title}",
   "cdef_component_requirements_count": "{count} requirement(s)",
   "cdef_requirements_col_control": "Control",
-  "cdef_requirements_col_description": "Description"
+  "cdef_requirements_col_description": "Description",
+
+  "ssp_new": "New system security plan",
+  "ssp_edit_heading": "Edit system security plan",
+  "ssp_system_implementation_heading": "System implementation",
+
+  "sc_system_name_label": "System name",
+  "sc_status_label": "Status",
+  "sc_authorization_boundary_label": "Authorization boundary",
+
+  "si_import_legend": "Import a component",
+  "si_no_component_defs_pre": "No component-definitions in your workspace yet. Upload or adopt one on the",
+  "si_cd_select_label": "Component-definition",
+  "si_cd_select_placeholder": "— select a component-definition —",
+  "si_component_select_label": "Component",
+  "si_component_select_placeholder": "— select a component —",
+  "si_import_button": "Import component",
+  "si_stale_label": "changed",
+  "si_stale_title": "The source component has changed since this was imported.",
+  "si_missing_label": "source missing",
+  "si_missing_title": "The source component-definition or component is no longer in your workspace.",
+  "si_refresh_button": "Refresh from source",
+  "si_remove_component_aria": "Remove component {title}",
+  "si_remove_component_button": "Remove component",
+
+  "ci_heading_ssp": "Control implementation ({count})",
+  "ci_untitled_requirement": "(no control selected)",
+  "ci_by_components_heading": "By components",
+  "ci_add_by_component": "Add by-component",
+  "ci_remove_by_component_aria": "Remove by-component",
+
+  "bc_component_label": "Component",
+  "bc_component_placeholder": "— select a component —",
+  "bc_status_label": "Implementation status",
+  "bc_status_placeholder": "— select a status —",
+
+  "implementation_status_planned": "Planned",
+  "implementation_status_implemented": "Implemented",
+  "implementation_status_partial": "Partial",
+  "implementation_status_alternative": "Alternative",
+  "implementation_status_not-applicable": "Not applicable",
+
+  "me_toolbar_label": "Formatting",
+  "me_bold_title": "Bold",
+  "me_italic_title": "Italic",
+  "me_code_title": "Code",
+  "me_link_title": "Link",
+  "me_preview_button": "Preview",
+  "me_edit_button": "Edit"
 }

@@ -17,9 +17,14 @@ import {
   controlIdsForSource,
   paramsForControl,
   normalizeControlIdKey,
+  findCatalogEntry,
+  controlIdOptionsForSource,
+  allControlIdOptions,
 } from '@/data/catalogResolution';
+import { ensureCatalogSourceResource } from '@/models/backMatter';
 import { parseOscalUpload } from '@/data/fileIo';
 import type { Catalog } from '@/models/catalog';
+import type { BackMatter, OscalArtifact } from '@/models/oscalBase';
 import catalogJson from './catalog-minimal.json';
 
 const catalogText = JSON.stringify(catalogJson);
@@ -94,6 +99,44 @@ describe('source→catalog + param pickers (T-142)', () => {
   });
 });
 
+describe('back-matter-mediated source resolution (item 5, ADR-0024)', () => {
+  const build = () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    return { idx: buildCatalogIndex([record] as never), catalogUuid: record.uuid };
+  };
+
+  it('resolves via a back-matter resource document-id, tried before the direct-uuid fallback', () => {
+    const { idx, catalogUuid } = build();
+    const holder: OscalArtifact = { uuid: 'x', metadata: { title: 't', version: '1', oscalVersion: '1.2.2' } };
+    const resourceUuid = ensureCatalogSourceResource(holder, catalogUuid, 'BSI Kernel (excerpt)');
+
+    const entry = findCatalogEntry(idx, `#${resourceUuid}`, holder.backMatter);
+    expect(entry?.uuid).toBe(catalogUuid);
+  });
+
+  it('falls back to matching the resource title when no document-id matches a workspace catalog', () => {
+    const { idx } = build();
+    const backMatter: BackMatter = {
+      resources: [{ uuid: 'res-1', title: 'BSI Kernel (excerpt)' }], // no documentIds
+    };
+    const entry = findCatalogEntry(idx, '#res-1', backMatter);
+    expect(entry?.title).toBe('BSI Kernel (excerpt)');
+  });
+
+  it('falls back to the legacy direct-uuid match when no back-matter resource exists for the ref', () => {
+    const { idx, catalogUuid } = build();
+    // no backMatter passed at all — matches existing T-142 behavior unchanged
+    const entry = findCatalogEntry(idx, `#${catalogUuid}`);
+    expect(entry?.uuid).toBe(catalogUuid);
+  });
+
+  it('returns undefined when a resource exists but identifies nothing in the workspace', () => {
+    const { idx } = build();
+    const backMatter: BackMatter = { resources: [{ uuid: 'res-1', title: 'Some Unrelated Catalog' }] };
+    expect(findCatalogEntry(idx, '#res-1', backMatter)).toBeUndefined();
+  });
+});
+
 describe('alt-identifier resolution (ADR-0021, TEST-CTRLID-01)', () => {
   it('indexCatalogControls indexes a control under both its literal id and _{alt-identifier}', () => {
     const { record } = parseOscalUpload<Catalog>(catalogText);
@@ -134,6 +177,27 @@ describe('alt-identifier resolution (ADR-0021, TEST-CTRLID-01)', () => {
       '_b3a2e5a0-380a-4770-86e6-ea1d8d586ad7',
     );
     expect(normalizeControlIdKey('ASST.1.1.2')).toBe('ASST.1.1.2');
+  });
+});
+
+describe('control-id typeahead richness (item 7, ADR-0024)', () => {
+  it('controlIdOptionsForSource shows "{label|id} {title}" display text, id/alt-id as value', () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    const idx = buildCatalogIndex([record] as never);
+    const options = controlIdOptionsForSource(idx, `#${record.uuid}`);
+    expect(options).toHaveLength(2);
+    const literal = options.find((o) => o.value === 'ASST.1.1.2');
+    expect(literal?.label).toBe('ASST.1.1.2 Zuweisung'); // fixture control has no "label" prop -> falls back to id
+    const altId = options.find((o) => o.value === '_b3a2e5a0-380a-4770-86e6-ea1d8d586ad7');
+    expect(altId?.label).toBe('ASST.1.1.2 Zuweisung'); // same control, same headline
+  });
+
+  it('allControlIdOptions is unscoped across every workspace catalog (SSPs have no per-requirement source)', () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    const idx = buildCatalogIndex([record] as never);
+    const options = allControlIdOptions(idx);
+    expect(options.map((o) => o.value)).toContain('ASST.1.1.2');
+    expect(options.find((o) => o.value === 'ASST.1.1.2')?.label).toBe('ASST.1.1.2 Zuweisung');
   });
 });
 

@@ -1,0 +1,20 @@
+Kuerzel,Name
+GP001,Produktion
+GP002,Angebotswesen
+GP003,Auftragsabwicklung
+GP004,Einkauf
+GP005,Disposition
+GP006,Personalverwaltung
+GP006a,Gehaltszahlung
+GP006b,Neueinstellung
+GP006c,Entlassung Mitarbeiter
+GP007,IT-Betrieb
+GP007a,Betrieb Server
+GP007b,Betrieb Clients
+GP007c,Betrieb Netze
+GP007d,Betrieb Produktions-IT
+GP008,Betrieb der Webseite
+GP009,Betrieb des Intranets
+GP010,Verwaltung des Mobile Device Managements
+GP011,Nutzung einer Cloud-Umgebung
+

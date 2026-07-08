@@ -108,6 +108,30 @@ export function shouldWarnFileSize(byteLength: number): boolean {
   return byteLength >= EMBEDDED_FILE_WARN_BYTES;
 }
 
+/**
+ * Ensure a back-matter resource exists identifying `catalogUuid` as a document-id (item 5,
+ * ADR-0024) and return its uuid; `control-implementation.source` should reference this resource
+ * (`#<resourceUuid>`), not the catalog's own uuid directly — the resource is the OSCAL-correct
+ * indirection real tooling expects. Reuses an existing resource for the same catalog (dedupe).
+ */
+export function ensureCatalogSourceResource(
+  artifact: OscalArtifact,
+  catalogUuid: string,
+  catalogTitle: string,
+  newResourceUuid?: string,
+): string {
+  const bm = ensureBackMatter(artifact);
+  const existing = bm.resources?.find((r) => r.documentIds?.some((d) => d.identifier === catalogUuid));
+  if (existing) return existing.uuid;
+  const resource: Resource = {
+    uuid: newResourceUuid ?? uuid(),
+    title: catalogTitle,
+    documentIds: [{ identifier: catalogUuid }],
+  };
+  bm.resources!.push(resource);
+  return resource.uuid;
+}
+
 /** Remove a back-matter resource by uuid; returns true if one was removed. */
 export function removeResource(artifact: OscalArtifact, resourceUuid: string): boolean {
   const resources = artifact.backMatter?.resources;

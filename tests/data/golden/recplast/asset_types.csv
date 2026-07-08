@@ -1,0 +1,24 @@
+uuid,title
+client-pc,Desktop-PC (Client)
+laptop,Laptop
+server,Server (Hostsystem)
+application-office,Office-Anwendung
+application-server,Server-Anwendung
+application-database,Datenbank-Anwendung
+application-business,Fachanwendung
+application-web,Webanwendung
+application-virtualization,Virtualisierungslösung
+network-router,Router
+network-switch,Switch
+network-firewall,Firewall
+network-wlan-ap,WLAN Access Point
+network-recobs,ReCoBS-Verbindung
+telecom-phone-system,Telefonanlage
+telecom-fax,Faxgerät
+building,Gebäude
+room-office,Büroraum
+room-server,Serverraum
+room-technical,Technikraum
+room-archive,Datenträgerarchiv
+room-production,Produktionshalle
+service-provider,Dienstleister

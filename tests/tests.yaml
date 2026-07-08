@@ -33,6 +33,9 @@ adr_coverage_required:
   - ADR-0022 # markup truncate-and-expand display helper
   - ADR-0012 # i18n (de/en, t() with English fallback, language stored in settings)
   - ADR-0021 # control-id resolution: literal id vs. _{uuid} alt-identifier reference
+  - ADR-0023 # SSP component import, staleness tracking, implementation-status convention
+  - ADR-0024 # editor UX polish: markup editor, datalist focus fix, back-matter source resolution, control-id typeahead
+  - ADR-0025 # universal <MarkupEditor> adoption policy for markup-multiline fields
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -89,14 +92,50 @@ suites:
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0009, ADR-0022]
 
+  - id: TEST-COLLAPSE-01
+    title: useExpandedSet — shared Set<id>-backed collapse/expand state
+    file: tests/shared/useExpandedSet.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0011, ADR-0023]
+
+  - id: TEST-COLLAPSE-02
+    title: "<CollapsibleSection> — shared summary/body toggle wrapper"
+    file: tests/shared/CollapsibleSection.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0011, ADR-0023]
+
+  - id: TEST-MDEDIT-01
+    title: "<MarkupEditor> — toolbar (bold/italic/code/link) + preview toggle"
+    file: tests/shared/MarkupEditor.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0009, ADR-0024, ADR-0025]
+
+  - id: TEST-DLINPUT-01
+    title: "<DatalistInput> — clear-on-focus native datalist wrapper"
+    file: tests/shared/DatalistInput.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0024]
+
   - id: TEST-BM-01
-    title: Back-matter resource helpers (externalize/embed/dedupe/size limits)
+    title: Back-matter resource helpers (externalize/embed/dedupe/size limits, catalog-source resource)
     file: tests/models/backMatter.test.ts
     type: unit
     runner: vitest
     status: implemented
     feature: PLAT-004
-    adr_refs: [ADR-0001, ADR-0015]
+    adr_refs: [ADR-0001, ADR-0015, ADR-0024]
 
   - id: TEST-CTRL-01
     title: Control-display pure helpers (headline, statement, param insertion, truncation)
@@ -118,13 +157,13 @@ suites:
     adr_refs: [ADR-0001, ADR-0016]
 
   - id: TEST-CATRES-01
-    title: Catalog resolution index + source→catalog/control/param pickers (T-142)
+    title: "Catalog resolution index + source→catalog/control/param pickers (T-142); back-matter-mediated source resolution + control-id typeahead richness (items 5, 7)"
     file: tests/data/catalogResolution.test.ts
     type: integration
     runner: vitest
     status: implemented
     feature: PLAT-004
-    adr_refs: [ADR-0001, ADR-0013, ADR-0016]
+    adr_refs: [ADR-0001, ADR-0013, ADR-0016, ADR-0024]
     golden: [tests/data/catalog-minimal.json]
 
   - id: TEST-CATRES-02
@@ -284,13 +323,13 @@ suites:
     adr_refs: [ADR-0001, ADR-0004]
 
   - id: TEST-CDEF-EDIT-01
-    title: Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance, component list collapse/expand)
+    title: "Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance, component list collapse/expand, markup editor, back-matter source resolution)"
     file: tests/features/componentDefinitionEditor.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: IMPL-001
-    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0015, ADR-0016]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0015, ADR-0016, ADR-0024, ADR-0025]
 
   - id: TEST-CDEF-EDIT-02
     title: E2E create a component-definition end to end (full body flow)
@@ -320,13 +359,13 @@ suites:
 
   # ---- SSPs (IMPL-002) ------------------------------------------------------------
   - id: TEST-SSP-01
-    title: SSP store + list/detail pages
+    title: "SSP store + list/detail pages: default-collapsed sections/rows, staleness badge, edit link, by-component status"
     file: tests/features/ssps.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: IMPL-002
-    adr_refs: [ADR-0001, ADR-0004]
+    adr_refs: [ADR-0001, ADR-0004, ADR-0023]
     golden: [tests/data/ssp-minimal.json]
 
   - id: TEST-SSP-02
@@ -339,12 +378,22 @@ suites:
     adr_refs: [ADR-0001, ADR-0004]
 
   - id: TEST-SSP-03
-    title: SSP editor core authoring + per-requirement implementation status
+    title: "SSP editor core authoring, system-implementation import, control-implementation + by-components + status, markup editor, control-id typeahead richness"
+    file: tests/features/sspEditor.test.tsx
     type: component
     runner: vitest
-    status: planned
+    status: implemented
     feature: IMPL-002
-    adr_refs: [ADR-0001, ADR-0003, ADR-0017]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0017, ADR-0023, ADR-0024, ADR-0025]
+
+  - id: TEST-SSP-IMPORT-01
+    title: Component import + staleness (hash snapshot) + refresh + implementation-status props
+    file: tests/features/componentImport.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: IMPL-002
+    adr_refs: [ADR-0001, ADR-0023]
 
   # ---- Profiles (CTRL-001, deferred per ADR-0017) --------------------------------
   - id: TEST-PROF-01

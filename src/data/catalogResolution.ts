@@ -16,7 +16,8 @@ import { ArtifactRepository } from './artifactRepository';
 import type { StoredArtifact } from './db';
 import type { Catalog, CatalogGroup } from '@/models/catalog';
 import type { Control, Parameter } from '@/models/control';
-import { getControlAltIdentifier } from '@/models/controlDisplay';
+import type { BackMatter } from '@/models/oscalBase';
+import { getControlAltIdentifier, getControlHeadline } from '@/models/controlDisplay';
 
 const ALT_ID_REF_RE = /^_[0-9a-fA-F-]{36}$/;
 
@@ -114,10 +115,55 @@ export function sourceToCatalogUuid(source: string | undefined): string | undefi
   return source.startsWith('#') ? source.slice(1) : source;
 }
 
-/** The workspace catalog referenced by a `source`, if any (origin-agnostic; T-034 extends the list). */
-export function findCatalogEntry(index: CatalogIndex, source: string | undefined): CatalogEntry | undefined {
-  const uuid = sourceToCatalogUuid(source);
-  return uuid ? index.catalogs.find((c) => c.uuid === uuid) : undefined;
+/**
+ * Resolve a `source` href to a workspace catalog uuid, preferring the OSCAL-correct back-matter
+ * indirection over a direct match (item 5, ADR-0024):
+ *   1. `source` → a back-matter resource (`#<resourceUuid>`); from that resource:
+ *      1a. a `document-id` matching a workspace catalog's uuid,
+ *      1b. the resource's own uuid, in case it happens to equal a catalog's uuid,
+ *      1c. the resource's `title` matching a catalog's title (weakest tier).
+ *   2. No matching resource at all → legacy/direct fallback: treat the ref as a catalog uuid
+ *      itself (T-142's original behavior; keeps already-authored TALOS documents resolvable).
+ */
+function resolveSourceCatalogUuid(
+  source: string | undefined,
+  backMatter: BackMatter | undefined,
+  index: CatalogIndex,
+): string | undefined {
+  const ref = sourceToCatalogUuid(source);
+  if (!ref) return undefined;
+
+  const resource = backMatter?.resources?.find((r) => r.uuid === ref);
+  if (resource) {
+    const byDocId = resource.documentIds
+      ?.map((d) => index.catalogs.find((c) => c.uuid === d.identifier))
+      .find((c): c is CatalogEntry => c !== undefined);
+    if (byDocId) return byDocId.uuid;
+
+    const bySelfUuid = index.catalogs.find((c) => c.uuid === resource.uuid);
+    if (bySelfUuid) return bySelfUuid.uuid;
+
+    const byTitle = resource.title ? index.catalogs.find((c) => c.title === resource.title) : undefined;
+    if (byTitle) return byTitle.uuid;
+
+    return undefined; // a resource exists but doesn't identify any workspace catalog
+  }
+
+  return index.catalogs.find((c) => c.uuid === ref)?.uuid;
+}
+
+/**
+ * The workspace catalog referenced by a `source`, if any (origin-agnostic; T-034 extends the
+ * list). `backMatter` enables the back-matter-mediated resolution above; omit it to get the
+ * legacy direct-uuid-only behavior (e.g. callers with no artifact context).
+ */
+export function findCatalogEntry(
+  index: CatalogIndex,
+  source: string | undefined,
+  backMatter?: BackMatter,
+): CatalogEntry | undefined {
+  const catalogUuid = resolveSourceCatalogUuid(source, backMatter, index);
+  return catalogUuid ? index.catalogs.find((c) => c.uuid === catalogUuid) : undefined;
 }
 
 /** Source-picker options for `control-implementation.source` (ref is the `#uuid` written to the model). */
@@ -126,9 +172,45 @@ export function catalogSourceOptions(index: CatalogIndex): { ref: string; uuid: 
 }
 
 /** Control-ids available under a chosen source (empty for an unresolved/free-text source). */
-export function controlIdsForSource(index: CatalogIndex, source: string | undefined): string[] {
-  const entry = findCatalogEntry(index, source);
+export function controlIdsForSource(
+  index: CatalogIndex,
+  source: string | undefined,
+  backMatter?: BackMatter,
+): string[] {
+  const entry = findCatalogEntry(index, source, backMatter);
   return entry ? [...entry.controlsById.keys()] : [];
+}
+
+export interface ControlIdOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Control-id datalist options for a chosen source (item 7, ADR-0024): `value` is the literal id
+ * or `_{uuid}` alt-id form actually written to `control-id`; `label` is the resolved control's
+ * headline ("{label|id} {title}", ADR-0016) so the picker shows something readable instead of a
+ * raw id/uuid.
+ */
+export function controlIdOptionsForSource(
+  index: CatalogIndex,
+  source: string | undefined,
+  backMatter?: BackMatter,
+): ControlIdOption[] {
+  const entry = findCatalogEntry(index, source, backMatter);
+  if (!entry) return [];
+  return [...entry.controlsById.entries()].map(([id, control]) => ({
+    value: id,
+    label: getControlHeadline(control),
+  }));
+}
+
+/** Same as `controlIdOptionsForSource`, unscoped across every workspace catalog (SSPs have no per-requirement source). */
+export function allControlIdOptions(index: CatalogIndex): ControlIdOption[] {
+  return [...index.byControlId.entries()].map(([id, resolved]) => ({
+    value: id,
+    label: getControlHeadline(resolved.control),
+  }));
 }
 
 /** Parameters of a control within a chosen source — the valid `set-parameter.param-id` picks (ADR-0016). */
@@ -136,8 +218,9 @@ export function paramsForControl(
   index: CatalogIndex,
   source: string | undefined,
   controlId: string,
+  backMatter?: BackMatter,
 ): Parameter[] {
-  const entry = findCatalogEntry(index, source);
+  const entry = findCatalogEntry(index, source, backMatter);
   return entry?.controlsById.get(normalizeControlIdKey(controlId))?.params ?? [];
 }
 

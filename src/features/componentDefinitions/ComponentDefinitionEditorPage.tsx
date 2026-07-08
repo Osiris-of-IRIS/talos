@@ -9,7 +9,13 @@ import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
 import { createBlankComponentDefinition } from './blank';
 import { COMPONENT_TYPES } from '@/models/componentTypes';
 import { useI18n } from '@/shared/i18n';
+import { useExpandedSet } from '@/shared/useExpandedSet';
+import { MarkupEditor } from '@/shared/MarkupEditor';
+import { DatalistInput } from '@/shared/DatalistInput';
+import { ensureCatalogSourceResource } from '@/models/backMatter';
 import type { ComponentDefinition, DefinedComponent } from '@/models/componentDefinition';
+
+const COMPONENT_TYPE_OPTIONS = COMPONENT_TYPES.map((ct) => ({ value: ct.value, label: ct.description }));
 
 const repo = () => ArtifactRepository.forType<ComponentDefinition>('componentDefinition');
 
@@ -24,7 +30,7 @@ export function ComponentDefinitionEditorPage() {
   const [saving, setSaving] = useState(false);
   // Which components render their full editor vs. a collapsed summary row (item 2). A newly
   // added component auto-opens; an existing/loaded one starts collapsed.
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const expanded = useExpandedSet();
 
   useEffect(() => {
     if (isNew || !uuid) return;
@@ -53,52 +59,67 @@ export function ComponentDefinitionEditorPage() {
   }
   if (!draft) return <main>{t('common_loading')}</main>;
 
+  // All draft mutations use the functional setState form (prev => next) — not direct values —
+  // so that when a single event handler triggers multiple updates in sequence (e.g. ensuring a
+  // back-matter resource, then patching a component field), each update composes on top of the
+  // previous one instead of racing against a stale `draft` closure and silently clobbering it.
   function update(next: ComponentDefinition) {
     setDraft(next);
   }
 
   function addComponent() {
-    const next = structuredClone(draft!);
     const c: DefinedComponent = {
       uuid: globalThis.crypto.randomUUID(),
       type: 'software',
       title: 'New component',
       description: '',
     };
-    (next.components ??= []).push(c);
-    setDraft(next);
-    setExpanded((prev) => new Set(prev).add(c.uuid));
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      (next.components ??= []).push(c);
+      return next;
+    });
+    expanded.expand(c.uuid);
   }
 
   function patchComponent(idx: number, mutator: (c: DefinedComponent) => void) {
-    const next = structuredClone(draft!);
-    mutator(next.components![idx]!);
-    setDraft(next);
-  }
-
-  function removeComponent(idx: number) {
-    const removedUuid = draft!.components![idx]!.uuid;
-    const next = structuredClone(draft!);
-    next.components!.splice(idx, 1);
-    setDraft(next);
-    setExpanded((prev) => {
-      const nextExpanded = new Set(prev);
-      nextExpanded.delete(removedUuid);
-      return nextExpanded;
-    });
-  }
-
-  function toggleExpanded(componentUuid: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(componentUuid)) next.delete(componentUuid);
-      else next.add(componentUuid);
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      mutator(next.components![idx]!);
       return next;
     });
   }
 
+  function removeComponent(idx: number) {
+    const removedUuid = draft!.components![idx]!.uuid;
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      next.components!.splice(idx, 1);
+      return next;
+    });
+    expanded.collapse(removedUuid);
+  }
+
   function requirementCount(c: DefinedComponent): number {
     return (c.controlImplementations ?? []).reduce((sum, ci) => sum + ci.implementedRequirements.length, 0);
+  }
+
+  /** Ensures a back-matter resource identifying `catalogUuid` and returns `#<resourceUuid>` (item 5). */
+  function ensureCatalogSource(catalogUuid: string, catalogTitle: string): string {
+    const existing = draft!.backMatter?.resources?.find((r) =>
+      r.documentIds?.some((d) => d.identifier === catalogUuid),
+    );
+    const resourceUuid = existing?.uuid ?? globalThis.crypto.randomUUID();
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      ensureCatalogSourceResource(next, catalogUuid, catalogTitle, resourceUuid);
+      return next;
+    });
+    return `#${resourceUuid}`;
   }
 
   async function save() {
@@ -134,19 +155,11 @@ export function ComponentDefinitionEditorPage() {
       <h1>{isNew ? `➕ ${t('cdef_new')}` : `✎ ${t('cdef_edit_heading')}`}</h1>
 
       <MetadataEditor artifact={draft} onChange={update} />
-      <BackMatterEditor artifact={draft} onChange={update} />
 
       <fieldset>
         <legend>{t('compdef_components_count', { count: components.length })}</legend>
-        <datalist id="component-type-options">
-          {COMPONENT_TYPES.map((ct) => (
-            <option key={ct.value} value={ct.value}>
-              {ct.description}
-            </option>
-          ))}
-        </datalist>
         {components.map((c, i) => {
-          const isOpen = expanded.has(c.uuid);
+          const isOpen = expanded.isExpanded(c.uuid);
           const reqCount = requirementCount(c);
           return (
           <div key={c.uuid} data-testid="compdef-edit-component">
@@ -157,7 +170,7 @@ export function ComponentDefinitionEditorPage() {
               aria-label={t(isOpen ? 'cdef_component_collapse_aria' : 'cdef_component_expand_aria', {
                 title: c.title,
               })}
-              onClick={() => toggleExpanded(c.uuid)}
+              onClick={() => expanded.toggle(c.uuid)}
             >
               {isOpen ? '▾' : '▸'} {c.title} <small>[{c.type}]</small>{' '}
               <small>· {t('cdef_component_requirements_count', { count: reqCount })}</small>
@@ -175,26 +188,31 @@ export function ComponentDefinitionEditorPage() {
                 </label>
                 <label>
                   {t('cdef_component_type_label')}
-                  <input
-                    aria-label={t('cdef_component_type_aria')}
-                    data-testid="component-type"
-                    list="component-type-options"
+                  <DatalistInput
+                    ariaLabel={t('cdef_component_type_aria')}
+                    dataTestId="component-type"
+                    listId={`component-type-options-${c.uuid}`}
+                    options={COMPONENT_TYPE_OPTIONS}
                     value={c.type}
-                    onChange={(e) => patchComponent(i, (cc) => (cc.type = e.target.value))}
+                    onChange={(v) => patchComponent(i, (cc) => (cc.type = v))}
                   />
                 </label>
                 <label>
                   {t('common_description')}
-                  <textarea
-                    aria-label={t('cdef_field_component_description')}
+                  <MarkupEditor
+                    dataTestId="component-description"
+                    ariaLabel={t('cdef_field_component_description')}
+                    rows={5}
                     value={c.description}
-                    onChange={(e) => patchComponent(i, (cc) => (cc.description = e.target.value))}
+                    onChange={(v) => patchComponent(i, (cc) => (cc.description = v))}
                   />
                 </label>
                 <ControlImplementationsEditor
                   value={c}
                   onChange={(next) => patchComponent(i, (cc) => Object.assign(cc, next))}
                   catalogIndex={catalogIndex}
+                  backMatter={draft.backMatter}
+                  onEnsureCatalogSource={ensureCatalogSource}
                 />
                 <button
                   type="button"
@@ -212,6 +230,8 @@ export function ComponentDefinitionEditorPage() {
           ➕ {t('cdef_add_component')}
         </button>
       </fieldset>
+
+      <BackMatterEditor artifact={draft} onChange={update} />
 
       <div>
         <button type="button" data-testid="save-compdef" onClick={() => void save()} disabled={saving}>

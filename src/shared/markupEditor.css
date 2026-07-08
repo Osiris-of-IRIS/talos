@@ -1,0 +1,40 @@
+/* Markup editor: full-width textarea with a minimum visible-line count set via `rows` (feedback:
+   remarks/description fields need more room than a default 2-row textarea). */
+.markup-editor {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+.markup-editor-toolbar {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.3rem;
+}
+
+.markup-editor-toolbar button {
+  min-width: 2rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.markup-editor-preview-toggle {
+  margin-left: auto;
+}
+
+.markup-editor-textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.markup-editor-preview {
+  width: 100%;
+  min-height: 2rem;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-elevated);
+}

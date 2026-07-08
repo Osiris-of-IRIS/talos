@@ -49,11 +49,13 @@
     - "Reusable OscalArtifact base (metadata + back-matter) extended per type; envelope codec round-trips."
     - "OSCAL markup rendered XSS-safe everywhere via one renderer."
     - "Long markup-line/markup-multiline content truncates to a consistent size by default and expands to the full, beautified content in a modal (ADR-0022)."
+    - "Long-text editing fields offer basic formatting help (bold/italic/code/link) and a preview (ADR-0024)."
+    - "Every editable OSCAL markup-multiline field uses the shared <MarkupEditor>, with no exceptions once an editor exists for it (ADR-0025)."
     - "Entity-search typeahead over IndexedDB with scoping; i18n de/en with EN fallback; dark/light theme via data-theme."
   status: "In-Progress"
-  scope_note: "T-500 (i18n): done. t()/<I18nProvider> (src/shared/i18n.tsx), flat de/en catalogs (155 keys, src/locales/), language persisted via the settings store, <LanguageSwitcher> in the topbar, real app defaults to DEFAULT_LANGUAGE ('de'); the useI18n() context default (used when no provider is mounted, e.g. isolated component tests) resolves against English — same tier as the missing-key fallback. Rolled out across every feature page (app shell, landing, component-definitions, SSPs, catalogs, library, shared editors/display). Deferred: entity-search widget (TEST-SEARCH-01, still T-036/planned)."
-  linked_adr_ids: ["ADR-0003", "ADR-0009", "ADR-0013", "ADR-0012", "ADR-0010", "ADR-0020", "ADR-0021", "ADR-0022"]
-  linked_test_ids: ["TEST-MODEL-01", "TEST-MD-01", "TEST-MDV-01", "TEST-SEARCH-01", "TEST-I18N-01", "TEST-CTRLID-01"]
+  scope_note: "T-500 (i18n): done. t()/<I18nProvider> (src/shared/i18n.tsx), flat de/en catalogs (201 keys, src/locales/), language persisted via the settings store, <LanguageSwitcher> in the topbar, real app defaults to DEFAULT_LANGUAGE ('de'); the useI18n() context default (used when no provider is mounted, e.g. isolated component tests) resolves against English — same tier as the missing-key fallback. Rolled out across every feature page (app shell, landing, component-definitions, SSPs, catalogs, library, shared editors/display). Deferred: entity-search widget (TEST-SEARCH-01, still T-036/planned). T-170 (ADR-0024): <MarkupEditor> (toolbar + preview) and <DatalistInput> (clear-on-focus datalist wrapper, fixes a native-browser UX gotcha) are new shared components used across both editors. T-171 (ADR-0025): formalized the universal-adoption policy — audited 2026-07-08, every currently-editable markup-multiline field uses <MarkupEditor>; fields with no editor yet (back-matter resource description/remarks, role/party remarks, statements, capabilities, etc.) must use it once one is built. No automated enforcement yet (flagged as a follow-up: an ESLint/harness check forbidding bare <textarea> under src/features/)."
+  linked_adr_ids: ["ADR-0003", "ADR-0009", "ADR-0013", "ADR-0012", "ADR-0010", "ADR-0020", "ADR-0021", "ADR-0022", "ADR-0023", "ADR-0024", "ADR-0025"]
+  linked_test_ids: ["TEST-MODEL-01", "TEST-MD-01", "TEST-MDV-01", "TEST-SEARCH-01", "TEST-I18N-01", "TEST-CTRLID-01", "TEST-COLLAPSE-01", "TEST-COLLAPSE-02", "TEST-MDEDIT-01", "TEST-DLINPUT-01"]
 
 - id: CTRL-001
   title: "OSCAL Profiles (control tailoring)"
@@ -77,9 +79,9 @@
     - "Adopt BSI-library component-definitions into the workspace."
     - "OSCAL import/export round-trip is lossless (golden-tested)."
   status: "In-Progress"
-  scope_note: "Phase-1 scope per ADR-0017: source→catalog picker + import-component-definition compose in scope; component purpose/props/links/responsible-roles/protocols, statements, capabilities deferred. T-161: control-implementation editor now shows an info message linking to catalog upload/library when the workspace has zero catalogs, closing the last T-142 acceptance gap. T-162: control-id resolution now also matches BSI's underscore-prefixed-UUID alt-identifier form (ADR-0021), not just the literal id. T-163: the editor's component list shows collapsed summary rows (title/type/requirement count) that expand to the full per-component editor on click; a newly-added component auto-expands. T-164: the detail view's component list is likewise collapsed by default (summary row, click to expand), and each control-implementation's implemented-requirements render as a control(40%)|description(60%) table instead of a flat list."
-  linked_adr_ids: ["ADR-0003", "ADR-0014", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0016", "ADR-0017", "ADR-0021"]
-  linked_test_ids: ["TEST-CDEF-01", "TEST-CDEF-02", "TEST-CDEF-IMP-01", "TEST-CDEF-RES-01"]
+  scope_note: "Phase-1 scope per ADR-0017: source→catalog picker + import-component-definition compose in scope; component purpose/props/links/responsible-roles/protocols, statements, capabilities deferred. T-161: control-implementation editor now shows an info message linking to catalog upload/library when the workspace has zero catalogs, closing the last T-142 acceptance gap. T-162: control-id resolution now also matches BSI's underscore-prefixed-UUID alt-identifier form (ADR-0021), not just the literal id. T-163: the editor's component list shows collapsed summary rows (title/type/requirement count) that expand to the full per-component editor on click; a newly-added component auto-expands. T-164: the detail view's component list is likewise collapsed by default (summary row, click to expand), and each control-implementation's implemented-requirements render as a control(40%)|description(60%) table instead of a flat list. T-170 (ADR-0024): long-text fields (remarks/description) use the shared <MarkupEditor> (toolbar + preview) at a consistent minimum size; `control-implementation.source` is now back-matter-mediated (creates/reuses a resource identifying the catalog via document-id, not the catalog's own uuid directly); control-id suggestions show the resolved headline, not a raw id; the type/control-id/param-id/source datalist pickers no longer appear to offer only the current value on focus; back-matter now renders after all artifact-specific content, matching the NIST model outline order."
+  linked_adr_ids: ["ADR-0003", "ADR-0014", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0016", "ADR-0017", "ADR-0021", "ADR-0024"]
+  linked_test_ids: ["TEST-CDEF-01", "TEST-CDEF-02", "TEST-CDEF-IMP-01", "TEST-CDEF-RES-01", "TEST-CDEF-EDIT-01"]
 
 - id: IMPL-002
   title: "OSCAL System Security Plans / SSP (PRIORITY)"
@@ -87,12 +89,12 @@
   acceptance_criteria:
     - "CRUD list/detail; editor for system-characteristics, system-implementation, control-implementation (implemented-requirements -> by-components -> statements)."
     - "Link SSP to a source profile and pull in component-definitions."
-    - "Per-requirement implementation status (planned/implemented/partial/alternative/not-applicable)."
+    - "Per-by-component implementation status (planned/implemented/partial/alternative/not-applicable)."
     - "OSCAL import/export round-trip is lossless (golden-tested)."
   status: "In-Progress"
-  scope_note: "Phase-1 editor = core authoring (ADR-0017): metadata+back-matter, import-profile (manual), system-characteristics core, implemented-requirements (control-id/description/status/by-components). Deferred: system-implementation, statements, impact-level; profile linking (T-112)."
-  linked_adr_ids: ["ADR-0003", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0017", "ADR-0021"]
-  linked_test_ids: ["TEST-SSP-01", "TEST-SSP-02", "TEST-SSP-03"]
+  scope_note: "Phase-1 editor = core authoring (ADR-0017): metadata+back-matter, import-profile (manual), system-characteristics core, implemented-requirements (control-id/by-components). Deferred: statements, impact-level, system-information, users/inventory-items; profile linking (T-112). T-111/T-113 done (ADR-0023): system-implementation.components are import-only from workspace component-definitions (never authored from scratch), tracked via provenance+content-hash props with a Δ staleness badge and one-click refresh; implementation-status lives per-by-component (not per-requirement, since one control can have components in different states); removing a component cascades to strip its by-components entries; editor/detail both use default-collapsed sections+rows (new SSP starts expanded, loaded SSP starts collapsed). T-170 (ADR-0024): remarks/description fields use the shared <MarkupEditor>; control-id suggestions are unscoped across every workspace catalog (SSPs have no per-requirement source) and show the resolved headline; back-matter now renders after the three collapsible sections."
+  linked_adr_ids: ["ADR-0003", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0017", "ADR-0021", "ADR-0023", "ADR-0024"]
+  linked_test_ids: ["TEST-SSP-01", "TEST-SSP-02", "TEST-SSP-03", "TEST-SSP-IMPORT-01"]
 
 - id: ASMT-001
   title: "OSCAL Assessment Plans"

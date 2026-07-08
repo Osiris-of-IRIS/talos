@@ -9,6 +9,7 @@ import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
 import { resolveControl } from '@/data/catalogResolution';
 import { viewerHref } from '@/config';
 import { useI18n } from '@/shared/i18n';
+import { useExpandedSet } from '@/shared/useExpandedSet';
 import type { StoredArtifact } from '@/data/db';
 import type { ComponentDefinition, DefinedComponent } from '@/models/componentDefinition';
 import './componentDefinitionDetail.css';
@@ -24,16 +25,7 @@ export function ComponentDefinitionDetailPage() {
   const [record, setRecord] = useState<StoredArtifact<ComponentDefinition> | null | undefined>(undefined);
   const [exportError, setExportError] = useState<string | null>(null);
   // Every component starts collapsed (item 3): a scannable list first, full detail on click.
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
-  function toggleExpanded(componentUuid: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(componentUuid)) next.delete(componentUuid);
-      else next.add(componentUuid);
-      return next;
-    });
-  }
+  const expanded = useExpandedSet();
 
   function onDownload(r: StoredArtifact<ComponentDefinition>) {
     try {
@@ -98,7 +90,7 @@ export function ComponentDefinitionDetailPage() {
 
       <h2>{t('compdef_components_count', { count: cd.components?.length ?? 0 })}</h2>
       {cd.components?.map((c) => {
-        const isOpen = expanded.has(c.uuid);
+        const isOpen = expanded.isExpanded(c.uuid);
         return (
         <section key={c.uuid} data-testid="compdef-component">
           <button
@@ -108,7 +100,7 @@ export function ComponentDefinitionDetailPage() {
             aria-label={t(isOpen ? 'cdef_component_collapse_aria' : 'cdef_component_expand_aria', {
               title: c.title,
             })}
-            onClick={() => toggleExpanded(c.uuid)}
+            onClick={() => expanded.toggle(c.uuid)}
           >
             {isOpen ? '▾' : '▸'} {c.title} <small>[{c.type}]</small>{' '}
             <small>· {t('cdef_component_requirements_count', { count: requirementCount(c) })}</small>

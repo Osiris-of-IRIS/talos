@@ -12,6 +12,7 @@ import {
   base64ToBytes,
   shouldWarnFileSize,
   isExternalUrl,
+  ensureCatalogSourceResource,
   DEFAULT_MAX_EMBEDDED_FILE_BYTES,
   EMBEDDED_FILE_WARN_BYTES,
 } from '@/models/backMatter';
@@ -111,5 +112,27 @@ describe('removeResource', () => {
     expect(removeResource(a, id)).toBe(true);
     expect(a.backMatter?.resources).toHaveLength(0);
     expect(removeResource(a, 'nope')).toBe(false);
+  });
+});
+
+describe('ensureCatalogSourceResource (item 5: back-matter-mediated control-implementation.source)', () => {
+  it('creates a resource carrying the catalog as a document-id, and returns its uuid', () => {
+    const a = artifact();
+    const catalogUuid = 'cccccccc-0000-4000-8000-000000000001';
+    const resourceUuid = ensureCatalogSourceResource(a, catalogUuid, 'BSI Kernel');
+    const res = a.backMatter?.resources?.[0];
+    expect(res?.uuid).toBe(resourceUuid);
+    expect(res?.title).toBe('BSI Kernel');
+    expect(res?.documentIds?.[0]?.identifier).toBe(catalogUuid);
+    expect(resourceUuid).not.toBe(catalogUuid); // the resource has its own identity
+  });
+
+  it('dedupes: reuses the existing resource for the same catalog', () => {
+    const a = artifact();
+    const catalogUuid = 'cccccccc-0000-4000-8000-000000000001';
+    const first = ensureCatalogSourceResource(a, catalogUuid, 'BSI Kernel');
+    const second = ensureCatalogSourceResource(a, catalogUuid, 'BSI Kernel');
+    expect(second).toBe(first);
+    expect(a.backMatter?.resources).toHaveLength(1);
   });
 });

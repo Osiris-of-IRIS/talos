@@ -21,7 +21,11 @@ test('upload an SSP, see it listed, open its detail', async ({ page }) => {
 
   await item.getByText('Beispiel-SSP Webserver').click();
   await expect(page.getByTestId('ssp-detail')).toBeVisible();
+
+  // Sections are collapsed by default (ADR-0023) — expand to see content.
+  await page.getByTestId('ssp-section-characteristics-toggle').click();
   await expect(page.getByTestId('ssp-system-name')).toContainText('Webserver Cluster');
+  await page.getByTestId('ssp-section-control-impl-toggle').click();
   await expect(page.getByTestId('ssp-requirement')).toContainText('IA-5');
 });
 

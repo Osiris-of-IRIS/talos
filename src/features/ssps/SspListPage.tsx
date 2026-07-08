@@ -36,6 +36,9 @@ export function SspListPage() {
       <h1>🖥️ {t('landing_feature_ssps')}</h1>
 
       <div>
+        <Link to="/ssps/new" data-testid="ssp-new">
+          ➕ {t('ssp_new')}
+        </Link>{' '}
         <button type="button" onClick={() => fileInput.current?.click()}>
           ⭱ {t('common_upload_oscal')}
         </button>

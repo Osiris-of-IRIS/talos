@@ -5,19 +5,29 @@
  * still allowed; origin-agnostic so T-034 library catalogs slot into the same lists). The full
  * ADR-0013 entity-search widget (T-036) can later replace the datalists. When the workspace has
  * zero catalogs, shows an info message linking to upload/library (T-161).
- * Decision IDs: ADR-0003, ADR-0013, ADR-0016, ADR-0012 (feature IMPL-001, T-101/T-142/T-161).
+ *
+ * Source resolution is back-matter-mediated (item 5, ADR-0024): picking a catalog creates/reuses
+ * a back-matter resource identifying it (`onEnsureCatalogSource`) instead of writing the
+ * catalog's own uuid directly into `source`. Control-id suggestions show the resolved control's
+ * headline, not a raw id/uuid (item 7, ADR-0024). All datalist inputs use `<DatalistInput>` so
+ * focusing a pre-filled field offers every option, not just the current value (item 3, ADR-0024).
+ * Decision IDs: ADR-0003, ADR-0013, ADR-0016, ADR-0012, ADR-0024 (feature IMPL-001, T-101/T-142/T-161).
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   catalogSourceOptions,
-  controlIdsForSource,
+  controlIdOptionsForSource,
   findCatalogEntry,
   paramsForControl,
+  sourceToCatalogUuid,
   type CatalogIndex,
 } from '@/data/catalogResolution';
 import { useI18n } from '@/shared/i18n';
+import { MarkupEditor } from '@/shared/MarkupEditor';
+import { DatalistInput } from '@/shared/DatalistInput';
 import type { Parameter } from '@/models/control';
+import type { BackMatter } from '@/models/oscalBase';
 import type {
   ControlImplementation,
   DefinedComponent,
@@ -30,6 +40,10 @@ interface Props {
   onChange: (next: DefinedComponent) => void;
   /** Workspace catalog index for source/control/param pickers (T-142); null while loading. */
   catalogIndex?: CatalogIndex | null;
+  /** The owning artifact's back-matter, for source resolution (item 5, ADR-0024). */
+  backMatter?: BackMatter;
+  /** Ensures a back-matter resource exists for a picked catalog and returns `#<resourceUuid>`. */
+  onEnsureCatalogSource?: (catalogUuid: string, catalogTitle: string) => string;
 }
 
 function uuid(): string {
@@ -53,33 +67,27 @@ function SetParameterRow({
   onChange,
   onRemove,
   paramOptions,
-  datalistId,
+  listId,
 }: {
   value: SetParameter;
   onChange: (next: SetParameter) => void;
   onRemove: () => void;
   paramOptions: Parameter[];
-  datalistId: string;
+  listId: string;
 }) {
   const { t } = useI18n();
   const [rawValues, setRawValues] = useState((value.values ?? []).join(', '));
   return (
     <div data-testid="set-parameter">
-      <input
-        aria-label={t('ci_param_id_aria')}
-        data-testid="sp-param-id"
-        list={datalistId}
-        value={value.paramId}
+      <DatalistInput
+        ariaLabel={t('ci_param_id_aria')}
+        dataTestId="sp-param-id"
+        listId={listId}
         placeholder={t('ci_param_id_placeholder')}
-        onChange={(e) => onChange({ ...value, paramId: e.target.value })}
+        value={value.paramId}
+        options={paramOptions.map((p) => ({ value: p.id, label: p.label ?? p.id }))}
+        onChange={(v) => onChange({ ...value, paramId: v })}
       />
-      <datalist id={datalistId}>
-        {paramOptions.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.label ?? p.id}
-          </option>
-        ))}
-      </datalist>
       <input
         aria-label={t('ci_param_values_aria')}
         data-testid="sp-values"
@@ -97,7 +105,7 @@ function SetParameterRow({
   );
 }
 
-export function ControlImplementationsEditor({ value, onChange, catalogIndex }: Props) {
+export function ControlImplementationsEditor({ value, onChange, catalogIndex, backMatter, onEnsureCatalogSource }: Props) {
   const { t } = useI18n();
   const cis = value.controlImplementations ?? [];
   const sourceOptions = catalogIndex ? catalogSourceOptions(catalogIndex) : [];
@@ -128,34 +136,37 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
     });
   }
 
+  function setSource(ciIdx: number, typed: string) {
+    // If the typed/picked value directly names a workspace catalog's own uuid, transparently
+    // "upgrade" it to a proper back-matter-mediated reference (item 5) instead of storing the
+    // catalog uuid directly; free text and already-resolved refs pass through unchanged.
+    const catalogUuid = sourceToCatalogUuid(typed);
+    const matched = catalogIndex?.catalogs.find((c) => c.uuid === catalogUuid);
+    const resolved = matched && onEnsureCatalogSource ? onEnsureCatalogSource(matched.uuid, matched.title) : typed;
+    update((c) => (c.controlImplementations![ciIdx]!.source = resolved));
+  }
+
   return (
     <div data-testid="control-implementations">
       <strong>{t('ci_heading', { count: cis.length })}</strong>
-      {cis.map((ci, ciIdx) => (
+      {cis.map((ci, ciIdx) => {
+        const resolvedSource = catalogIndex ? findCatalogEntry(catalogIndex, ci.source, backMatter) : undefined;
+        return (
         <fieldset key={ci.uuid} data-testid="control-implementation">
           <legend>{t('ci_legend')}</legend>
           <label>
             {t('ci_source_label')}
-            <input
-              data-testid="ci-source"
-              list={`source-options-${ci.uuid}`}
+            <DatalistInput
+              dataTestId="ci-source"
+              listId={`source-options-${ci.uuid}`}
               value={ci.source}
               placeholder={t('ci_source_placeholder')}
-              onChange={(e) => update((c) => (c.controlImplementations![ciIdx]!.source = e.target.value))}
+              options={sourceOptions.map((o) => ({ value: o.ref, label: o.title }))}
+              onChange={(v) => setSource(ciIdx, v)}
             />
-            <datalist id={`source-options-${ci.uuid}`}>
-              {sourceOptions.map((o) => (
-                <option key={o.uuid} value={o.ref}>
-                  {o.title}
-                </option>
-              ))}
-            </datalist>
             {catalogIndex &&
-              (findCatalogEntry(catalogIndex, ci.source) ? (
-                <small data-testid="ci-source-resolved">
-                  {' '}
-                  ✓ {findCatalogEntry(catalogIndex, ci.source)!.title}
-                </small>
+              (resolvedSource ? (
+                <small data-testid="ci-source-resolved"> ✓ {resolvedSource.title}</small>
               ) : (
                 ci.source && <small> {t('ci_source_unresolved')}</small>
               ))}
@@ -170,10 +181,12 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
           )}
           <label>
             {t('common_description')}
-            <textarea
-              data-testid="ci-description"
+            <MarkupEditor
+              dataTestId="ci-description"
+              ariaLabel={t('common_description')}
+              rows={5}
               value={ci.description}
-              onChange={(e) => update((c) => (c.controlImplementations![ciIdx]!.description = e.target.value))}
+              onChange={(v) => update((c) => (c.controlImplementations![ciIdx]!.description = v))}
             />
           </label>
 
@@ -181,52 +194,54 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
             <em>{t('ci_requirements_heading', { count: ci.implementedRequirements.length })}</em>
             {ci.implementedRequirements.map((ir, irIdx) => {
               const paramOptions = catalogIndex
-                ? paramsForControl(catalogIndex, ci.source, ir.controlId)
+                ? paramsForControl(catalogIndex, ci.source, ir.controlId, backMatter)
                 : [];
-              const controlIdOptions = catalogIndex ? controlIdsForSource(catalogIndex, ci.source) : [];
+              const controlIdOptions = catalogIndex
+                ? controlIdOptionsForSource(catalogIndex, ci.source, backMatter)
+                : [];
               return (
               <fieldset key={ir.uuid} data-testid="implemented-requirement">
                 <label>
                   {t('ci_control_id_label')}
-                  <input
-                    data-testid="ir-control-id"
-                    list={`controlids-${ir.uuid}`}
+                  <DatalistInput
+                    dataTestId="ir-control-id"
+                    listId={`controlids-${ir.uuid}`}
                     value={ir.controlId}
                     placeholder={t('ci_control_id_placeholder')}
-                    onChange={(e) =>
-                      update((c) => (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.controlId = e.target.value))
+                    options={controlIdOptions}
+                    onChange={(v) =>
+                      update((c) => (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.controlId = v))
                     }
                   />
-                  <datalist id={`controlids-${ir.uuid}`}>
-                    {controlIdOptions.map((id) => (
-                      <option key={id} value={id} />
-                    ))}
-                  </datalist>
                 </label>
                 <label>
                   {t('common_description')}
-                  <textarea
-                    data-testid="ir-description"
+                  <MarkupEditor
+                    dataTestId="ir-description"
+                    ariaLabel={t('common_description')}
+                    rows={5}
                     value={ir.description ?? ''}
-                    onChange={(e) =>
+                    onChange={(v) =>
                       update(
                         (c) =>
                           (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.description =
-                            e.target.value || undefined),
+                            v || undefined),
                       )
                     }
                   />
                 </label>
                 <label>
                   {t('md_remarks_label')}
-                  <textarea
-                    data-testid="ir-remarks"
+                  <MarkupEditor
+                    dataTestId="ir-remarks"
+                    ariaLabel={t('md_remarks_label')}
+                    rows={5}
                     value={ir.remarks ?? ''}
-                    onChange={(e) =>
+                    onChange={(v) =>
                       update(
                         (c) =>
                           (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.remarks =
-                            e.target.value || undefined),
+                            v || undefined),
                       )
                     }
                   />
@@ -250,7 +265,7 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
                         )
                       }
                       paramOptions={paramOptions}
-                      datalistId={`params-${ir.uuid}`}
+                      listId={`params-${ir.uuid}`}
                     />
                   ))}
                   <button
@@ -292,7 +307,8 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex }: 
             🗑️ {t('ci_remove_ci_button')}
           </button>
         </fieldset>
-      ))}
+        );
+      })}
       <button type="button" data-testid="add-control-implementation" onClick={addCi}>
         ➕ {t('ci_add_ci')}
       </button>
