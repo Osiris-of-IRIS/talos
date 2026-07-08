@@ -7,6 +7,7 @@ import { ArtifactRepository } from '@/data/artifactRepository';
 import { parseOscalUpload } from '@/data/fileIo';
 import type { StoredArtifact } from '@/data/db';
 import type { OscalArtifactType } from '@/models/oscalBase';
+import { createSelectionSlice, type SelectionSlice } from './selectionSlice';
 
 /** Minimal shape every OSCAL artifact model satisfies (via OscalArtifact). */
 export interface ArtifactLike {
@@ -14,7 +15,7 @@ export interface ArtifactLike {
   metadata: { title: string };
 }
 
-export interface ArtifactStoreState<T extends ArtifactLike> {
+export interface ArtifactStoreState<T extends ArtifactLike> extends SelectionSlice {
   items: StoredArtifact<T>[];
   loading: boolean;
   error: string | null;
@@ -24,6 +25,8 @@ export interface ArtifactStoreState<T extends ArtifactLike> {
   /** Import from OSCAL JSON text; returns the stored uuid (import-as-copy on collision, Q7). */
   importFromText: (text: string) => Promise<string>;
   remove: (uuid: string) => Promise<void>;
+  /** Bulk delete (ADR-0027): one reload afterward, not one per item; clears the selection. */
+  removeMany: (uuids: string[]) => Promise<void>;
 }
 
 function newUuid(): string {
@@ -42,6 +45,7 @@ export function createArtifactStore<T extends ArtifactLike>(
   const repo = (): ArtifactRepository<T> => ArtifactRepository.forType<T>(type);
 
   return create<ArtifactStoreState<T>>((set, get) => ({
+    ...createSelectionSlice<ArtifactStoreState<T>>(set, get),
     items: [],
     loading: false,
     error: null,
@@ -79,6 +83,16 @@ export function createArtifactStore<T extends ArtifactLike>(
     remove: async (uuid: string) => {
       await repo().delete(uuid);
       await get().load();
+      const nextSelected = new Set(get().selected);
+      nextSelected.delete(uuid);
+      set({ selected: nextSelected });
+    },
+
+    removeMany: async (uuids: string[]) => {
+      const r = repo();
+      await Promise.all(uuids.map((uuid) => r.delete(uuid)));
+      await get().load();
+      set({ selected: new Set() });
     },
   }));
 }

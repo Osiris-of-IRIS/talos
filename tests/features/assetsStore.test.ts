@@ -18,8 +18,26 @@ function readGolden(name: string): string {
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   _resetDbForTests();
-  useAssetsStore.setState({ assets: [], assetTypes: [], loading: false, error: null, warnings: [] });
+  useAssetsStore.setState({
+    assets: [],
+    assetTypes: [],
+    loading: false,
+    error: null,
+    warnings: [],
+    selected: new Set(),
+  });
 });
+
+async function seedThreeAssets() {
+  await useAssetsStore
+    .getState()
+    .importCsvTrio(
+      'uuid,title\nclient-pc,Desktop\n',
+      'uuid,name,asset_type,description,security-sensitivity-level,information-types\n' +
+        'A1,First,client-pc,,,\nA2,Second,client-pc,,,\nA3,Third,client-pc,,,\n',
+      'asset_type_uuid,targetobj_class_uuid\nclient-pc,837781a4-7b47-4695-9545-a3310eac7a66\n',
+    );
+}
 
 describe('useAssetsStore', () => {
   it('imports the golden Recplast CSV trio with no warnings', async () => {
@@ -114,5 +132,34 @@ describe('useAssetsStore', () => {
     const state = useAssetsStore.getState();
     expect(state.assetTypes.map((t) => t.uuid)).toEqual(['client-pc']);
     expect(state.assets.map((a) => a.uuid)).toEqual(['C1']);
+  });
+
+  it('removeMany deletes only the given assets, leaving asset types untouched, and clears the selection', async () => {
+    await seedThreeAssets();
+    const store = useAssetsStore.getState();
+    store.toggleSelected('A1');
+    store.toggleSelected('A2');
+
+    await useAssetsStore.getState().removeMany(['A1', 'A2']);
+
+    const state = useAssetsStore.getState();
+    expect(state.assets.map((a) => a.uuid)).toEqual(['A3']);
+    expect(state.assetTypes).toHaveLength(1); // asset types are never bulk-deleted with assets
+    expect(state.selected.size).toBe(0);
+  });
+
+  it('importCsvTrio (re-upload) invalidates any selection from the previous list', async () => {
+    await seedThreeAssets();
+    useAssetsStore.getState().toggleSelected('A1');
+    expect(useAssetsStore.getState().selected.size).toBe(1);
+
+    await useAssetsStore
+      .getState()
+      .importCsvTrio(
+        'uuid,title\nserver,Server\n',
+        'uuid,name,asset_type,description,security-sensitivity-level,information-types\nS1,New,server,,,\n',
+        'asset_type_uuid,targetobj_class_uuid\nserver,19c946fc-e991-44ee-87c5-7bbe5d5aaf55\n',
+      );
+    expect(useAssetsStore.getState().selected.size).toBe(0);
   });
 });

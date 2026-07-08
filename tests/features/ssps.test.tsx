@@ -30,7 +30,7 @@ function renderDetailAt(uuid: string) {
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   _resetDbForTests();
-  useSspsStore.setState({ items: [], loading: false, error: null });
+  useSspsStore.setState({ items: [], loading: false, error: null, selected: new Set() });
 });
 
 describe('store', () => {
@@ -60,6 +60,61 @@ describe('list page', () => {
       await useSspsStore.getState().importFromText(goldenText);
     });
     await waitFor(() => expect(screen.getByText('Beispiel-SSP Webserver')).toBeInTheDocument());
+  });
+});
+
+describe('bulk selection (ADR-0027)', () => {
+  it('toggles a row checkbox and shows/hides the bulk-actions bar', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      await useSspsStore.getState().importFromText(goldenText);
+    });
+    render(
+      <MemoryRouter>
+        <SspListPage />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByTestId('ssp-bulk-actions')).not.toBeInTheDocument();
+    await user.click(screen.getByTestId('ssp-select-item'));
+    expect(screen.getByTestId('ssp-selected-count')).toHaveTextContent('1');
+  });
+
+  it('download-selected surfaces a skip warning for an item with no valid creator (ADR-0019)', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      await useSspsStore.getState().importFromText(goldenText);
+    });
+    render(
+      <MemoryRouter>
+        <SspListPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByTestId('ssp-select-item'));
+    await user.click(screen.getByTestId('ssp-download-selected'));
+    const warning = await screen.findByTestId('ssp-download-warning');
+    expect(warning).toHaveTextContent('1');
+    expect(warning).toHaveTextContent('Beispiel-SSP Webserver');
+  });
+
+  it('delete-selected removes the selected items only after confirmation', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      await useSspsStore.getState().importFromText(goldenText);
+    });
+    render(
+      <MemoryRouter>
+        <SspListPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByTestId('ssp-select-item'));
+
+    globalThis.confirm = () => false;
+    await user.click(screen.getByTestId('ssp-delete-selected'));
+    expect(useSspsStore.getState().items).toHaveLength(1);
+
+    globalThis.confirm = () => true;
+    await user.click(screen.getByTestId('ssp-delete-selected'));
+    await waitFor(() => expect(useSspsStore.getState().items).toHaveLength(0));
   });
 });
 

@@ -37,6 +37,7 @@ adr_coverage_required:
   - ADR-0024 # editor UX polish: markup editor, datalist focus fix, back-matter source resolution, control-id typeahead
   - ADR-0025 # universal <MarkupEditor> adoption policy for markup-multiline fields
   - ADR-0026 # SSP bootstrap assistant: asset model, target-object-category hierarchy, generation methodology
+  - ADR-0027 # bulk artifact selection: shared selection slice, multi-delete, zip/CSV bundle download
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -61,6 +62,9 @@ golden_data:
   - path: tests/data/catalog-target-object-categories.json
     kind: oscal-document
     artifact_type: catalog
+  - path: tests/data/component-definition-with-creator.json
+    kind: oscal-document
+    artifact_type: component-definition
 
 suites:
   # ---- Shared platform (PLAT-004) -------------------------------------------------
@@ -179,6 +183,34 @@ suites:
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0008, ADR-0016]
 
+  - id: TEST-CAT-01
+    title: "Catalogs list page: upload/list; bulk selection (checkboxes, download-zip skip-warning, delete-with-confirm)"
+    file: tests/features/catalogsListPage.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0008, ADR-0027]
+    golden: [tests/data/catalog-minimal.json]
+
+  - id: TEST-SELECT-01
+    title: Shared bulk-selection zustand slice (toggle/select-all/clear), composed into every list store
+    file: tests/features/selectionSlice.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0027]
+
+  - id: TEST-BULK-03
+    title: Shared bulk-actions bar (count/download/delete), renders nothing when nothing is selected
+    file: tests/shared/BulkActionsBar.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0027]
+
   - id: TEST-SEARCH-01
     title: Shared entity-search typeahead over IndexedDB with scoping
     type: component
@@ -262,6 +294,25 @@ suites:
     adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0019]
     golden: [tests/data/component-definition-minimal.json]
 
+  - id: TEST-BULK-01
+    title: CSV write-side stringify helper (RFC4180 quoting), round-trips through csvParse
+    file: tests/data/csvStringify.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-003
+    adr_refs: [ADR-0001, ADR-0027]
+
+  - id: TEST-BULK-02
+    title: Bulk zip-bundle export — zips exportable records, skips invalid ones with a warning, null zip when nothing exportable
+    file: tests/data/bulkExport.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-003
+    adr_refs: [ADR-0001, ADR-0004, ADR-0019, ADR-0027]
+    golden: [tests/data/component-definition-minimal.json, tests/data/component-definition-referencing.json]
+
   # ---- BSI library (PLAT-002) -----------------------------------------------------
   - id: TEST-LIB-01
     title: Library manifest read at startup; bodies fetched lazily, validated and cached by sha
@@ -318,13 +369,13 @@ suites:
 
   # ---- Component-definitions (IMPL-001) -------------------------------------------
   - id: TEST-CDEF-01
-    title: Component-definition store + list/detail pages (off-version warning + creator export gate)
+    title: "Component-definition store + list/detail pages (off-version warning + creator export gate); bulk selection (checkboxes, select-all, download-zip skip-warning, delete-with-confirm)"
     file: tests/features/componentDefinitions.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: IMPL-001
-    adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0019]
+    adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0019, ADR-0027]
 
   - id: TEST-CDEF-02
     title: E2E upload component-definition -> list -> detail + landing link
@@ -334,6 +385,16 @@ suites:
     status: implemented
     feature: IMPL-001
     adr_refs: [ADR-0001, ADR-0004]
+
+  - id: TEST-CDEF-03
+    title: "E2E bulk selection: select-all, download as zip (one skipped for no creator, with warning), delete-with-confirm, cancel leaves selection untouched"
+    file: tests/e2e/bulkSelection.spec.ts
+    type: e2e
+    runner: playwright
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0019, ADR-0027]
+    golden: [tests/data/component-definition-minimal.json, tests/data/component-definition-with-creator.json]
 
   - id: TEST-CDEF-EDIT-01
     title: "Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance, component list collapse/expand, markup editor, back-matter source resolution)"
@@ -372,13 +433,13 @@ suites:
 
   # ---- SSPs (IMPL-002) ------------------------------------------------------------
   - id: TEST-SSP-01
-    title: "SSP store + list/detail pages: default-collapsed sections/rows, staleness badge, edit link, by-component status"
+    title: "SSP store + list/detail pages: default-collapsed sections/rows, staleness badge, edit link, by-component status; bulk selection (checkboxes, download-zip skip-warning, delete-with-confirm)"
     file: tests/features/ssps.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: IMPL-002
-    adr_refs: [ADR-0001, ADR-0004, ADR-0023]
+    adr_refs: [ADR-0001, ADR-0004, ADR-0023, ADR-0027]
     golden: [tests/data/ssp-minimal.json]
 
   - id: TEST-SSP-02
@@ -488,22 +549,22 @@ suites:
     adr_refs: [ADR-0001, ADR-0026]
 
   - id: TEST-ASSET-03
-    title: Assets workspace store (CSV-trio upload replaces the whole asset list)
+    title: "Assets workspace store (CSV-trio upload replaces the whole asset list); bulk selection + removeMany (assets only, asset types untouched)"
     file: tests/features/assetsStore.test.ts
     type: integration
     runner: vitest
     status: implemented
     feature: ASST-002
-    adr_refs: [ADR-0001, ADR-0004, ADR-0026]
+    adr_refs: [ADR-0001, ADR-0004, ADR-0026, ADR-0027]
 
   - id: TEST-ASSET-04
-    title: Assets upload/list page (empty state, table, clear)
+    title: "Assets upload/list page (empty state, table, clear); bulk selection (checkboxes, select-all, CSV download, delete-with-confirm)"
     file: tests/features/assetsListPage.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: ASST-002
-    adr_refs: [ADR-0001, ADR-0012, ADR-0026]
+    adr_refs: [ADR-0001, ADR-0012, ADR-0026, ADR-0027]
 
   - id: TEST-TOC-01
     title: BSI target-object-category namespace CSV model (Zielobjekt/ChildOfUUID parsing)

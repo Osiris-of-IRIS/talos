@@ -37,11 +37,12 @@
   acceptance_criteria:
     - "Artifacts persist in IndexedDB across sessions; data never leaves the device."
     - "Upload validates OSCAL and stores as imported; uuid collision prompts overwrite vs import-as-copy (default copy)."
-    - "Any artifact downloads as spec-conformant OSCAL JSON; whole workspace exports/imports as zip + manifest."
+    - "Any artifact downloads as spec-conformant OSCAL JSON; a selected subset of same-type artifacts downloads as one zip bundle."
     - "Draft-friendly: editing is never blocked by validation; validity is surfaced non-blocking and enforced at export."
-  status: "Draft"
-  linked_adr_ids: ["ADR-0004", "ADR-0003", "ADR-0007"]
-  linked_test_ids: ["TEST-PERS-01", "TEST-PERS-02", "TEST-FILE-01"]
+  status: "In-Progress"
+  scope_note: "ADR-0027: the 'export bundle' half of this feature's original zip acceptance criterion is now implemented, scoped to a per-page, per-type selection (buildArtifactsZip/downloadArtifactsAsZip, src/data/bulkExport.ts, via fflate) rather than one whole-workspace, all-types bundle — that broader combination (+ a manifest, per the original wording) remains unbuilt future work. A record failing export validation (ADR-0019) is skipped with a warning, not blocking the rest of the batch."
+  linked_adr_ids: ["ADR-0004", "ADR-0003", "ADR-0007", "ADR-0019", "ADR-0027"]
+  linked_test_ids: ["TEST-PERS-01", "TEST-PERS-02", "TEST-FILE-01", "TEST-BULK-01", "TEST-BULK-02"]
 
 - id: PLAT-004
   title: "Shared platform (models, i18n, theme, markup, search)"
@@ -53,10 +54,11 @@
     - "Long-text editing fields offer basic formatting help (bold/italic/code/link) and a preview (ADR-0024)."
     - "Every editable OSCAL markup-multiline field uses the shared <MarkupEditor>, with no exceptions once an editor exists for it (ADR-0025)."
     - "Entity-search typeahead over IndexedDB with scoping; i18n de/en with EN fallback; dark/light theme via data-theme."
+    - "A shared bulk-selection mechanism (checkboxes, select-all, N-selected action bar) is available to every list page (ADR-0027)."
   status: "In-Progress"
-  scope_note: "T-500 (i18n): done. t()/<I18nProvider> (src/shared/i18n.tsx), flat de/en catalogs (201 keys, src/locales/), language persisted via the settings store, <LanguageSwitcher> in the topbar, real app defaults to DEFAULT_LANGUAGE ('de'); the useI18n() context default (used when no provider is mounted, e.g. isolated component tests) resolves against English — same tier as the missing-key fallback. Rolled out across every feature page (app shell, landing, component-definitions, SSPs, catalogs, library, shared editors/display). Deferred: entity-search widget (TEST-SEARCH-01, still T-036/planned). T-170 (ADR-0024): <MarkupEditor> (toolbar + preview) and <DatalistInput> (clear-on-focus datalist wrapper, fixes a native-browser UX gotcha) are new shared components used across both editors. T-171 (ADR-0025): formalized the universal-adoption policy — audited 2026-07-08, every currently-editable markup-multiline field uses <MarkupEditor>; fields with no editor yet (back-matter resource description/remarks, role/party remarks, statements, capabilities, etc.) must use it once one is built. No automated enforcement yet (flagged as a follow-up: an ESLint/harness check forbidding bare <textarea> under src/features/)."
-  linked_adr_ids: ["ADR-0003", "ADR-0009", "ADR-0013", "ADR-0012", "ADR-0010", "ADR-0020", "ADR-0021", "ADR-0022", "ADR-0023", "ADR-0024", "ADR-0025"]
-  linked_test_ids: ["TEST-MODEL-01", "TEST-MD-01", "TEST-MDV-01", "TEST-SEARCH-01", "TEST-I18N-01", "TEST-CTRLID-01", "TEST-COLLAPSE-01", "TEST-COLLAPSE-02", "TEST-MDEDIT-01", "TEST-DLINPUT-01"]
+  scope_note: "T-500 (i18n): done. t()/<I18nProvider> (src/shared/i18n.tsx), flat de/en catalogs (201 keys, src/locales/), language persisted via the settings store, <LanguageSwitcher> in the topbar, real app defaults to DEFAULT_LANGUAGE ('de'); the useI18n() context default (used when no provider is mounted, e.g. isolated component tests) resolves against English — same tier as the missing-key fallback. Rolled out across every feature page (app shell, landing, component-definitions, SSPs, catalogs, library, shared editors/display). Deferred: entity-search widget (TEST-SEARCH-01, still T-036/planned). T-170 (ADR-0024): <MarkupEditor> (toolbar + preview) and <DatalistInput> (clear-on-focus datalist wrapper, fixes a native-browser UX gotcha) are new shared components used across both editors. T-171 (ADR-0025): formalized the universal-adoption policy — audited 2026-07-08, every currently-editable markup-multiline field uses <MarkupEditor>; fields with no editor yet (back-matter resource description/remarks, role/party remarks, statements, capabilities, etc.) must use it once one is built. No automated enforcement yet (flagged as a follow-up: an ESLint/harness check forbidding bare <textarea> under src/features/). ADR-0027: createSelectionSlice (src/features/shared/selectionSlice.ts) composed into createArtifactStore and the bespoke assets store; <BulkActionsBar> (src/features/shared/BulkActionsBar.tsx) is the shared 'N selected / download / delete' bar used by all four list pages."
+  linked_adr_ids: ["ADR-0003", "ADR-0009", "ADR-0013", "ADR-0012", "ADR-0010", "ADR-0020", "ADR-0021", "ADR-0022", "ADR-0023", "ADR-0024", "ADR-0025", "ADR-0027"]
+  linked_test_ids: ["TEST-MODEL-01", "TEST-MD-01", "TEST-MDV-01", "TEST-SEARCH-01", "TEST-I18N-01", "TEST-CTRLID-01", "TEST-COLLAPSE-01", "TEST-COLLAPSE-02", "TEST-MDEDIT-01", "TEST-DLINPUT-01", "TEST-CAT-01", "TEST-SELECT-01", "TEST-BULK-03"]
 
 - id: CTRL-001
   title: "OSCAL Profiles (control tailoring)"
@@ -81,8 +83,8 @@
     - "OSCAL import/export round-trip is lossless (golden-tested)."
   status: "In-Progress"
   scope_note: "Phase-1 scope per ADR-0017: source→catalog picker + import-component-definition compose in scope; component purpose/props/links/responsible-roles/protocols, statements, capabilities deferred. T-161: control-implementation editor now shows an info message linking to catalog upload/library when the workspace has zero catalogs, closing the last T-142 acceptance gap. T-162: control-id resolution now also matches BSI's underscore-prefixed-UUID alt-identifier form (ADR-0021), not just the literal id. T-163: the editor's component list shows collapsed summary rows (title/type/requirement count) that expand to the full per-component editor on click; a newly-added component auto-expands. T-164: the detail view's component list is likewise collapsed by default (summary row, click to expand), and each control-implementation's implemented-requirements render as a control(40%)|description(60%) table instead of a flat list. T-170 (ADR-0024): long-text fields (remarks/description) use the shared <MarkupEditor> (toolbar + preview) at a consistent minimum size; `control-implementation.source` is now back-matter-mediated (creates/reuses a resource identifying the catalog via document-id, not the catalog's own uuid directly); control-id suggestions show the resolved headline, not a raw id; the type/control-id/param-id/source datalist pickers no longer appear to offer only the current value on focus; back-matter now renders after all artifact-specific content, matching the NIST model outline order."
-  linked_adr_ids: ["ADR-0003", "ADR-0014", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0016", "ADR-0017", "ADR-0021", "ADR-0024"]
-  linked_test_ids: ["TEST-CDEF-01", "TEST-CDEF-02", "TEST-CDEF-IMP-01", "TEST-CDEF-RES-01", "TEST-CDEF-EDIT-01"]
+  linked_adr_ids: ["ADR-0003", "ADR-0014", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0016", "ADR-0017", "ADR-0021", "ADR-0024", "ADR-0027"]
+  linked_test_ids: ["TEST-CDEF-01", "TEST-CDEF-02", "TEST-CDEF-03", "TEST-CDEF-IMP-01", "TEST-CDEF-RES-01", "TEST-CDEF-EDIT-01"]
 
 - id: IMPL-002
   title: "OSCAL System Security Plans / SSP (PRIORITY)"
@@ -94,7 +96,7 @@
     - "OSCAL import/export round-trip is lossless (golden-tested)."
   status: "In-Progress"
   scope_note: "Phase-1 editor = core authoring (ADR-0017): metadata+back-matter, import-profile (manual), system-characteristics core, implemented-requirements (control-id/by-components). Deferred: statements, impact-level, system-information, users/inventory-items; profile linking (T-112). T-111/T-113 done (ADR-0023): system-implementation.components are import-only from workspace component-definitions (never authored from scratch), tracked via provenance+content-hash props with a Δ staleness badge and one-click refresh; implementation-status lives per-by-component (not per-requirement, since one control can have components in different states); removing a component cascades to strip its by-components entries; editor/detail both use default-collapsed sections+rows (new SSP starts expanded, loaded SSP starts collapsed). T-170 (ADR-0024): remarks/description fields use the shared <MarkupEditor>; control-id suggestions are unscoped across every workspace catalog (SSPs have no per-requirement source) and show the resolved headline; back-matter now renders after the three collapsible sections."
-  linked_adr_ids: ["ADR-0003", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0017", "ADR-0021", "ADR-0023", "ADR-0024"]
+  linked_adr_ids: ["ADR-0003", "ADR-0013", "ADR-0010", "ADR-0007", "ADR-0017", "ADR-0021", "ADR-0023", "ADR-0024", "ADR-0027"]
   linked_test_ids: ["TEST-SSP-01", "TEST-SSP-02", "TEST-SSP-03", "TEST-SSP-IMPORT-01"]
 
 - id: ASMT-001
@@ -148,9 +150,10 @@
     - "BSI-style: one ISMS-wide SSP (controls with no target_object_categories tag) plus one SSP per mapped asset, filtered to controls tagged with its category or an ancestor in the BSI hierarchy."
     - "Re-running the assistant updates previously-generated SSPs in place (matched by a bootstrap-source provenance prop), never duplicates; hand-edited fields (e.g. system-implementation) are preserved."
     - "Generated artifacts persist in the ssps store and are fully editable via the existing SSP editor."
+    - "The asset list page supports bulk-selecting assets to delete or download as a CSV subset (ADR-0027)."
   status: "Implemented"
-  scope_note: "ADR-0026: asset list is a 3-file CSV trio (golden-data shaped) stored in bespoke assets/assetTypes IndexedDB stores (not OSCAL artifacts); target-object-category hierarchy is live-fetched from the BSI namespace CSV (ADR-0005 pattern) and cached with offline fallback. Baseline is catalog-only this phase (Profile baseline deferred, ADR-0017). Generation is two pure functions (generateNist/generateBsi) producing SSP system-characteristics+control-implementation; system-implementation (components/by-components) stays a manual follow-up in the existing SSP editor. Idempotent re-run via a bootstrap-source props[] correlation key (ADR-0023 provenance-prop precedent)."
-  linked_adr_ids: ["ADR-0006", "ADR-0004", "ADR-0003", "ADR-0005", "ADR-0012", "ADR-0017", "ADR-0023", "ADR-0026"]
+  scope_note: "ADR-0026: asset list is a 3-file CSV trio (golden-data shaped) stored in bespoke assets/assetTypes IndexedDB stores (not OSCAL artifacts); target-object-category hierarchy is live-fetched from the BSI namespace CSV (ADR-0005 pattern) and cached with offline fallback. Baseline is catalog-only this phase (Profile baseline deferred, ADR-0017). Generation is two pure functions (generateNist/generateBsi) producing SSP system-characteristics+control-implementation; system-implementation (components/by-components) stays a manual follow-up in the existing SSP editor. Idempotent re-run via a bootstrap-source props[] correlation key (ADR-0023 provenance-prop precedent). ADR-0027: assets gain the shared selection slice + removeMany (deletes only from the assets store, never assetTypes) and a CSV bulk-download (serializeAssetsCsv, the write-side inverse of parseAssetsCsv) — not a zip, since assets aren't OSCAL documents."
+  linked_adr_ids: ["ADR-0006", "ADR-0004", "ADR-0003", "ADR-0005", "ADR-0012", "ADR-0017", "ADR-0023", "ADR-0026", "ADR-0027"]
   linked_test_ids: ["TEST-ASST-02", "TEST-ASST-03", "TEST-ASSET-01", "TEST-ASSET-02", "TEST-ASSET-03", "TEST-ASSET-04", "TEST-TOC-01", "TEST-TOC-02", "TEST-TOC-03", "TEST-BOOTSTRAP-01", "TEST-BOOTSTRAP-02"]
 
 - id: DASH-001

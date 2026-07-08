@@ -15,6 +15,7 @@ import {
   type Asset,
   type AssetType,
 } from '@/models/asset';
+import { createSelectionSlice, type SelectionSlice } from '@/features/shared/selectionSlice';
 
 /**
  * Replace both the assets and asset-types stores in a single IndexedDB transaction, so a failure
@@ -55,7 +56,7 @@ export async function replaceAssetLists(
   }
 }
 
-export interface AssetsState {
+export interface AssetsState extends SelectionSlice {
   assets: Asset[];
   assetTypes: AssetType[];
   loading: boolean;
@@ -66,9 +67,13 @@ export interface AssetsState {
   /** Replace the whole asset list from the three golden-data-shaped CSV files. */
   importCsvTrio: (assetTypesText: string, assetsText: string, mappingsText: string) => Promise<void>;
   clear: () => Promise<void>;
+  /** Bulk delete (ADR-0027): removes only the given assets (never asset-types, which would orphan
+   * other assets); one reload afterward, not one per item; clears the selection. */
+  removeMany: (uuids: string[]) => Promise<void>;
 }
 
 export const useAssetsStore = create<AssetsState>((set, get) => ({
+  ...createSelectionSlice<AssetsState>(set, get),
   assets: [],
   assetTypes: [],
   loading: false,
@@ -91,7 +96,8 @@ export const useAssetsStore = create<AssetsState>((set, get) => ({
   },
 
   importCsvTrio: async (assetTypesText, assetsText, mappingsText) => {
-    set({ error: null, warnings: [] });
+    // Replaces the whole asset list, so any selection from the previous list is now stale.
+    set({ error: null, warnings: [], selected: new Set() });
     const types = applyAssetTypeMappings(
       parseAssetTypesCsv(assetTypesText),
       parseAssetTypeMappingsCsv(mappingsText),
@@ -112,5 +118,15 @@ export const useAssetsStore = create<AssetsState>((set, get) => ({
     await Promise.all([tx.objectStore('assets').clear(), tx.objectStore('assetTypes').clear()]);
     await tx.done;
     await get().load();
+    set({ selected: new Set() });
+  },
+
+  removeMany: async (uuids) => {
+    const db = await getDb();
+    const tx = db.transaction('assets', 'readwrite');
+    await Promise.all(uuids.map((uuid) => tx.store.delete(uuid)));
+    await tx.done;
+    await get().load();
+    set({ selected: new Set() });
   },
 }));

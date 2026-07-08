@@ -19,7 +19,7 @@ const goldenText = JSON.stringify(golden);
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   _resetDbForTests();
-  useComponentDefinitionsStore.setState({ items: [], loading: false, error: null });
+  useComponentDefinitionsStore.setState({ items: [], loading: false, error: null, selected: new Set() });
 });
 
 describe('store', () => {
@@ -42,6 +42,32 @@ describe('store', () => {
     await expect(useComponentDefinitionsStore.getState().importFromText(ssp)).rejects.toThrow(
       /Expected a component-definition/,
     );
+  });
+
+  it('removing a single item also drops it from the selection, if selected', async () => {
+    const store = useComponentDefinitionsStore.getState();
+    const uuid = await store.importFromText(goldenText);
+    store.toggleSelected(uuid);
+    expect(useComponentDefinitionsStore.getState().selected.has(uuid)).toBe(true);
+
+    await store.remove(uuid);
+    expect(useComponentDefinitionsStore.getState().selected.has(uuid)).toBe(false);
+  });
+
+  it('removeMany deletes every given uuid in one reload and clears the selection (ADR-0027)', async () => {
+    const store = useComponentDefinitionsStore.getState();
+    const uuidA = await store.importFromText(goldenText);
+    const uuidB = await store.importFromText(goldenText); // import-as-copy
+    const uuidC = await store.importFromText(goldenText); // import-as-copy
+    expect(useComponentDefinitionsStore.getState().items).toHaveLength(3);
+
+    store.toggleSelected(uuidA);
+    store.toggleSelected(uuidB);
+    await useComponentDefinitionsStore.getState().removeMany([uuidA, uuidB]);
+
+    const state = useComponentDefinitionsStore.getState();
+    expect(state.items.map((r) => r.uuid)).toEqual([uuidC]);
+    expect(state.selected.size).toBe(0);
   });
 });
 
@@ -74,6 +100,86 @@ describe('list page', () => {
     const banner = await screen.findByTestId('compdef-upload-warning');
     expect(banner).toHaveTextContent(/1\.1\.2.*1\.2\.2/);
     expect(screen.getByText('Legacy-Komponente (OSCAL 1.1.2)')).toBeInTheDocument();
+  });
+});
+
+describe('bulk selection (ADR-0027)', () => {
+  it('toggles a row checkbox and shows/hides the bulk-actions bar', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      await useComponentDefinitionsStore.getState().importFromText(goldenText);
+    });
+    render(
+      <MemoryRouter>
+        <ComponentDefinitionsListPage />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByTestId('compdef-bulk-actions')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('compdef-select-item'));
+    expect(screen.getByTestId('compdef-bulk-actions')).toBeInTheDocument();
+    expect(screen.getByTestId('compdef-selected-count')).toHaveTextContent('1');
+
+    await user.click(screen.getByTestId('compdef-select-item'));
+    expect(screen.queryByTestId('compdef-bulk-actions')).not.toBeInTheDocument();
+  });
+
+  it('select-all selects every item, then toggling it again clears the selection', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      await useComponentDefinitionsStore.getState().importFromText(goldenText);
+      await useComponentDefinitionsStore.getState().importFromText(goldenText); // import-as-copy
+    });
+    render(
+      <MemoryRouter>
+        <ComponentDefinitionsListPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByTestId('compdef-select-all'));
+    expect(screen.getByTestId('compdef-selected-count')).toHaveTextContent('2');
+
+    await user.click(screen.getByTestId('compdef-select-all'));
+    expect(screen.queryByTestId('compdef-bulk-actions')).not.toBeInTheDocument();
+  });
+
+  it('download-selected surfaces a skip warning for an item with no valid creator (ADR-0019), without downloading', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      await useComponentDefinitionsStore.getState().importFromText(goldenText); // no creator by default
+    });
+    render(
+      <MemoryRouter>
+        <ComponentDefinitionsListPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByTestId('compdef-select-item'));
+    await user.click(screen.getByTestId('compdef-download-selected'));
+
+    const warning = await screen.findByTestId('compdef-download-warning');
+    expect(warning).toHaveTextContent('1');
+    expect(warning).toHaveTextContent('Passwortrichtlinie');
+  });
+
+  it('delete-selected asks for confirmation and removes the selected items on confirm', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      await useComponentDefinitionsStore.getState().importFromText(goldenText);
+    });
+    render(
+      <MemoryRouter>
+        <ComponentDefinitionsListPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByTestId('compdef-select-item'));
+
+    globalThis.confirm = () => false;
+    await user.click(screen.getByTestId('compdef-delete-selected'));
+    expect(useComponentDefinitionsStore.getState().items).toHaveLength(1); // cancelled, nothing removed
+
+    globalThis.confirm = () => true;
+    await user.click(screen.getByTestId('compdef-delete-selected'));
+    await waitFor(() => expect(useComponentDefinitionsStore.getState().items).toHaveLength(0));
+    expect(screen.queryByTestId('compdef-bulk-actions')).not.toBeInTheDocument();
   });
 });
 

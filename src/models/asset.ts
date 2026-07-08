@@ -6,6 +6,16 @@
  * format: `asset_types.csv`, `assets.csv`, `mappings.csv`.
  */
 import { parseCsv } from '@/data/csvParse';
+import { stringifyCsv } from '@/data/csvStringify';
+
+const ASSETS_CSV_HEADER = [
+  'uuid',
+  'name',
+  'asset_type',
+  'description',
+  'security-sensitivity-level',
+  'information-types',
+];
 
 export interface AssetType {
   uuid: string;
@@ -59,6 +69,21 @@ export function parseAssetsCsv(text: string): Asset[] {
       informationTypes: row['information-types'] ?? '',
     };
   });
+}
+
+/** Serialize assets back to the `assets.csv` shape (the inverse of `parseAssetsCsv`) — used to download a selected subset (ADR-0027). */
+export function serializeAssetsCsv(assets: Asset[]): string {
+  return stringifyCsv(
+    ASSETS_CSV_HEADER,
+    assets.map((a) => ({
+      uuid: a.uuid,
+      name: a.name,
+      asset_type: a.assetType,
+      description: a.description,
+      'security-sensitivity-level': a.securitySensitivityLevel,
+      'information-types': a.informationTypes,
+    })),
+  );
 }
 
 /** Parse `mappings.csv` (columns: `asset_type_uuid,targetobj_class_uuid`) into a lookup map. */

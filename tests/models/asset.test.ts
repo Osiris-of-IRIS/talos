@@ -12,6 +12,7 @@ import {
   parseAssetTypeMappingsCsv,
   applyAssetTypeMappings,
   crossCheckAssets,
+  serializeAssetsCsv,
 } from '@/models/asset';
 
 const GOLDEN_DIR = join(__dirname, '../data/golden/recplast');
@@ -130,5 +131,37 @@ describe('golden data (tests/data/golden/recplast)', () => {
     expect(assets).toHaveLength(94);
     expect(crossCheckAssets(assets, types)).toEqual([]);
     expect(types.every((t) => t.targetObjectCategoryUuid)).toBe(true);
+  });
+});
+
+describe('serializeAssetsCsv', () => {
+  it('round-trips through parseAssetsCsv unchanged', () => {
+    const assets = parseAssetsCsv(ASSETS_CSV);
+    expect(parseAssetsCsv(serializeAssetsCsv(assets))).toEqual(assets);
+  });
+
+  it('quotes fields containing commas (e.g. a name with an embedded comma)', () => {
+    const csv = serializeAssetsCsv([
+      {
+        uuid: 'C001',
+        name: 'Finance, Süd',
+        assetType: 'client-pc',
+        description: '',
+        securitySensitivityLevel: 'normal',
+        informationTypes: '',
+      },
+    ]);
+    expect(csv).toContain('"Finance, Süd"');
+  });
+
+  it('round-trips the full golden Recplast dataset', () => {
+    const assets = parseAssetsCsv(readGolden('assets.csv'));
+    expect(parseAssetsCsv(serializeAssetsCsv(assets))).toEqual(assets);
+  });
+
+  it('produces an empty-body CSV (header only) for an empty selection', () => {
+    expect(serializeAssetsCsv([])).toBe(
+      'uuid,name,asset_type,description,security-sensitivity-level,information-types\n',
+    );
   });
 });

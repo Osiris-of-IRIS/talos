@@ -31,6 +31,7 @@ the order decisions were made.
 | [ADR-0024](adr/ADR-0024-editor-ux-polish.md) | Editor UX Polish — Markup Editor, Datalist Focus Fix, Back-Matter Source Resolution, Control-ID Typeahead | Approved | ADR-0024 |
 | [ADR-0025](adr/ADR-0025-universal-markup-editor-adoption.md) | Universal `<MarkupEditor>` Adoption for OSCAL `markup-multiline` Fields | Approved | ADR-0025 |
 | [ADR-0026](adr/ADR-0026-ssp-bootstrap-methodology.md) | SSP Bootstrap Assistant — Asset Model, Target-Object-Category Hierarchy & Generation Methodology | Approved | ADR-0026 |
+| [ADR-0027](adr/ADR-0027-bulk-artifact-selection.md) | Bulk Artifact Selection — Multi-Delete & Zip/CSV Bundle Download | Approved | ADR-0027 |
 
 ## Notes
 

@@ -1,14 +1,18 @@
-// Component-definition list + upload. Decision IDs: ADR-0006, ADR-0004, ADR-0014 (feature IMPL-001).
+// Component-definition list + upload. Decision IDs: ADR-0006, ADR-0004, ADR-0014, ADR-0027 (feature IMPL-001).
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useComponentDefinitionsStore } from './store';
 import { useI18n } from '@/shared/i18n';
+import { downloadArtifactsAsZip } from '@/data/bulkExport';
+import { BulkActionsBar } from '@/features/shared/BulkActionsBar';
 
 export function ComponentDefinitionsListPage() {
   const { t } = useI18n();
-  const { items, loading, error, warnings, load, importFromText, remove } = useComponentDefinitionsStore();
+  const { items, loading, error, warnings, selected, load, importFromText, remove, toggleSelected, selectAll, removeMany } =
+    useComponentDefinitionsStore();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [downloadWarning, setDownloadWarning] = useState<string | null>(null);
 
   useEffect(() => {
     void load();
@@ -27,6 +31,22 @@ export function ComponentDefinitionsListPage() {
       e.target.value = '';
     }
   }
+
+  function onDownloadSelected() {
+    setDownloadWarning(null);
+    const records = items.filter((r) => selected.has(r.uuid));
+    const skipped = downloadArtifactsAsZip(records, `component-definitions-export-${Date.now()}.zip`);
+    if (skipped.length > 0) {
+      setDownloadWarning(t('bulk_download_warning', { count: String(skipped.length), details: skipped.join('; ') }));
+    }
+  }
+
+  async function onDeleteSelected() {
+    if (!globalThis.confirm(t('bulk_delete_confirm', { count: String(selected.size) }))) return;
+    await removeMany([...selected]);
+  }
+
+  const allSelected = items.length > 0 && items.every((r) => selected.has(r.uuid));
 
   return (
     <main data-testid="compdef-list">
@@ -69,9 +89,44 @@ export function ComponentDefinitionsListPage() {
         <p data-testid="compdef-empty">📂 {t('cdef_empty')}</p>
       )}
 
+      {items.length > 0 && (
+        <p>
+          <label>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => selectAll(items.map((r) => r.uuid))}
+              data-testid="compdef-select-all"
+            />{' '}
+            {t('bulk_select_all')}
+          </label>
+        </p>
+      )}
+
+      <BulkActionsBar
+        count={selected.size}
+        downloadLabelKey="bulk_download_selected_zip"
+        onDownload={onDownloadSelected}
+        onDelete={() => void onDeleteSelected()}
+        testIdPrefix="compdef"
+      />
+
+      {downloadWarning && (
+        <p role="status" data-testid="compdef-download-warning" style={{ color: 'var(--color-warning, #a15c00)' }}>
+          ⚠️ {downloadWarning}
+        </p>
+      )}
+
       <ul>
         {items.map((r) => (
           <li key={r.uuid} data-testid="compdef-item">
+            <input
+              type="checkbox"
+              checked={selected.has(r.uuid)}
+              onChange={() => toggleSelected(r.uuid)}
+              aria-label={t('bulk_select_item', { title: r.artifact.metadata.title })}
+              data-testid="compdef-select-item"
+            />{' '}
             <Link to={`/component-definitions/${r.uuid}`}>{r.artifact.metadata.title}</Link>{' '}
             <small>({r.origin})</small>{' '}
             <button

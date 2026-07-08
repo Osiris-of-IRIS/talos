@@ -264,5 +264,14 @@
   "bootstrap_generating": "Generating…",
   "bootstrap_warnings_heading": "Warnings",
   "bootstrap_result_summary": "{created} SSP(s) created, {updated} SSP(s) updated.",
-  "bootstrap_result_view_link": "View SSPs"
+  "bootstrap_result_view_link": "View SSPs",
+
+  "bulk_select_all": "Select all",
+  "bulk_select_item": "Select {title}",
+  "bulk_selected_count": "{count} selected",
+  "bulk_download_selected_zip": "Download selected (zip)",
+  "bulk_download_selected_csv": "Download selected (CSV)",
+  "bulk_delete_selected": "Delete selected",
+  "bulk_delete_confirm": "Delete {count} selected item(s)? This cannot be undone.",
+  "bulk_download_warning": "{count} item(s) skipped (not exportable): {details}"
 }

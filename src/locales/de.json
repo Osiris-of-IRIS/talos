@@ -264,5 +264,14 @@
   "bootstrap_generating": "Wird generiert…",
   "bootstrap_warnings_heading": "Warnungen",
   "bootstrap_result_summary": "{created} SSP(s) erstellt, {updated} SSP(s) aktualisiert.",
-  "bootstrap_result_view_link": "SSPs ansehen"
+  "bootstrap_result_view_link": "SSPs ansehen",
+
+  "bulk_select_all": "Alle auswählen",
+  "bulk_select_item": "{title} auswählen",
+  "bulk_selected_count": "{count} ausgewählt",
+  "bulk_download_selected_zip": "Auswahl herunterladen (ZIP)",
+  "bulk_download_selected_csv": "Auswahl herunterladen (CSV)",
+  "bulk_delete_selected": "Auswahl löschen",
+  "bulk_delete_confirm": "{count} ausgewählte(s) Element(e) löschen? Dies kann nicht rückgängig gemacht werden.",
+  "bulk_download_warning": "{count} Element(e) übersprungen (nicht exportierbar): {details}"
 }

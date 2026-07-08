@@ -1,12 +1,27 @@
-// Asset-list upload + overview — the SSP-bootstrap assistant's input data. Decision IDs: ADR-0026.
+// Asset-list upload + overview — the SSP-bootstrap assistant's input data. Decision IDs: ADR-0026, ADR-0027.
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAssetsStore } from './store';
 import { useI18n } from '@/shared/i18n';
+import { downloadAssetsAsCsv } from '@/data/bulkExport';
+import { BulkActionsBar } from '@/features/shared/BulkActionsBar';
 
 export function AssetsListPage() {
   const { t } = useI18n();
-  const { assets, assetTypes, loading, error, warnings, load, importCsvTrio, clear } = useAssetsStore();
+  const {
+    assets,
+    assetTypes,
+    loading,
+    error,
+    warnings,
+    selected,
+    load,
+    importCsvTrio,
+    clear,
+    toggleSelected,
+    selectAll,
+    removeMany,
+  } = useAssetsStore();
   const typesInput = useRef<HTMLInputElement>(null);
   const assetsInput = useRef<HTMLInputElement>(null);
   const mappingsInput = useRef<HTMLInputElement>(null);
@@ -47,7 +62,20 @@ export function AssetsListPage() {
     }
   }
 
+  function onDownloadSelected() {
+    downloadAssetsAsCsv(
+      assets.filter((a) => selected.has(a.uuid)),
+      `assets-export-${Date.now()}.csv`,
+    );
+  }
+
+  async function onDeleteSelected() {
+    if (!globalThis.confirm(t('bulk_delete_confirm', { count: String(selected.size) }))) return;
+    await removeMany([...selected]);
+  }
+
   const typesByUuid = new Map(assetTypes.map((at) => [at.uuid, at]));
+  const allSelected = assets.length > 0 && assets.every((a) => selected.has(a.uuid));
 
   return (
     <main data-testid="assets-page">
@@ -109,9 +137,27 @@ export function AssetsListPage() {
           <button type="button" onClick={onClear} data-testid="assets-clear">
             🗑️ {t('assets_clear_button')}
           </button>
+
+          <BulkActionsBar
+            count={selected.size}
+            downloadLabelKey="bulk_download_selected_csv"
+            onDownload={onDownloadSelected}
+            onDelete={() => void onDeleteSelected()}
+            testIdPrefix="assets"
+          />
+
           <table>
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={() => selectAll(assets.map((a) => a.uuid))}
+                    aria-label={t('bulk_select_all')}
+                    data-testid="assets-select-all"
+                  />
+                </th>
                 <th>{t('assets_table_col_name')}</th>
                 <th>{t('assets_table_col_type')}</th>
                 <th>{t('assets_table_col_sensitivity')}</th>
@@ -120,6 +166,15 @@ export function AssetsListPage() {
             <tbody>
               {assets.map((a) => (
                 <tr key={a.uuid} data-testid="assets-row">
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(a.uuid)}
+                      onChange={() => toggleSelected(a.uuid)}
+                      aria-label={t('bulk_select_item', { title: a.name })}
+                      data-testid="assets-select-item"
+                    />
+                  </td>
                   <td>{a.name}</td>
                   <td>{typesByUuid.get(a.assetType)?.title ?? a.assetType}</td>
                   <td>{a.securitySensitivityLevel}</td>
