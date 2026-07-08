@@ -7,7 +7,7 @@
  * always mounts exactly one <I18nProvider> at the root (src/app/App.tsx), which loads the
  * persisted preference from the settings store (ADR-0004) and defaults to DEFAULT_LANGUAGE.
  */
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { DEFAULT_LANGUAGE } from '@/config';
 import { getSettings, saveSettings } from '@/data/settingsRepository';
 import en from '@/locales/en.json';
@@ -57,12 +57,16 @@ interface I18nProviderProps {
 
 export function I18nProvider({ children, language: fixedLanguage }: I18nProviderProps) {
   const [language, setLanguageState] = useState<Language>(fixedLanguage ?? DEFAULT_LANGUAGE);
+  // Guards against the async settings read resolving *after* a manual setLanguage() call (e.g. a
+  // user switches language before IndexedDB's first-open/upgrade transaction finishes) and
+  // silently reverting it back to the persisted/default value.
+  const manuallySetRef = useRef(false);
 
   useEffect(() => {
     if (fixedLanguage) return;
     let active = true;
     void getSettings().then((s) => {
-      if (active) setLanguageState(s.language);
+      if (active && !manuallySetRef.current) setLanguageState(s.language);
     });
     return () => {
       active = false;
@@ -74,6 +78,7 @@ export function I18nProvider({ children, language: fixedLanguage }: I18nProvider
   }, [language]);
 
   function setLanguage(lang: Language) {
+    manuallySetRef.current = true;
     setLanguageState(lang);
     if (!fixedLanguage) void saveSettings({ language: lang });
   }

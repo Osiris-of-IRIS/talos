@@ -13,9 +13,10 @@
     - "Priority features (component-definitions, SSPs) visually emphasized."
     - "Per-type artifact counts and empty-state guidance."
     - "Layer colors (ADR-0010) and symbols (ADR-0011); i18n de/en; theme-aware."
-  status: "Draft"
-  linked_adr_ids: ["ADR-0006", "ADR-0010", "ADR-0011", "ADR-0012", "ADR-0020"]
-  linked_test_ids: ["TEST-LAND-01", "TEST-LAND-02"]
+  status: "In-Progress"
+  scope_note: "ADR-0026: bootstrap-assistant card gains a disabled state (with hover explanation) until the workspace has at least one asset, and a new 'Assistants' layer group holds it; a new 'Assets' card joins the Data layer. TEST-LAND-01/02 (full layer/counts/empty-state coverage) remain planned."
+  linked_adr_ids: ["ADR-0006", "ADR-0010", "ADR-0011", "ADR-0012", "ADR-0020", "ADR-0026"]
+  linked_test_ids: ["TEST-LAND-01", "TEST-LAND-02", "TEST-LAND-03"]
 
 - id: PLAT-002
   title: "BSI Stand-der-Technik library integration"
@@ -140,11 +141,17 @@
   title: "Assistant: bootstrap an environment"
   user_story: "As a user, I want to upload an asset list and bootstrap SSPs across the target-object hierarchy."
   acceptance_criteria:
-    - "Accepts an asset list; generates SSPs based on the target-object hierarchy."
-    - "Generated artifacts persist and are editable."
-  status: "Draft"
-  linked_adr_ids: ["ADR-0006", "ADR-0004", "ADR-0003"]
-  linked_test_ids: ["TEST-ASST-02"]
+    - "Accepts a three-file CSV asset list (asset_types.csv, assets.csv, mappings.csv, golden-data shaped); non-blocking cross-check warnings for unresolved asset_type references."
+    - "Landing-page card is disabled with a hover explanation until the workspace has at least one asset."
+    - "Baseline is a workspace catalog (Profile baseline deferred — no Profile feature yet, ADR-0017)."
+    - "NIST-style: one SSP per asset whose mapped target-object-category has Typ='IT-Systeme', control-implementation = every catalog control."
+    - "BSI-style: one ISMS-wide SSP (controls with no target_object_categories tag) plus one SSP per mapped asset, filtered to controls tagged with its category or an ancestor in the BSI hierarchy."
+    - "Re-running the assistant updates previously-generated SSPs in place (matched by a bootstrap-source provenance prop), never duplicates; hand-edited fields (e.g. system-implementation) are preserved."
+    - "Generated artifacts persist in the ssps store and are fully editable via the existing SSP editor."
+  status: "Implemented"
+  scope_note: "ADR-0026: asset list is a 3-file CSV trio (golden-data shaped) stored in bespoke assets/assetTypes IndexedDB stores (not OSCAL artifacts); target-object-category hierarchy is live-fetched from the BSI namespace CSV (ADR-0005 pattern) and cached with offline fallback. Baseline is catalog-only this phase (Profile baseline deferred, ADR-0017). Generation is two pure functions (generateNist/generateBsi) producing SSP system-characteristics+control-implementation; system-implementation (components/by-components) stays a manual follow-up in the existing SSP editor. Idempotent re-run via a bootstrap-source props[] correlation key (ADR-0023 provenance-prop precedent)."
+  linked_adr_ids: ["ADR-0006", "ADR-0004", "ADR-0003", "ADR-0005", "ADR-0012", "ADR-0017", "ADR-0023", "ADR-0026"]
+  linked_test_ids: ["TEST-ASST-02", "TEST-ASST-03", "TEST-ASSET-01", "TEST-ASSET-02", "TEST-ASSET-03", "TEST-ASSET-04", "TEST-TOC-01", "TEST-TOC-02", "TEST-TOC-03", "TEST-BOOTSTRAP-01", "TEST-BOOTSTRAP-02"]
 
 - id: DASH-001
   title: "Dashboard: Risk Coverage"

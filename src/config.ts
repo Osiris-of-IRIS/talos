@@ -12,6 +12,10 @@ export const LIBRARY_RAW_BASE =
 /** Licence of the BSI library content (surfaced in the browser + README, ADR-0005). */
 export const LIBRARY_LICENSE = 'CC-BY-SA-4.0';
 
+/** BSI target-object-category (Zielobjektkategorie) namespace CSV, live-fetched (ADR-0026). */
+export const TARGET_OBJECT_CATEGORIES_URL =
+  'https://raw.githubusercontent.com/BSI-Bund/Stand-der-Technik-Bibliothek/refs/heads/main/Dokumentation/namespaces/target_object_categories.csv';
+
 /** Absolute raw URL for a library file path from the manifest (ADR-0005). */
 export function libraryRawUrl(path: string): string {
   return LIBRARY_RAW_BASE + path.replace(/^\/+/, '');

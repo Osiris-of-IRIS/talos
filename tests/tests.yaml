@@ -36,6 +36,7 @@ adr_coverage_required:
   - ADR-0023 # SSP component import, staleness tracking, implementation-status convention
   - ADR-0024 # editor UX polish: markup editor, datalist focus fix, back-matter source resolution, control-id typeahead
   - ADR-0025 # universal <MarkupEditor> adoption policy for markup-multiline fields
+  - ADR-0026 # SSP bootstrap assistant: asset model, target-object-category hierarchy, generation methodology
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -57,6 +58,9 @@ golden_data:
   - path: tests/data/control-sample.json
     kind: fragment
     id_field: id
+  - path: tests/data/catalog-target-object-categories.json
+    kind: oscal-document
+    artifact_type: catalog
 
 suites:
   # ---- Shared platform (PLAT-004) -------------------------------------------------
@@ -303,6 +307,15 @@ suites:
     feature: PLAT-001
     adr_refs: [ADR-0001, ADR-0006, ADR-0012]
 
+  - id: TEST-LAND-03
+    title: Bootstrap-assistant card disabled (with hover explanation) until an asset exists
+    file: tests/app/landingPage.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-001
+    adr_refs: [ADR-0001, ADR-0006, ADR-0026]
+
   # ---- Component-definitions (IMPL-001) -------------------------------------------
   - id: TEST-CDEF-01
     title: Component-definition store + list/detail pages (off-version warning + creator export gate)
@@ -447,12 +460,106 @@ suites:
     adr_refs: [ADR-0001, ADR-0006]
 
   - id: TEST-ASST-02
-    title: Bootstrap-environment assistant (asset list -> SSPs)
+    title: Bootstrap-assistant wizard — prerequisite gating, catalog+methodology selection, generation, idempotent re-run
+    file: tests/features/bootstrapAssistantPage.test.tsx
     type: component
     runner: vitest
-    status: planned
+    status: implemented
     feature: ASST-002
-    adr_refs: [ADR-0001, ADR-0006]
+    adr_refs: [ADR-0001, ADR-0006, ADR-0026]
+
+  - id: TEST-ASSET-01
+    title: Asset / asset-type / mapping CSV parsing, validation, cross-check
+    file: tests/models/asset.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0026]
+    golden: [tests/data/golden/recplast/asset_types.csv, tests/data/golden/recplast/assets.csv, tests/data/golden/recplast/mappings.csv]
+
+  - id: TEST-ASSET-02
+    title: CSV parser (RFC4180-ish quoting/escaping)
+    file: tests/data/csvParse.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0026]
+
+  - id: TEST-ASSET-03
+    title: Assets workspace store (CSV-trio upload replaces the whole asset list)
+    file: tests/features/assetsStore.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0004, ADR-0026]
+
+  - id: TEST-ASSET-04
+    title: Assets upload/list page (empty state, table, clear)
+    file: tests/features/assetsListPage.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0012, ADR-0026]
+
+  - id: TEST-TOC-01
+    title: BSI target-object-category namespace CSV model (Zielobjekt/ChildOfUUID parsing)
+    file: tests/models/targetObjectCategory.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0026]
+
+  - id: TEST-TOC-02
+    title: Target-object-category loader — live fetch, cache, offline fallback (mirrors ADR-0005)
+    file: tests/data/targetObjectCategoryLoader.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0005, ADR-0026]
+
+  - id: TEST-TOC-03
+    title: Ancestor-chain matching between a control's target_object_categories tag and the BSI hierarchy
+    file: tests/data/targetObjectHierarchy.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0016, ADR-0026]
+    golden: [tests/data/catalog-target-object-categories.json]
+
+  - id: TEST-BOOTSTRAP-01
+    title: NIST-style and BSI-style SSP generation (pure) against target-object-category-tagged fixtures
+    file: tests/features/bootstrapGenerate.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0003, ADR-0026]
+    golden: [tests/data/catalog-target-object-categories.json]
+
+  - id: TEST-BOOTSTRAP-02
+    title: Applying bootstrap plans — create-then-update idempotency, preserves hand-edited fields
+    file: tests/features/bootstrapApplyPlans.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0004, ADR-0023, ADR-0026]
+
+  - id: TEST-ASST-03
+    title: "E2E: landing gating, asset+catalog upload, generate SSPs, idempotent re-run"
+    file: tests/e2e/bootstrap.spec.ts
+    type: e2e
+    runner: playwright
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0026]
 
   # ---- Dashboard (DASH-00x) -------------------------------------------------------
   - id: TEST-DASH-01

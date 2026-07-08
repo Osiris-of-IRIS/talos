@@ -1,0 +1,200 @@
+// SSP Bootstrap Assistant: generate/update SSPs from an uploaded asset list. Decision IDs: ADR-0026, ADR-0006.
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useI18n } from '@/shared/i18n';
+import { useAssetsStore } from '@/features/assets/store';
+import { useCatalogsStore } from '@/features/catalogs/store';
+import { loadTargetObjectCategories } from '@/data/targetObjectCategoryLoader';
+import type { TargetObjectCategory } from '@/models/targetObjectCategory';
+import { generateNist } from './generateNist';
+import { generateBsi } from './generateBsi';
+import { applyBootstrapPlans, type ApplyResult } from './applyPlans';
+
+const ISMS_SYSTEM_NAME = 'ISMS';
+
+type Methodology = 'nist' | 'bsi';
+
+export function BootstrapAssistantPage() {
+  const { t } = useI18n();
+  const { assets, assetTypes, load: loadAssets } = useAssetsStore();
+  const { items: catalogs, load: loadCatalogs } = useCatalogsStore();
+  const [categoryRows, setCategoryRows] = useState<TargetObjectCategory[]>([]);
+  const [categoryWarning, setCategoryWarning] = useState<string | null>(null);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+  const [catalogUuid, setCatalogUuid] = useState('');
+  const [methodology, setMethodology] = useState<Methodology>('nist');
+  const [generating, setGenerating] = useState(false);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [result, setResult] = useState<ApplyResult | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void loadAssets();
+    void loadCatalogs();
+    void loadTargetObjectCategories()
+      .then((loaded) => {
+        setCategoryRows(loaded.rows);
+        if (loaded.warning) setCategoryWarning(loaded.warning);
+      })
+      .catch((e) => setCategoryError(e instanceof Error ? e.message : String(e)));
+  }, [loadAssets, loadCatalogs]);
+
+  async function onGenerate() {
+    setRunError(null);
+    setResult(null);
+    const catalogRecord = catalogs.find((c) => c.uuid === catalogUuid);
+    if (!catalogRecord) return;
+
+    setGenerating(true);
+    try {
+      const { plans, warnings: genWarnings } =
+        methodology === 'nist'
+          ? generateNist({ assets, assetTypes, categoryRows, catalog: catalogRecord.artifact })
+          : generateBsi({
+              assets,
+              assetTypes,
+              categoryRows,
+              catalog: catalogRecord.artifact,
+              ismsSystemName: ISMS_SYSTEM_NAME,
+            });
+      setWarnings(genWarnings);
+      const applied = await applyBootstrapPlans(plans);
+      setResult(applied);
+    } catch (e) {
+      setRunError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  const hasAssets = assets.length > 0;
+  const hasCatalogs = catalogs.length > 0;
+
+  return (
+    <main data-testid="bootstrap-page">
+      <p>
+        <Link to="/">← {t('app_title')}</Link>
+      </p>
+      <h1>🧭 {t('bootstrap_page_heading')}</h1>
+      <p>
+        <small>{t('bootstrap_intro')}</small>
+      </p>
+
+      {!hasAssets && (
+        <p data-testid="bootstrap-no-assets" role="alert">
+          ⚠️ {t('bootstrap_no_assets_hint_pre')} <Link to="/assets">{t('landing_feature_assets')}</Link>
+          {t('bootstrap_no_assets_hint_mid')}
+        </p>
+      )}
+
+      {hasAssets && !hasCatalogs && (
+        <p data-testid="bootstrap-no-catalogs" role="alert">
+          ⚠️ {t('bootstrap_no_catalogs_hint_pre')} <Link to="/catalogs">{t('landing_feature_catalogs')}</Link>
+          {t('bootstrap_no_catalogs_hint_mid')} <Link to="/library">{t('landing_feature_library')}</Link>.
+        </p>
+      )}
+
+      {categoryError && (
+        <p role="alert" data-testid="bootstrap-category-error">
+          ⚠️ {categoryError}
+        </p>
+      )}
+      {categoryWarning && (
+        <p role="status" data-testid="bootstrap-category-warning" style={{ color: 'var(--color-warning, #a15c00)' }}>
+          ⚠️ {categoryWarning}
+        </p>
+      )}
+
+      {hasAssets && hasCatalogs && (
+        <>
+          <fieldset>
+            <legend>{t('bootstrap_step_catalog_heading')}</legend>
+            <label>
+              {t('bootstrap_catalog_label')}
+              <select
+                data-testid="bootstrap-catalog-select"
+                value={catalogUuid}
+                onChange={(e) => setCatalogUuid(e.target.value)}
+              >
+                <option value="">{t('bootstrap_catalog_placeholder')}</option>
+                {catalogs.map((c) => (
+                  <option key={c.uuid} value={c.uuid}>
+                    {c.artifact.metadata.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p>
+              <small>{t('bootstrap_profile_note')}</small>
+            </p>
+          </fieldset>
+
+          <fieldset>
+            <legend>{t('bootstrap_step_methodology_heading')}</legend>
+            <label>
+              <input
+                type="radio"
+                name="methodology"
+                value="nist"
+                checked={methodology === 'nist'}
+                onChange={() => setMethodology('nist')}
+                data-testid="bootstrap-methodology-nist"
+              />{' '}
+              {t('bootstrap_methodology_nist_label')}
+            </label>
+            <p>
+              <small>{t('bootstrap_methodology_nist_hint')}</small>
+            </p>
+            <label>
+              <input
+                type="radio"
+                name="methodology"
+                value="bsi"
+                checked={methodology === 'bsi'}
+                onChange={() => setMethodology('bsi')}
+                data-testid="bootstrap-methodology-bsi"
+              />{' '}
+              {t('bootstrap_methodology_bsi_label')}
+            </label>
+            <p>
+              <small>{t('bootstrap_methodology_bsi_hint')}</small>
+            </p>
+          </fieldset>
+
+          <button
+            type="button"
+            disabled={!catalogUuid || generating}
+            onClick={() => void onGenerate()}
+            data-testid="bootstrap-generate"
+          >
+            {generating ? t('bootstrap_generating') : t('bootstrap_generate_button')}
+          </button>
+
+          {runError && (
+            <p role="alert" data-testid="bootstrap-run-error">
+              ⚠️ {runError}
+            </p>
+          )}
+
+          {warnings.length > 0 && (
+            <div data-testid="bootstrap-warnings">
+              <strong>{t('bootstrap_warnings_heading')}</strong>
+              <ul>
+                {warnings.map((w) => (
+                  <li key={w}>⚠️ {w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {result && (
+            <p data-testid="bootstrap-result">
+              ✅ {t('bootstrap_result_summary', { created: String(result.created), updated: String(result.updated) })}{' '}
+              <Link to="/ssps">{t('bootstrap_result_view_link')}</Link>
+            </p>
+          )}
+        </>
+      )}
+    </main>
+  );
+}

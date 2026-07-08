@@ -12,6 +12,8 @@ import { SspDetailPage } from '@/features/ssps/SspDetailPage';
 import { SspEditorPage } from '@/features/ssps/SspEditorPage';
 import { CatalogsListPage } from '@/features/catalogs/CatalogsListPage';
 import { LibraryPage } from '@/features/library/LibraryPage';
+import { AssetsListPage } from '@/features/assets/AssetsListPage';
+import { BootstrapAssistantPage } from '@/features/bootstrap/BootstrapAssistantPage';
 import './app.css';
 
 export function App() {
@@ -35,6 +37,8 @@ export function App() {
             <Route path="/ssps/:uuid/edit" element={<SspEditorPage />} />
             <Route path="/catalogs" element={<CatalogsListPage />} />
             <Route path="/library" element={<LibraryPage />} />
+            <Route path="/assets" element={<AssetsListPage />} />
+            <Route path="/bootstrap" element={<BootstrapAssistantPage />} />
           </Routes>
         </div>
       </HashRouter>

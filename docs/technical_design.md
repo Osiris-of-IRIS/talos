@@ -249,8 +249,9 @@ to Pages (`actions/deploy-pages`). `404.html` = `index.html` copy for non-hash f
    one `[ADR-0008]`.
 3. **Multi-version OSCAL conversion** — deferred; revisit if BSI/user files diverge from 1.2.2
    materially `[ADR-0007]`.
-4. **Assistant SSP-bootstrap input format** — asset-list schema/hierarchy mapping to be designed
-   with T-301.
+4. ~~**Assistant SSP-bootstrap input format**~~ — **Resolved (ADR-0026, T-301):** 3-file CSV asset
+   list matching the golden `recplast` shape; target-object-category hierarchy live-fetched from
+   the BSI namespace CSV.
 
 ---
 

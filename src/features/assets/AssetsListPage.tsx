@@ -1,0 +1,134 @@
+// Asset-list upload + overview — the SSP-bootstrap assistant's input data. Decision IDs: ADR-0026.
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAssetsStore } from './store';
+import { useI18n } from '@/shared/i18n';
+
+export function AssetsListPage() {
+  const { t } = useI18n();
+  const { assets, assetTypes, loading, error, warnings, load, importCsvTrio, clear } = useAssetsStore();
+  const typesInput = useRef<HTMLInputElement>(null);
+  const assetsInput = useRef<HTMLInputElement>(null);
+  const mappingsInput = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function onUpload() {
+    setUploadError(null);
+    const typesFile = typesInput.current?.files?.[0];
+    const assetsFile = assetsInput.current?.files?.[0];
+    const mappingsFile = mappingsInput.current?.files?.[0];
+    if (!typesFile || !assetsFile || !mappingsFile) {
+      setUploadError(t('assets_upload_missing_files'));
+      return;
+    }
+    try {
+      const [typesText, assetsText, mappingsText] = await Promise.all([
+        typesFile.text(),
+        assetsFile.text(),
+        mappingsFile.text(),
+      ]);
+      await importCsvTrio(typesText, assetsText, mappingsText);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      if (typesInput.current) typesInput.current.value = '';
+      if (assetsInput.current) assetsInput.current.value = '';
+      if (mappingsInput.current) mappingsInput.current.value = '';
+    }
+  }
+
+  function onClear() {
+    if (globalThis.confirm(t('assets_clear_confirm'))) {
+      void clear();
+    }
+  }
+
+  const typesByUuid = new Map(assetTypes.map((at) => [at.uuid, at]));
+
+  return (
+    <main data-testid="assets-page">
+      <p>
+        <Link to="/">← {t('app_title')}</Link>
+      </p>
+      <h1>🗃️ {t('assets_page_heading')}</h1>
+      <p>
+        <small>{t('assets_upload_hint')}</small>
+      </p>
+
+      <fieldset>
+        <legend>{t('assets_upload_button')}</legend>
+        <p>
+          <label>
+            {t('assets_upload_types_label')}
+            <input ref={typesInput} type="file" accept=".csv,text/csv" data-testid="assets-upload-types" />
+          </label>
+        </p>
+        <p>
+          <label>
+            {t('assets_upload_assets_label')}
+            <input ref={assetsInput} type="file" accept=".csv,text/csv" data-testid="assets-upload-assets" />
+          </label>
+        </p>
+        <p>
+          <label>
+            {t('assets_upload_mappings_label')}
+            <input ref={mappingsInput} type="file" accept=".csv,text/csv" data-testid="assets-upload-mappings" />
+          </label>
+        </p>
+        <button type="button" onClick={() => void onUpload()} data-testid="assets-upload-submit">
+          ⭱ {t('assets_upload_button')}
+        </button>
+      </fieldset>
+
+      {uploadError && (
+        <p role="alert" data-testid="assets-upload-error">
+          ⚠️ {uploadError}
+        </p>
+      )}
+      {error && <p role="alert">⚠️ {error}</p>}
+      {warnings.length > 0 && (
+        <ul role="status" data-testid="assets-upload-warnings" style={{ color: 'var(--color-warning, #a15c00)' }}>
+          {warnings.map((w) => (
+            <li key={w}>⚠️ {w}</li>
+          ))}
+        </ul>
+      )}
+      {loading && <p>{t('common_loading')}</p>}
+
+      {!loading && assets.length === 0 && <p data-testid="assets-empty">📂 {t('assets_empty')}</p>}
+
+      {assets.length > 0 && (
+        <>
+          <p data-testid="assets-count">
+            {t('assets_count', { count: String(assets.length), typeCount: String(assetTypes.length) })}
+          </p>
+          <button type="button" onClick={onClear} data-testid="assets-clear">
+            🗑️ {t('assets_clear_button')}
+          </button>
+          <table>
+            <thead>
+              <tr>
+                <th>{t('assets_table_col_name')}</th>
+                <th>{t('assets_table_col_type')}</th>
+                <th>{t('assets_table_col_sensitivity')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assets.map((a) => (
+                <tr key={a.uuid} data-testid="assets-row">
+                  <td>{a.name}</td>
+                  <td>{typesByUuid.get(a.assetType)?.title ?? a.assetType}</td>
+                  <td>{a.securitySensitivityLevel}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </main>
+  );
+}

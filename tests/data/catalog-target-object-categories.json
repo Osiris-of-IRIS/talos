@@ -1,0 +1,82 @@
+{
+  "catalog": {
+    "uuid": "cccccccc-0000-4000-8000-000000000002",
+    "metadata": {
+      "title": "BSI Kernel (target-object-category excerpt)",
+      "last-modified": "2026-07-08T10:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.2.2"
+    },
+    "groups": [
+      {
+        "id": "APP",
+        "title": "Anwendungen",
+        "controls": [
+          {
+            "id": "APP.1.1.1",
+            "title": "Webanwendungen absichern",
+            "class": "BSI-Stand-der-Technik-Kernel",
+            "parts": [
+              {
+                "id": "APP.1.1.1_stm",
+                "name": "statement",
+                "prose": "Webanwendungen MÜSSEN abgesichert werden.",
+                "props": [{ "name": "target_object_categories", "value": "Webanwendungen" }]
+              }
+            ]
+          },
+          {
+            "id": "APP.1.1.2",
+            "title": "Anwendungen inventarisieren",
+            "class": "BSI-Stand-der-Technik-Kernel",
+            "props": [{ "name": "target_object_categories", "value": "Anwendungen" }],
+            "parts": [
+              {
+                "id": "APP.1.1.2_stm",
+                "name": "statement",
+                "prose": "Anwendungen MÜSSEN inventarisiert werden."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "SYS",
+        "title": "IT-Systeme",
+        "controls": [
+          {
+            "id": "SYS.1.1.1",
+            "title": "Hostsysteme härten",
+            "class": "BSI-Stand-der-Technik-Kernel",
+            "parts": [
+              {
+                "id": "SYS.1.1.1_stm",
+                "name": "statement",
+                "prose": "Hostsysteme MÜSSEN gehärtet werden.",
+                "props": [{ "name": "target_object_categories", "value": "Hostsysteme" }]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ISMS",
+        "title": "Sicherheitsmanagement",
+        "controls": [
+          {
+            "id": "ISMS.1.1.1",
+            "title": "Informationssicherheitsleitlinie erstellen",
+            "class": "BSI-Stand-der-Technik-Kernel",
+            "parts": [
+              {
+                "id": "ISMS.1.1.1_stm",
+                "name": "statement",
+                "prose": "Die Institution MUSS eine Leitlinie zur Informationssicherheit erstellen."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

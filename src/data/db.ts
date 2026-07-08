@@ -7,9 +7,10 @@
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { OscalArtifactType } from '@/models/oscalBase';
+import type { Asset, AssetType } from '@/models/asset';
 
 export const DB_NAME = 'talos';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 export type ArtifactStore =
   | 'catalogs'
@@ -67,6 +68,14 @@ export interface TalosSettings {
   lastLibrarySync?: string;
 }
 
+/** Cached copy of the BSI target-object-category namespace CSV (ADR-0026). Not sha-pinned like
+ * the library (no manifest for it) — refreshed on every successful fetch, served stale on failure. */
+export interface TargetObjectCategoryCacheEntry {
+  key: 'target-object-categories';
+  fetchedAt: string;
+  rows: unknown;
+}
+
 interface TalosDB extends DBSchema {
   catalogs: { key: string; value: StoredArtifact };
   profiles: { key: string; value: StoredArtifact };
@@ -82,6 +91,10 @@ interface TalosDB extends DBSchema {
     indexes: { bySource: string };
   };
   settings: { key: string; value: TalosSettings };
+  /** SSP-bootstrap input data (ADR-0026) — not an OSCAL artifact type. */
+  assets: { key: string; value: Asset };
+  assetTypes: { key: string; value: AssetType };
+  targetObjectCategoryCache: { key: string; value: TargetObjectCategoryCacheEntry };
 }
 
 let dbPromise: Promise<IDBPDatabase<TalosDB>> | null = null;
@@ -104,6 +117,15 @@ export function getDb(): Promise<IDBPDatabase<TalosDB>> {
         }
         if (!db.objectStoreNames.contains('settings')) {
           db.createObjectStore('settings', { keyPath: 'key' });
+        }
+        if (!db.objectStoreNames.contains('assets')) {
+          db.createObjectStore('assets', { keyPath: 'uuid' });
+        }
+        if (!db.objectStoreNames.contains('assetTypes')) {
+          db.createObjectStore('assetTypes', { keyPath: 'uuid' });
+        }
+        if (!db.objectStoreNames.contains('targetObjectCategoryCache')) {
+          db.createObjectStore('targetObjectCategoryCache', { keyPath: 'key' });
         }
       },
     });

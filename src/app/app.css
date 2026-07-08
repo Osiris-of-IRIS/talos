@@ -333,3 +333,16 @@ section[data-layer='Assessment'] .feature-card {
 section[data-layer='Data'] .feature-card {
   border-left-color: var(--color-accent-bronze);
 }
+
+section[data-layer='Assistants'] .feature-card {
+  border-left-color: var(--color-impl);
+}
+
+.feature-cards .feature-card--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.feature-cards .feature-card--disabled span {
+  pointer-events: none;
+}
