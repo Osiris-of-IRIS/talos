@@ -9,7 +9,13 @@ import type { TargetObjectCategory } from '@/models/targetObjectCategory';
 import type { Catalog } from '@/models/catalog';
 import { buildCategoryIndex } from '@/data/targetObjectHierarchy';
 import { assetCorrelationKey } from './bootstrapProvenance';
-import { buildAssetSystemCharacteristics, buildControlImplementation, uniqueCatalogControls, type BootstrapSspPlan } from './planBuilders';
+import {
+  buildAssetSystemCharacteristics,
+  buildControlImplementation,
+  resolveAssetCategory,
+  uniqueCatalogControls,
+  type BootstrapSspPlan,
+} from './planBuilders';
 
 const SYSTEM_TYP = 'IT-Systeme';
 
@@ -38,16 +44,12 @@ export function generateNist(params: GenerateNistParams): GenerateResult {
 
   const plans: BootstrapSspPlan[] = [];
   for (const asset of assets) {
-    const type = typeByUuid.get(asset.assetType);
-    const categoryUuid = type?.targetObjectCategoryUuid;
-    const category = categoryUuid ? byUuid.get(categoryUuid) : undefined;
-    if (!type || !categoryUuid || !category) {
-      warnings.push(
-        `Asset "${asset.uuid}" (${asset.name}) has no resolvable target-object-category; skipped.`,
-      );
+    const resolved = resolveAssetCategory(asset, typeByUuid, byUuid);
+    if (!resolved.ok) {
+      warnings.push(resolved.warning);
       continue;
     }
-    if (category.typ !== SYSTEM_TYP) continue; // not a "system"-typed asset — not an error, just excluded
+    if (resolved.category.typ !== SYSTEM_TYP) continue; // not a "system"-typed asset — not an error, just excluded
 
     const correlationKey = assetCorrelationKey(asset.uuid);
     plans.push({

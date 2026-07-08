@@ -16,8 +16,8 @@ type Methodology = 'nist' | 'bsi';
 
 export function BootstrapAssistantPage() {
   const { t } = useI18n();
-  const { assets, assetTypes, load: loadAssets } = useAssetsStore();
-  const { items: catalogs, load: loadCatalogs } = useCatalogsStore();
+  const { assets, assetTypes, loading: assetsLoading, load: loadAssets } = useAssetsStore();
+  const { items: catalogs, loading: catalogsLoading, load: loadCatalogs } = useCatalogsStore();
   const [categoryRows, setCategoryRows] = useState<TargetObjectCategory[]>([]);
   const [categoryWarning, setCategoryWarning] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
@@ -67,6 +67,7 @@ export function BootstrapAssistantPage() {
     }
   }
 
+  const loading = assetsLoading || catalogsLoading;
   const hasAssets = assets.length > 0;
   const hasCatalogs = catalogs.length > 0;
 
@@ -80,14 +81,16 @@ export function BootstrapAssistantPage() {
         <small>{t('bootstrap_intro')}</small>
       </p>
 
-      {!hasAssets && (
+      {loading && <p>{t('common_loading')}</p>}
+
+      {!loading && !hasAssets && (
         <p data-testid="bootstrap-no-assets" role="alert">
           ⚠️ {t('bootstrap_no_assets_hint_pre')} <Link to="/assets">{t('landing_feature_assets')}</Link>
           {t('bootstrap_no_assets_hint_mid')}
         </p>
       )}
 
-      {hasAssets && !hasCatalogs && (
+      {!loading && hasAssets && !hasCatalogs && (
         <p data-testid="bootstrap-no-catalogs" role="alert">
           ⚠️ {t('bootstrap_no_catalogs_hint_pre')} <Link to="/catalogs">{t('landing_feature_catalogs')}</Link>
           {t('bootstrap_no_catalogs_hint_mid')} <Link to="/library">{t('landing_feature_library')}</Link>.
@@ -105,7 +108,7 @@ export function BootstrapAssistantPage() {
         </p>
       )}
 
-      {hasAssets && hasCatalogs && (
+      {!loading && hasAssets && hasCatalogs && (
         <>
           <fieldset>
             <legend>{t('bootstrap_step_catalog_heading')}</legend>

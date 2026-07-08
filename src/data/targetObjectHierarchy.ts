@@ -69,6 +69,16 @@ export function hasNoTargetObjectCategory(control: Control): boolean {
 }
 
 /**
+ * True when a control's tagged categories intersect a pre-resolved set of eligible titles (an
+ * ancestor chain resolved once, e.g. via `categoryTitlesInChain`). Splitting this out from
+ * `controlMatchesCategoryOrAncestor` lets a caller filtering many controls against the *same*
+ * asset's category resolve the chain once instead of once per control.
+ */
+export function controlMatchesAnyTitle(control: Control, eligibleTitles: Set<string>): boolean {
+  return controlTargetCategories(control).some((title) => eligibleTitles.has(title));
+}
+
+/**
  * True when a control's tagged category is the given category itself, or one of its ancestors
  * (per the BSI hierarchy) — the BSI-style per-asset SSP matching rule.
  */
@@ -77,6 +87,5 @@ export function controlMatchesCategoryOrAncestor(
   categoryUuid: string,
   byUuid: Map<string, TargetObjectCategory>,
 ): boolean {
-  const eligibleTitles = new Set(categoryTitlesInChain(categoryUuid, byUuid));
-  return controlTargetCategories(control).some((title) => eligibleTitles.has(title));
+  return controlMatchesAnyTitle(control, new Set(categoryTitlesInChain(categoryUuid, byUuid)));
 }

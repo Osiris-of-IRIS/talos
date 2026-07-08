@@ -52,6 +52,37 @@ async function seedAsset() {
 }
 
 describe('BootstrapAssistantPage', () => {
+  it('shows a loading indicator instead of a false "no assets" banner while the stores are still loading', async () => {
+    await act(async () => {
+      await seedAsset();
+      await seedCatalog();
+    });
+    // Simulate the moment right after mount, before load() resolves: a user with existing
+    // assets+catalogs should not see the prerequisite banner flash. Stub `load` to never resolve
+    // so the loading state stays deterministic for the test's synchronous assertions below —
+    // restored afterward so later tests in this file get the real store behavior back.
+    const realAssetsLoad = useAssetsStore.getState().load;
+    const realCatalogsLoad = useCatalogsStore.getState().load;
+    useAssetsStore.setState({ loading: true, load: () => new Promise(() => {}) });
+    useCatalogsStore.setState({ loading: true, load: () => new Promise(() => {}) });
+
+    const { unmount } = render(
+      <MemoryRouter>
+        <BootstrapAssistantPage />
+      </MemoryRouter>,
+    );
+    try {
+      expect(screen.queryByTestId('bootstrap-no-assets')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('bootstrap-no-catalogs')).not.toBeInTheDocument();
+    } finally {
+      // Unmount before restoring the real `load` so the store-state change isn't applied to a
+      // still-mounted component outside of React's act() tracking.
+      unmount();
+      useAssetsStore.setState({ load: realAssetsLoad });
+      useCatalogsStore.setState({ load: realCatalogsLoad });
+    }
+  });
+
   it('shows the no-assets prerequisite message when the workspace has no assets', async () => {
     render(
       <MemoryRouter>

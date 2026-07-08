@@ -7,16 +7,13 @@
 import type { Asset, AssetType } from '@/models/asset';
 import type { TargetObjectCategory } from '@/models/targetObjectCategory';
 import type { Catalog } from '@/models/catalog';
-import {
-  buildCategoryIndex,
-  hasNoTargetObjectCategory,
-  controlMatchesCategoryOrAncestor,
-} from '@/data/targetObjectHierarchy';
+import { buildCategoryIndex, categoryTitlesInChain, hasNoTargetObjectCategory, controlMatchesAnyTitle } from '@/data/targetObjectHierarchy';
 import { ISMS_CORRELATION_KEY, assetCorrelationKey } from './bootstrapProvenance';
 import {
   buildAssetSystemCharacteristics,
   buildIsmsSystemCharacteristics,
   buildControlImplementation,
+  resolveAssetCategory,
   uniqueCatalogControls,
   type BootstrapSspPlan,
 } from './planBuilders';
@@ -50,16 +47,16 @@ export function generateBsi(params: GenerateBsiParams): GenerateResult {
   ];
 
   for (const asset of assets) {
-    const type = typeByUuid.get(asset.assetType);
-    const categoryUuid = type?.targetObjectCategoryUuid;
-    if (!type || !categoryUuid || !byUuid.has(categoryUuid)) {
-      warnings.push(
-        `Asset "${asset.uuid}" (${asset.name}) has no resolvable target-object-category; skipped.`,
-      );
+    const resolved = resolveAssetCategory(asset, typeByUuid, byUuid);
+    if (!resolved.ok) {
+      warnings.push(resolved.warning);
       continue;
     }
     const correlationKey = assetCorrelationKey(asset.uuid);
-    const matching = controls.filter((c) => controlMatchesCategoryOrAncestor(c, categoryUuid, byUuid));
+    // Resolve the ancestor chain once per asset (not once per control): controlMatchesAnyTitle
+    // just checks against this precomputed set instead of re-walking ChildOfUUID for every control.
+    const eligibleTitles = new Set(categoryTitlesInChain(resolved.category.uuid, byUuid));
+    const matching = controls.filter((c) => controlMatchesAnyTitle(c, eligibleTitles));
     plans.push({
       correlationKey,
       systemCharacteristics: buildAssetSystemCharacteristics(asset, correlationKey),

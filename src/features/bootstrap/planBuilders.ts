@@ -7,7 +7,8 @@
 import { indexCatalogControls } from '@/data/catalogResolution';
 import type { Catalog } from '@/models/catalog';
 import type { Control } from '@/models/control';
-import type { Asset } from '@/models/asset';
+import type { Asset, AssetType } from '@/models/asset';
+import type { TargetObjectCategory } from '@/models/targetObjectCategory';
 import type { SspControlImplementation, SystemCharacteristics } from '@/models/ssp';
 import { withBootstrapSource } from './bootstrapProvenance';
 
@@ -54,6 +55,33 @@ export function buildIsmsSystemCharacteristics(systemName: string, correlationKe
     status: { state: 'operational' },
     authorizationBoundary: { description: '' },
   };
+}
+
+export type AssetCategoryResolution =
+  | { ok: true; category: TargetObjectCategory }
+  | { ok: false; warning: string };
+
+/**
+ * Resolve an asset's `assetType` to its mapped `TargetObjectCategory`, shared by both generators
+ * (NIST/BSI) so the resolution rule and warning wording can't silently drift between them. Returns
+ * a warning (asset skipped, not an error) when the type or its category mapping is missing or
+ * doesn't resolve against the loaded hierarchy.
+ */
+export function resolveAssetCategory(
+  asset: Asset,
+  typeByUuid: Map<string, AssetType>,
+  byUuid: Map<string, TargetObjectCategory>,
+): AssetCategoryResolution {
+  const type = typeByUuid.get(asset.assetType);
+  const categoryUuid = type?.targetObjectCategoryUuid;
+  const category = categoryUuid ? byUuid.get(categoryUuid) : undefined;
+  if (!type || !categoryUuid || !category) {
+    return {
+      ok: false,
+      warning: `Asset "${asset.uuid}" (${asset.name}) has no resolvable target-object-category; skipped.`,
+    };
+  }
+  return { ok: true, category };
 }
 
 /** Build `control-implementation.implemented-requirements` from a set of controls (no by-components — see ADR-0026). */

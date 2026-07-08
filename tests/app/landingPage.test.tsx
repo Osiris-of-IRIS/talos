@@ -8,10 +8,12 @@ import { MemoryRouter } from 'react-router-dom';
 import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests, getDb } from '@/data/db';
 import { LandingPage } from '@/app/LandingPage';
+import { useAssetsStore } from '@/features/assets/store';
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   _resetDbForTests();
+  useAssetsStore.setState({ assets: [], assetTypes: [], loading: false, error: null, warnings: [] });
 });
 
 describe('LandingPage — bootstrap assistant card gating', () => {

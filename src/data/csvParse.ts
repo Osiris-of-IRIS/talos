@@ -5,13 +5,21 @@
  * of rows) and the quoting rules are the only real complexity.
  */
 
-/** Split CSV text into rows of raw string fields, honoring RFC4180 quoting. */
-function splitRows(text: string): string[][] {
-  const rows: string[][] = [];
+interface RawRow {
+  fields: string[];
+  /** 1-based physical line number the row starts on, for accurate error reporting. */
+  line: number;
+}
+
+/** Split CSV text into rows of raw string fields (with physical line numbers), honoring RFC4180 quoting. */
+function splitRows(text: string): RawRow[] {
+  const rows: RawRow[] = [];
   let row: string[] = [];
   let field = '';
   let inQuotes = false;
   let i = 0;
+  let line = 1;
+  let rowStartLine = 1;
   const n = text.length;
 
   const endField = () => {
@@ -20,8 +28,9 @@ function splitRows(text: string): string[][] {
   };
   const endRow = () => {
     endField();
-    rows.push(row);
+    rows.push({ fields: row, line: rowStartLine });
     row = [];
+    rowStartLine = line;
   };
 
   while (i < n) {
@@ -37,6 +46,7 @@ function splitRows(text: string): string[][] {
         i++;
         continue;
       }
+      if (c === '\n') line++;
       field += c;
       i++;
       continue;
@@ -56,6 +66,7 @@ function splitRows(text: string): string[][] {
       continue;
     }
     if (c === '\n') {
+      line++;
       endRow();
       i++;
       continue;
@@ -71,14 +82,25 @@ function splitRows(text: string): string[][] {
 
 /** Parse CSV text (with a header row) into an array of `header → value` records. */
 export function parseCsv(text: string): Record<string, string>[] {
-  const rows = splitRows(text).filter((r) => !(r.length === 1 && (r[0] ?? '').trim() === ''));
+  const rows = splitRows(text).filter(
+    (r) => !(r.fields.length === 1 && (r.fields[0] ?? '').trim() === ''),
+  );
   if (rows.length === 0) return [];
-  const header = rows[0] ?? [];
-  const dataRows = rows.slice(1);
-  return dataRows.map((row, rowIndex) => {
+  const [headerRow, ...dataRows] = rows;
+  const header = headerRow?.fields ?? [];
+
+  const seen = new Set<string>();
+  for (const key of header) {
+    if (seen.has(key)) {
+      throw new Error(`CSV header has a duplicate column "${key}" (header: ${header.join(', ')}).`);
+    }
+    seen.add(key);
+  }
+
+  return dataRows.map(({ fields: row, line }) => {
     if (row.length > header.length) {
       throw new Error(
-        `CSV row ${rowIndex + 2} has ${row.length} columns, expected ${header.length} (header: ${header.join(', ')}).`,
+        `CSV row ${line} has ${row.length} columns, expected ${header.length} (header: ${header.join(', ')}).`,
       );
     }
     const record: Record<string, string> = {};

@@ -1,9 +1,9 @@
 // Landing hub — full implementation in T-040. Decision IDs: ADR-0006, ADR-0012.
 // Cards are grouped by OSCAL layer; priority features (component-definitions, SSPs)
 // live in the implementation layer.
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useI18n } from '@/shared/i18n';
-import { getDb } from '@/data/db';
+import { useAssetsStore } from '@/features/assets/store';
 
 type LayerId = 'Data' | 'Control' | 'Implementation' | 'Assessment' | 'Assistants';
 
@@ -76,19 +76,12 @@ function groups(hasAssets: boolean): FeatureGroup[] {
 
 export function LandingPage() {
   const { t } = useI18n();
-  const [hasAssets, setHasAssets] = useState(false);
+  const { assets, load } = useAssetsStore();
+  const hasAssets = assets.length > 0;
 
   useEffect(() => {
-    let active = true;
-    void getDb()
-      .then((db) => db.count('assets'))
-      .then((count) => {
-        if (active) setHasAssets(count > 0);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+    void load();
+  }, [load]);
 
   return (
     <main>

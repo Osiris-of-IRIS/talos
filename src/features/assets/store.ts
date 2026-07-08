@@ -16,15 +16,43 @@ import {
   type AssetType,
 } from '@/models/asset';
 
-async function replaceStore<S extends 'assets' | 'assetTypes'>(
+/**
+ * Replace both the assets and asset-types stores in a single IndexedDB transaction, so a failure
+ * partway through (e.g. a quota error) rolls back both writes instead of leaving them mutually
+ * inconsistent (new types with stale assets, or vice versa).
+ */
+export async function replaceAssetLists(
   db: Awaited<ReturnType<typeof getDb>>,
-  storeName: S,
-  items: (S extends 'assets' ? Asset : AssetType)[],
+  types: AssetType[],
+  assets: Asset[],
 ): Promise<void> {
-  const tx = db.transaction(storeName, 'readwrite');
-  await tx.store.clear();
-  await Promise.all(items.map((item) => tx.store.put(item)));
-  await tx.done;
+  const tx = db.transaction(['assetTypes', 'assets'], 'readwrite');
+  // Mark tx.done "handled" immediately: our explicit tx.abort() below (for a synchronous request
+  // failure IndexedDB wouldn't otherwise auto-abort on) makes it reject on a path that never
+  // reaches the `await tx.done` below, which would otherwise surface as an unhandled rejection.
+  const done = tx.done.catch(() => undefined);
+  const typesStore = tx.objectStore('assetTypes');
+  const assetsStore = tx.objectStore('assets');
+  try {
+    await Promise.all([typesStore.clear(), assetsStore.clear()]);
+    await Promise.all([
+      ...types.map((t) => typesStore.put(t)),
+      ...assets.map((a) => assetsStore.put(a)),
+    ]);
+    await tx.done;
+  } catch (err) {
+    // IndexedDB only auto-aborts (and rolls back) on an *async* request failure; a request that
+    // throws synchronously (e.g. `put()` on a record missing its keyPath) never becomes a
+    // transactional request at all, so it wouldn't roll back the writes already made in this
+    // transaction unless we abort explicitly here.
+    try {
+      tx.abort();
+    } catch {
+      // already aborted/finished — nothing to do.
+    }
+    await done;
+    throw err;
+  }
 }
 
 export interface AssetsState {
@@ -48,7 +76,9 @@ export const useAssetsStore = create<AssetsState>((set, get) => ({
   warnings: [],
 
   load: async () => {
-    set({ loading: true, error: null });
+    // Warnings are ephemeral (tied to the most recent import in this session, never persisted),
+    // so a (re)load always clears them — importCsvTrio sets the real ones again right after.
+    set({ loading: true, error: null, warnings: [] });
     try {
       const db = await getDb();
       const [assets, assetTypes] = await Promise.all([db.getAll('assets'), db.getAll('assetTypes')]);
@@ -70,8 +100,7 @@ export const useAssetsStore = create<AssetsState>((set, get) => ({
     const warnings = crossCheckAssets(assets, types);
 
     const db = await getDb();
-    await replaceStore(db, 'assetTypes', types);
-    await replaceStore(db, 'assets', assets);
+    await replaceAssetLists(db, types, assets);
 
     await get().load();
     set({ warnings });
@@ -79,8 +108,9 @@ export const useAssetsStore = create<AssetsState>((set, get) => ({
 
   clear: async () => {
     const db = await getDb();
-    await db.clear('assets');
-    await db.clear('assetTypes');
+    const tx = db.transaction(['assets', 'assetTypes'], 'readwrite');
+    await Promise.all([tx.objectStore('assets').clear(), tx.objectStore('assetTypes').clear()]);
+    await tx.done;
     await get().load();
   },
 }));

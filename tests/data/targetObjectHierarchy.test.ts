@@ -10,6 +10,7 @@ import {
   ancestorChain,
   categoryTitlesInChain,
   controlTargetCategories,
+  controlMatchesAnyTitle,
   controlMatchesCategoryOrAncestor,
   hasNoTargetObjectCategory,
 } from '@/data/targetObjectHierarchy';
@@ -116,6 +117,26 @@ describe('controlTargetCategories', () => {
 
   it('returns an empty array for a control with no target_object_categories prop anywhere', () => {
     expect(controlTargetCategories(findControl('ISMS.1.1.1'))).toEqual([]);
+  });
+});
+
+describe('controlMatchesAnyTitle', () => {
+  it('matches against a pre-resolved eligible-title set (letting a caller resolve the ancestor chain once)', () => {
+    const byUuid = buildCategoryIndex(ROWS);
+    const eligibleTitles = new Set(categoryTitlesInChain(webanwendungenUuid, byUuid));
+    expect(controlMatchesAnyTitle(findControl('APP.1.1.1'), eligibleTitles)).toBe(true); // direct
+    expect(controlMatchesAnyTitle(findControl('APP.1.1.2'), eligibleTitles)).toBe(true); // ancestor
+    expect(controlMatchesAnyTitle(findControl('SYS.1.1.1'), eligibleTitles)).toBe(false); // unrelated
+  });
+
+  it('agrees with controlMatchesCategoryOrAncestor for the same inputs', () => {
+    const byUuid = buildCategoryIndex(ROWS);
+    const eligibleTitles = new Set(categoryTitlesInChain(webanwendungenUuid, byUuid));
+    for (const id of ['APP.1.1.1', 'APP.1.1.2', 'SYS.1.1.1', 'ISMS.1.1.1']) {
+      expect(controlMatchesAnyTitle(findControl(id), eligibleTitles)).toBe(
+        controlMatchesCategoryOrAncestor(findControl(id), webanwendungenUuid, byUuid),
+      );
+    }
   });
 });
 

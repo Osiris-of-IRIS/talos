@@ -49,6 +49,22 @@ describe('parseCsv', () => {
     expect(() => parseCsv('a,b\n1,2,3\n')).toThrow(/column/i);
   });
 
+  it('reports the physical line number in a parse error, even after a blank line', () => {
+    expect(() => parseCsv('uuid,title\n\nclient-pc,Desktop,Extra\n')).toThrow(/row 3\b/i);
+  });
+
+  it('reports the physical line number in a parse error, even after an embedded newline in an earlier row', () => {
+    expect(() =>
+      parseCsv('uuid,title\nx,"line one\nline two"\nclient-pc,Desktop,Extra\n'),
+    ).toThrow(/row 4\b/i);
+  });
+
+  it('throws on a duplicate header column instead of silently overwriting a value', () => {
+    expect(() => parseCsv('uuid,title,uuid\nclient-pc,Desktop,laptop\n')).toThrow(
+      /duplicate.*uuid/i,
+    );
+  });
+
   it('returns an empty array for empty input', () => {
     expect(parseCsv('')).toEqual([]);
     expect(parseCsv('   \n')).toEqual([]);
