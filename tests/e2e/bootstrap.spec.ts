@@ -85,6 +85,14 @@ test('generates SSPs (NIST-style) from the uploaded asset list, then updates in 
   const sspCountAfterFirstRun = await page.getByTestId('ssp-item').count();
   expect(sspCountAfterFirstRun).toBe(firstCreatedCount);
 
+  // Regression: every generated SSP must have a non-empty, clickable title (metadata.title was
+  // once left blank by the generator, making the list-page link invisible/unclickable).
+  const firstItemLink = page.getByTestId('ssp-item').first().getByRole('link');
+  await expect(firstItemLink).not.toHaveText('');
+  await firstItemLink.click();
+  await expect(page.getByTestId('ssp-detail')).toBeVisible();
+  await page.goBack();
+
   // Re-run: idempotent — updates, not duplicates.
   await page.goto('/#/bootstrap');
   await page.getByTestId('bootstrap-catalog-select').selectOption({

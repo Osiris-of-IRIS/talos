@@ -25,10 +25,16 @@ async function applyOnePlan(
   existing: StoredArtifact<SystemSecurityPlan>[],
   plan: BootstrapSspPlan,
 ): Promise<'created' | 'updated'> {
+  // metadata.title is the document title shown everywhere (list pages, filenames) — distinct
+  // from system-characteristics.system-name, but there's no user typing a separate one in for a
+  // generated SSP, so mirror the system name into it. Set on update too, so a re-run heals a
+  // title that drifted (e.g. the asset was renamed) or was never set (pre-fix data).
+  const title = plan.systemCharacteristics.systemName;
   const match = findSspByCorrelationKey(existing, plan.correlationKey);
   if (match) {
     await repo.update(match.uuid, {
       ...match.artifact,
+      metadata: { ...match.artifact.metadata, title },
       systemCharacteristics: plan.systemCharacteristics,
       controlImplementation: plan.controlImplementation,
     });
@@ -37,6 +43,7 @@ async function applyOnePlan(
   const blank = createBlankSsp();
   const artifact: SystemSecurityPlan = {
     ...blank,
+    metadata: { ...blank.metadata, title },
     systemCharacteristics: plan.systemCharacteristics,
     controlImplementation: plan.controlImplementation,
   };

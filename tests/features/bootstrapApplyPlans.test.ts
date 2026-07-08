@@ -47,6 +47,9 @@ describe('applyBootstrapPlans', () => {
     expect(all).toHaveLength(1);
     expect(all[0]!.artifact.systemCharacteristics.systemName).toBe(ASSET.name);
     expect(all[0]!.artifact.controlImplementation.implementedRequirements[0]!.controlId).toBe('A.1');
+    // Regression: metadata.title must be set too (createBlankSsp seeds it ''), otherwise the SSP
+    // list page's <Link>{title}</Link> renders with no visible/clickable text.
+    expect(all[0]!.artifact.metadata.title).toBe(ASSET.name);
   });
 
   it('updates the same SSP in place on re-run (no duplicate), preserving hand-edited fields', async () => {
@@ -94,5 +97,25 @@ describe('applyBootstrapPlans', () => {
       'A.2',
     ]);
     expect(all[0]!.artifact.systemImplementation.components).toHaveLength(1); // preserved
+  });
+
+  it('re-running heals a pre-fix SSP that was created with an empty metadata.title', async () => {
+    const key = assetCorrelationKey(ASSET.uuid);
+    const plan = {
+      correlationKey: key,
+      systemCharacteristics: buildAssetSystemCharacteristics(ASSET, key),
+      controlImplementation: buildControlImplementation('note', [control('A.1')]),
+    };
+    await applyBootstrapPlans([plan]);
+
+    // Simulate a pre-fix record: title never got set on create.
+    const repo = ArtifactRepository.forType<SystemSecurityPlan>('systemSecurityPlan');
+    const [created] = await repo.getAll();
+    await repo.update(created!.uuid, { ...created!.artifact, metadata: { ...created!.artifact.metadata, title: '' } });
+    expect((await repo.getAll())[0]!.artifact.metadata.title).toBe('');
+
+    const result = await applyBootstrapPlans([plan]);
+    expect(result).toEqual({ created: 0, updated: 1 });
+    expect((await repo.getAll())[0]!.artifact.metadata.title).toBe(ASSET.name);
   });
 });
