@@ -197,6 +197,9 @@ describe('detail page', () => {
     expect(await screen.findByTestId('compdef-detail')).toBeInTheDocument();
     const summary = screen.getByTestId('compdef-component-summary');
     expect(summary).toHaveTextContent('Password Policy');
+    // Full-width bordered box treatment shared across every expandable (UI feedback items 1+4).
+    expect(screen.getByTestId('compdef-component')).toHaveClass('collapsible-section');
+    expect(summary).toHaveClass('collapsible-toggle');
     // collapsed by default (item 3): requirement detail is not yet in the DOM
     expect(screen.queryByText('IA-5')).not.toBeInTheDocument();
 

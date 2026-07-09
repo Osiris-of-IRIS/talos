@@ -185,6 +185,97 @@ legend {
   color: var(--color-accent-bronze);
 }
 
+/* ---------------------------------------------------------- expandable / nesting boxes (UI feedback items 1+4) */
+/* A full-width bordered box for any collapsible/expandable "object" — sections, components,
+   control-implementations, requirements, by-components — so a stack of them reads as one
+   cohesive table instead of disparate floating pieces. Used both by <CollapsibleSection> and by
+   the bespoke expand/collapse rows in editors and read-only detail pages, so the same visual
+   language applies everywhere regardless of underlying markup (form vs. read view). Nesting one
+   inside another (e.g. a component's control-implementations inside the component's own box)
+   gets the same dashed/no-shadow demotion `fieldset fieldset` already uses, so hierarchy reads
+   from the border alone, without extra markup. */
+.collapsible-section {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  box-shadow: 0 1px 3px var(--color-shadow);
+  margin: 0 0 0.85rem;
+}
+
+.collapsible-section .collapsible-section {
+  border-style: dashed;
+  box-shadow: none;
+  background: transparent;
+  margin: 0.75rem 0;
+}
+
+.collapsible-toggle {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.85rem 1.1rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+}
+
+.collapsible-toggle:hover,
+.collapsible-toggle:focus-visible {
+  background: var(--color-shadow);
+}
+
+.collapsible-body {
+  padding: 0 1.1rem 1rem;
+}
+
+/* ------------------------------------------------------- control | detail table (40%/60%, UI feedback item 2) */
+/* Shared by component-definitions' implemented-requirements (detail page) and SSPs'
+   control-implementation (detail page): resolved control info on the left, the implementing
+   detail (description/set-parameters/remarks, or by-components/remarks) on the right. */
+.control-requirements-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0 1.25rem;
+}
+
+.control-requirements-col-control {
+  width: 40%;
+}
+
+.control-requirements-col-detail {
+  width: 60%;
+}
+
+.control-requirements-table th {
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 0.3rem 0.75rem 0.3rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.control-requirements-table td {
+  vertical-align: top;
+  padding: 0.6rem 0.75rem 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.control-requirements-table td:first-child,
+.control-requirements-table th:first-child {
+  padding-right: 1.25rem;
+}
+
 label {
   color: var(--color-text);
 }

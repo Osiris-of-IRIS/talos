@@ -145,27 +145,28 @@ export function SystemImplementationEditor({
           const isOpen = expanded.isExpanded(c.uuid);
           const staleness = componentStaleness(c, workspaceComponentDefs);
           return (
-            <div key={c.uuid} data-testid="si-component">
+            <div key={c.uuid} className="collapsible-section" data-testid="si-component">
               <button
                 type="button"
+                className="collapsible-toggle"
                 data-testid="si-component-summary"
                 aria-expanded={isOpen}
                 onClick={() => expanded.toggle(c.uuid)}
               >
                 {isOpen ? '▾' : '▸'} {c.title} <small>[{c.type}]</small>
-              </button>{' '}
-              {staleness === 'stale' && (
-                <span data-testid="si-component-stale-badge" title={t('si_stale_title')}>
-                  Δ {t('si_stale_label')}
-                </span>
-              )}
-              {staleness === 'missing' && (
-                <span data-testid="si-component-stale-badge" title={t('si_missing_title')}>
-                  Δ {t('si_missing_label')}
-                </span>
-              )}
+                {staleness === 'stale' && (
+                  <span data-testid="si-component-stale-badge" title={t('si_stale_title')}>
+                    Δ {t('si_stale_label')}
+                  </span>
+                )}
+                {staleness === 'missing' && (
+                  <span data-testid="si-component-stale-badge" title={t('si_missing_title')}>
+                    Δ {t('si_missing_label')}
+                  </span>
+                )}
+              </button>
               {isOpen && (
-                <div data-testid="si-component-body">
+                <div className="collapsible-body" data-testid="si-component-body">
                   <label>
                     {t('common_description')}
                     <MarkupEditor

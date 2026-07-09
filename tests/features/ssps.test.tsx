@@ -133,8 +133,10 @@ describe('detail page', () => {
     expect(screen.getByTestId('ssp-system-name')).toHaveTextContent('Webserver Cluster');
 
     await user.click(screen.getByTestId('ssp-section-control-impl-toggle'));
-    // the requirement row's summary is always visible once its section is open (only the
-    // per-requirement body is separately collapsed)
+    // Requirements render as a control|implementation table (ADR-0028, matches the
+    // component-definition detail page) — no per-requirement collapse, every row shows in full
+    // once Control Implementation is open.
+    expect(screen.getByTestId('ssp-requirements-table')).toBeInTheDocument();
     expect(screen.getByTestId('ssp-requirement')).toHaveTextContent('IA-5');
   });
 
@@ -160,7 +162,6 @@ describe('detail page', () => {
     renderDetailAt(uuid);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('ssp-section-control-impl-toggle'));
-    await user.click(screen.getByTestId('ssp-requirement-summary'));
 
     const byComponent = screen.getByTestId('ssp-by-component');
     expect(byComponent).toHaveTextContent('nginx');

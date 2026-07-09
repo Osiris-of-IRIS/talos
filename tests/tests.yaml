@@ -38,6 +38,7 @@ adr_coverage_required:
   - ADR-0025 # universal <MarkupEditor> adoption policy for markup-multiline fields
   - ADR-0026 # SSP bootstrap assistant: asset model, target-object-category hierarchy, generation methodology
   - ADR-0027 # bulk artifact selection: shared selection slice, multi-delete, zip/CSV bundle download
+  - ADR-0028 # detail/editor visual unification: nested boxes, SSP control|implementation table, by-component prefill
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -110,13 +111,13 @@ suites:
     adr_refs: [ADR-0001, ADR-0011, ADR-0023]
 
   - id: TEST-COLLAPSE-02
-    title: "<CollapsibleSection> — shared summary/body toggle wrapper"
+    title: "<CollapsibleSection> — shared summary/body toggle wrapper, full-width nested-box CSS classes (ADR-0028)"
     file: tests/shared/CollapsibleSection.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: PLAT-004
-    adr_refs: [ADR-0001, ADR-0011, ADR-0023]
+    adr_refs: [ADR-0001, ADR-0011, ADR-0023, ADR-0028]
 
   - id: TEST-MDEDIT-01
     title: "<MarkupEditor> — toolbar (bold/italic/code/link) + preview toggle"
@@ -375,7 +376,7 @@ suites:
     runner: vitest
     status: implemented
     feature: IMPL-001
-    adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0019, ADR-0027]
+    adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0019, ADR-0027, ADR-0028]
 
   - id: TEST-CDEF-02
     title: E2E upload component-definition -> list -> detail + landing link
@@ -403,7 +404,7 @@ suites:
     runner: vitest
     status: implemented
     feature: IMPL-001
-    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0015, ADR-0016, ADR-0024, ADR-0025]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0015, ADR-0016, ADR-0024, ADR-0025, ADR-0028]
 
   - id: TEST-CDEF-EDIT-02
     title: E2E create a component-definition end to end (full body flow)
@@ -421,7 +422,7 @@ suites:
     runner: vitest
     status: implemented
     feature: IMPL-001
-    adr_refs: [ADR-0001, ADR-0016]
+    adr_refs: [ADR-0001, ADR-0016, ADR-0028]
 
   - id: TEST-CDEF-IMP-01
     title: import-component-definition composition (resolved/unresolved refs, cycles)
@@ -439,7 +440,7 @@ suites:
     runner: vitest
     status: implemented
     feature: IMPL-002
-    adr_refs: [ADR-0001, ADR-0004, ADR-0023, ADR-0027]
+    adr_refs: [ADR-0001, ADR-0004, ADR-0023, ADR-0027, ADR-0028]
     golden: [tests/data/ssp-minimal.json]
 
   - id: TEST-SSP-02
@@ -452,22 +453,32 @@ suites:
     adr_refs: [ADR-0001, ADR-0004]
 
   - id: TEST-SSP-03
-    title: "SSP editor core authoring, system-implementation import, control-implementation + by-components + status, markup editor, control-id typeahead richness"
+    title: "SSP editor core authoring, system-implementation import, control-implementation + by-components + status, markup editor, control-id typeahead richness; by-component description prefill from the source component's matching requirement"
     file: tests/features/sspEditor.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: IMPL-002
-    adr_refs: [ADR-0001, ADR-0003, ADR-0017, ADR-0023, ADR-0024, ADR-0025]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0017, ADR-0023, ADR-0024, ADR-0025, ADR-0028]
 
   - id: TEST-SSP-IMPORT-01
-    title: Component import + staleness (hash snapshot) + refresh + implementation-status props
+    title: "Component import + staleness (hash snapshot) + refresh + implementation-status props; findMatchingRequirementDescription prefill lookup"
     file: tests/features/componentImport.test.ts
     type: unit
     runner: vitest
     status: implemented
     feature: IMPL-002
-    adr_refs: [ADR-0001, ADR-0023]
+    adr_refs: [ADR-0001, ADR-0023, ADR-0028]
+
+  - id: TEST-SSP-RES-01
+    title: "SSP detail: resolved controls via <ControlDisplay> in a control|implementation table (ADR-0028), unresolved fallback"
+    file: tests/features/sspDetailControlResolve.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: IMPL-002
+    adr_refs: [ADR-0001, ADR-0016, ADR-0028]
+    golden: [tests/data/catalog-minimal.json]
 
   # ---- Profiles (CTRL-001, deferred per ADR-0017) --------------------------------
   - id: TEST-PROF-01

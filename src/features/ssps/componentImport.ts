@@ -125,6 +125,33 @@ export function refreshComponentFromSource(sc: SystemComponent, source: DefinedC
   };
 }
 
+/**
+ * Find the description of the source component's own implemented-requirement for `controlId`
+ * (UI feedback item 3, ADR-0028) — used to prefill a by-component's description when the user
+ * picks a component for a requirement, so the SSP doesn't start from a blank field when the
+ * source component-definition already documents how it implements the same control. Only looks
+ * within the *same* source component (not the whole component-definition, nor other components in
+ * it); if that control-id appears under more than one of the component's own control-implementations,
+ * the first match (document order) wins.
+ */
+export function findMatchingRequirementDescription(
+  sc: SystemComponent,
+  controlId: string,
+  workspaceComponentDefinitions: StoredArtifact<ComponentDefinition>[],
+): string | undefined {
+  if (!controlId) return undefined;
+  const prov = getComponentProvenance(sc);
+  if (!prov) return undefined;
+  const sourceCd = workspaceComponentDefinitions.find((r) => r.uuid === prov.componentDefinitionUuid);
+  const sourceComponent = sourceCd?.artifact.components?.find((c) => c.uuid === prov.componentUuid);
+  if (!sourceComponent) return undefined;
+  for (const ci of sourceComponent.controlImplementations ?? []) {
+    const match = ci.implementedRequirements.find((ir) => ir.controlId === controlId);
+    if (match?.description) return match.description;
+  }
+  return undefined;
+}
+
 /** The by-component's `implementation-status` prop (T-113), one of IMPLEMENTATION_STATUS_VALUES. */
 export function getImplementationStatus(bc: ByComponent): string | undefined {
   return propValue(bc.props, PROP_IMPLEMENTATION_STATUS);

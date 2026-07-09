@@ -12,7 +12,6 @@ import { useI18n } from '@/shared/i18n';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import type { StoredArtifact } from '@/data/db';
 import type { ComponentDefinition, DefinedComponent } from '@/models/componentDefinition';
-import './componentDefinitionDetail.css';
 
 function requirementCount(c: DefinedComponent): number {
   return (c.controlImplementations ?? []).reduce((sum, ci) => sum + ci.implementedRequirements.length, 0);
@@ -92,9 +91,10 @@ export function ComponentDefinitionDetailPage() {
       {cd.components?.map((c) => {
         const isOpen = expanded.isExpanded(c.uuid);
         return (
-        <section key={c.uuid} data-testid="compdef-component">
+        <section key={c.uuid} className="collapsible-section" data-testid="compdef-component">
           <button
             type="button"
+            className="collapsible-toggle"
             data-testid="compdef-component-summary"
             aria-expanded={isOpen}
             aria-label={t(isOpen ? 'cdef_component_collapse_aria' : 'cdef_component_expand_aria', {
@@ -106,7 +106,7 @@ export function ComponentDefinitionDetailPage() {
             <small>· {t('cdef_component_requirements_count', { count: requirementCount(c) })}</small>
           </button>
           {isOpen && (
-            <div data-testid="compdef-component-body">
+            <div className="collapsible-body" data-testid="compdef-component-body">
               <h3>
                 <MarkupView value={c.title} label={t('cdef_field_component_title')} /> <small>[{c.type}]</small>
               </h3>
@@ -115,10 +115,10 @@ export function ComponentDefinitionDetailPage() {
                 <div key={ci.uuid}>
                   <h4>{t('cdef_control_implementation_heading')}</h4>
                   <MarkupView value={ci.description} multiline label={t('cdef_field_ci_description')} />
-                  <table className="compdef-requirements-table" data-testid="compdef-requirements-table">
+                  <table className="control-requirements-table" data-testid="compdef-requirements-table">
                     <colgroup>
-                      <col className="compdef-requirements-col-control" />
-                      <col className="compdef-requirements-col-description" />
+                      <col className="control-requirements-col-control" />
+                      <col className="control-requirements-col-detail" />
                     </colgroup>
                     <thead>
                       <tr>

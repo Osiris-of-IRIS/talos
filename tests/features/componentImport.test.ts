@@ -14,6 +14,7 @@ import {
   refreshComponentFromSource,
   getImplementationStatus,
   setImplementationStatus,
+  findMatchingRequirementDescription,
   IMPLEMENTATION_STATUS_VALUES,
 } from '@/features/ssps/componentImport';
 import type { DefinedComponent } from '@/models/componentDefinition';
@@ -124,5 +125,77 @@ describe('implementation-status props (T-113)', () => {
     expect(getImplementationStatus(bc)).toBeUndefined();
     const withStatus = setImplementationStatus(bc, 'partial');
     expect(getImplementationStatus(withStatus)).toBe('partial');
+  });
+});
+
+describe('findMatchingRequirementDescription (UI feedback item 3, ADR-0028)', () => {
+  const sourceWithRequirements: DefinedComponent = {
+    ...source,
+    controlImplementations: [
+      {
+        uuid: 'ci-1',
+        source: '#cat',
+        description: 'impl 1',
+        implementedRequirements: [
+          { uuid: 'ir-1', controlId: 'IA-5', description: 'nginx enforces password policy for admin access.' },
+        ],
+      },
+      {
+        uuid: 'ci-2',
+        source: '#cat',
+        description: 'impl 2',
+        implementedRequirements: [
+          { uuid: 'ir-2', controlId: 'IA-5', description: 'a second, later match — should be ignored' },
+          { uuid: 'ir-3', controlId: 'AC-2', description: 'account management description' },
+        ],
+      },
+    ],
+  };
+
+  function workspaceWith(component: DefinedComponent) {
+    return [
+      {
+        uuid: cdUuid,
+        artifact: {
+          uuid: cdUuid,
+          metadata: { title: 'CD', version: '1', oscalVersion: '1.2.2' },
+          components: [component],
+        },
+      },
+    ] as never;
+  }
+
+  it('returns the description of the matching requirement in the same source component', () => {
+    const sc = importComponentFromDefinition(cdUuid, sourceWithRequirements);
+    expect(findMatchingRequirementDescription(sc, 'AC-2', workspaceWith(sourceWithRequirements))).toBe(
+      'account management description',
+    );
+  });
+
+  it('returns the first match when the control-id appears under more than one control-implementation', () => {
+    const sc = importComponentFromDefinition(cdUuid, sourceWithRequirements);
+    expect(findMatchingRequirementDescription(sc, 'IA-5', workspaceWith(sourceWithRequirements))).toBe(
+      'nginx enforces password policy for admin access.',
+    );
+  });
+
+  it('returns undefined when no requirement in the source component matches the control-id', () => {
+    const sc = importComponentFromDefinition(cdUuid, sourceWithRequirements);
+    expect(findMatchingRequirementDescription(sc, 'SC-7', workspaceWith(sourceWithRequirements))).toBeUndefined();
+  });
+
+  it('returns undefined for a component with no provenance (not imported)', () => {
+    const manual = { uuid: 'x', type: 'software', title: 'manual', description: 'd', status: { state: 'operational' } };
+    expect(findMatchingRequirementDescription(manual, 'IA-5', workspaceWith(sourceWithRequirements))).toBeUndefined();
+  });
+
+  it('returns undefined when the source component-definition is no longer in the workspace', () => {
+    const sc = importComponentFromDefinition(cdUuid, sourceWithRequirements);
+    expect(findMatchingRequirementDescription(sc, 'IA-5', [])).toBeUndefined();
+  });
+
+  it('returns undefined for an empty control-id', () => {
+    const sc = importComponentFromDefinition(cdUuid, sourceWithRequirements);
+    expect(findMatchingRequirementDescription(sc, '', workspaceWith(sourceWithRequirements))).toBeUndefined();
   });
 });

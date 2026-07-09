@@ -273,5 +273,7 @@
   "bulk_download_selected_csv": "Download selected (CSV)",
   "bulk_delete_selected": "Delete selected",
   "bulk_delete_confirm": "Delete {count} selected item(s)? This cannot be undone.",
-  "bulk_download_warning": "{count} item(s) skipped (not exportable): {details}"
+  "bulk_download_warning": "{count} item(s) skipped (not exportable): {details}",
+
+  "ssp_requirements_col_implementation": "Implementation"
 }

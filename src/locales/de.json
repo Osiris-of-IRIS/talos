@@ -273,5 +273,7 @@
   "bulk_download_selected_csv": "Auswahl herunterladen (CSV)",
   "bulk_delete_selected": "Auswahl löschen",
   "bulk_delete_confirm": "{count} ausgewählte(s) Element(e) löschen? Dies kann nicht rückgängig gemacht werden.",
-  "bulk_download_warning": "{count} Element(e) übersprungen (nicht exportierbar): {details}"
+  "bulk_download_warning": "{count} Element(e) übersprungen (nicht exportierbar): {details}",
+
+  "ssp_requirements_col_implementation": "Umsetzung"
 }

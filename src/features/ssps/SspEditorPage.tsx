@@ -144,6 +144,7 @@ export function SspEditorPage() {
           onChange={(ci) => update({ ...draft, controlImplementation: ci })}
           systemComponents={draft.systemImplementation.components}
           catalogIndex={catalogIndex}
+          workspaceComponentDefs={workspaceComponentDefs}
         />
       </CollapsibleSection>
 

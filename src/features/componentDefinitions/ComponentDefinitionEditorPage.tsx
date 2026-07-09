@@ -162,9 +162,10 @@ export function ComponentDefinitionEditorPage() {
           const isOpen = expanded.isExpanded(c.uuid);
           const reqCount = requirementCount(c);
           return (
-          <div key={c.uuid} data-testid="compdef-edit-component">
+          <div key={c.uuid} className="collapsible-section" data-testid="compdef-edit-component">
             <button
               type="button"
+              className="collapsible-toggle"
               data-testid="compdef-component-summary"
               aria-expanded={isOpen}
               aria-label={t(isOpen ? 'cdef_component_collapse_aria' : 'cdef_component_expand_aria', {
@@ -176,7 +177,7 @@ export function ComponentDefinitionEditorPage() {
               <small>· {t('cdef_component_requirements_count', { count: reqCount })}</small>
             </button>
             {isOpen && (
-              <div data-testid="compdef-component-body">
+              <div className="collapsible-body" data-testid="compdef-component-body">
                 <label>
                   {t('md_title_label')}
                   <input

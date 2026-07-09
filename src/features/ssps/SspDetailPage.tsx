@@ -1,4 +1,4 @@
-// SSP detail (read view). Decision IDs: ADR-0003, ADR-0009, ADR-0008, ADR-0023 (feature IMPL-002).
+// SSP detail (read view). Decision IDs: ADR-0003, ADR-0009, ADR-0008, ADR-0016, ADR-0023, ADR-0028 (feature IMPL-002).
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
@@ -9,20 +9,26 @@ import { useExpandedSet } from '@/shared/useExpandedSet';
 import { useI18n } from '@/shared/i18n';
 import { useWorkspaceComponentDefinitions } from './useWorkspaceComponentDefinitions';
 import { componentStaleness, getImplementationStatus } from './componentImport';
+import { ControlDisplay } from '@/features/shared/ControlDisplay';
+import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
+import { resolveControl } from '@/data/catalogResolution';
+import { viewerHref } from '@/config';
 import type { StoredArtifact } from '@/data/db';
 import type { SystemSecurityPlan } from '@/models/ssp';
 
 export function SspDetailPage() {
   const { uuid = '' } = useParams();
   const { t } = useI18n();
+  const catalogIndex = useCatalogIndex();
   const [record, setRecord] = useState<StoredArtifact<SystemSecurityPlan> | null | undefined>(undefined);
   const [exportError, setExportError] = useState<string | null>(null);
   const workspaceComponentDefs = useWorkspaceComponentDefinitions();
-  // Every section, component, and requirement starts collapsed (supervisor note: SSPs can be
-  // large) — a scannable outline first, full detail on click.
+  // Every section and component starts collapsed (supervisor note: SSPs can be large) — a
+  // scannable outline first, full detail on click. Requirements are not individually collapsible
+  // — once Control Implementation is open, every row shows in full (matches the
+  // component-definition detail page's control|implementation table, ADR-0028).
   const sections = useExpandedSet();
   const componentsExpanded = useExpandedSet();
-  const requirementsExpanded = useExpandedSet();
 
   function onDownload(r: StoredArtifact<SystemSecurityPlan>) {
     try {
@@ -113,27 +119,28 @@ export function SspDetailPage() {
           const isOpen = componentsExpanded.isExpanded(c.uuid);
           const staleness = componentStaleness(c, workspaceComponentDefs);
           return (
-            <div key={c.uuid} data-testid="ssp-component">
+            <div key={c.uuid} className="collapsible-section" data-testid="ssp-component">
               <button
                 type="button"
+                className="collapsible-toggle"
                 data-testid="ssp-component-summary"
                 aria-expanded={isOpen}
                 onClick={() => componentsExpanded.toggle(c.uuid)}
               >
                 {isOpen ? '▾' : '▸'} {c.title} <small>[{c.type}]</small>
-              </button>{' '}
-              {staleness === 'stale' && (
-                <span data-testid="ssp-component-stale-badge" title={t('si_stale_title')}>
-                  Δ {t('si_stale_label')}
-                </span>
-              )}
-              {staleness === 'missing' && (
-                <span data-testid="ssp-component-stale-badge" title={t('si_missing_title')}>
-                  Δ {t('si_missing_label')}
-                </span>
-              )}
+                {staleness === 'stale' && (
+                  <span data-testid="ssp-component-stale-badge" title={t('si_stale_title')}>
+                    Δ {t('si_stale_label')}
+                  </span>
+                )}
+                {staleness === 'missing' && (
+                  <span data-testid="ssp-component-stale-badge" title={t('si_missing_title')}>
+                    Δ {t('si_missing_label')}
+                  </span>
+                )}
+              </button>
               {isOpen && (
-                <div data-testid="ssp-component-body">
+                <div className="collapsible-body" data-testid="ssp-component-body">
                   <MarkupView value={c.description} multiline label={t('common_description')} />
                   <p>
                     <small>{t('sc_status_label')}: {c.status.state}</small>
@@ -151,41 +158,58 @@ export function SspDetailPage() {
         onToggle={() => sections.toggle('control-impl')}
         summary={t('ci_heading_ssp', { count: requirements.length })}
       >
-        {requirements.map((ir) => {
-          const isOpen = requirementsExpanded.isExpanded(ir.uuid);
-          return (
-            <div key={ir.uuid} data-testid="ssp-requirement">
-              <button
-                type="button"
-                data-testid="ssp-requirement-summary"
-                aria-expanded={isOpen}
-                onClick={() => requirementsExpanded.toggle(ir.uuid)}
-              >
-                {isOpen ? '▾' : '▸'} <code>{ir.controlId}</code>{' '}
-                <small>· {t('ssp_by_components_count', { count: (ir.byComponents ?? []).length })}</small>
-              </button>
-              {isOpen && (
-                <div data-testid="ssp-requirement-body">
-                  {ir.remarks ? <MarkupView value={ir.remarks} label={t('md_remarks_label')} /> : null}
-                  <ul data-testid="ssp-by-components">
-                    {(ir.byComponents ?? []).map((bc) => {
-                      const comp = components.find((c) => c.uuid === bc.componentUuid);
-                      const status = getImplementationStatus(bc);
-                      return (
-                        <li key={bc.uuid} data-testid="ssp-by-component">
-                          <strong>{comp?.title ?? bc.componentUuid}</strong>
-                          {status ? <small> · {t(`implementation_status_${status}`)}</small> : null}
-                          {' — '}
-                          <MarkupView value={bc.description} label={t('common_description')} />
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        <table className="control-requirements-table" data-testid="ssp-requirements-table">
+          <colgroup>
+            <col className="control-requirements-col-control" />
+            <col className="control-requirements-col-detail" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>{t('cdef_requirements_col_control')}</th>
+              <th>{t('ssp_requirements_col_implementation')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requirements.map((ir) => {
+              const resolved = catalogIndex ? resolveControl(catalogIndex, ir.controlId) : undefined;
+              return (
+                <tr key={ir.uuid} data-testid="ssp-requirement">
+                  <td>
+                    {resolved ? (
+                      <ControlDisplay
+                        control={resolved.control}
+                        viewerUrl={viewerHref(resolved.catalogLibraryPath)}
+                      />
+                    ) : (
+                      <code data-testid="ssp-requirement-unresolved">{ir.controlId}</code>
+                    )}
+                  </td>
+                  <td>
+                    <ul data-testid="ssp-by-components">
+                      {(ir.byComponents ?? []).map((bc) => {
+                        const comp = components.find((c) => c.uuid === bc.componentUuid);
+                        const status = getImplementationStatus(bc);
+                        return (
+                          <li key={bc.uuid} data-testid="ssp-by-component">
+                            <strong>{comp?.title ?? bc.componentUuid}</strong>
+                            {status ? <small> · {t(`implementation_status_${status}`)}</small> : null}
+                            {' — '}
+                            <MarkupView value={bc.description} label={t('common_description')} />
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {ir.remarks ? (
+                      <div data-testid="ssp-requirement-remarks">
+                        <small>📝 <MarkupView value={ir.remarks} label={t('md_remarks_label')} /></small>
+                      </div>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </CollapsibleSection>
     </main>
   );

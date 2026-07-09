@@ -17,6 +17,8 @@ describe('CollapsibleSection', () => {
     expect(screen.getByTestId('sect-toggle')).toHaveTextContent('Summary text');
     expect(screen.queryByTestId('body-content')).not.toBeInTheDocument();
     expect(screen.getByTestId('sect-toggle')).toHaveAttribute('aria-expanded', 'false');
+    // Full-width bordered box treatment shared across every expandable (UI feedback items 1+4).
+    expect(screen.getByTestId('sect')).toHaveClass('collapsible-section');
 
     rerender(
       <CollapsibleSection isOpen={true} onToggle={() => {}} summary="Summary text" testId="sect">
@@ -25,6 +27,7 @@ describe('CollapsibleSection', () => {
     );
     expect(screen.getByTestId('body-content')).toBeInTheDocument();
     expect(screen.getByTestId('sect-toggle')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('sect-body')).toHaveClass('collapsible-body');
   });
 
   it('calls onToggle when the summary is clicked', async () => {

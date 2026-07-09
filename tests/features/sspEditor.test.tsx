@@ -56,6 +56,38 @@ async function seedComponentDefinition() {
   return cdUuid;
 }
 
+async function seedComponentDefinitionWithRequirement() {
+  const cdUuid = '88888888-8888-4888-8888-888888888888';
+  await cdRepo().create({
+    uuid: cdUuid,
+    type: 'componentDefinition',
+    origin: 'user',
+    artifact: {
+      uuid: cdUuid,
+      metadata: { title: 'nginx CD', version: '1.0.0', oscalVersion: '1.2.2' },
+      components: [
+        {
+          uuid: 'comp-nginx',
+          type: 'software',
+          title: 'nginx',
+          description: 'Reverse proxy and web server.',
+          controlImplementations: [
+            {
+              uuid: 'ci-1',
+              source: '#cat',
+              description: 'impl',
+              implementedRequirements: [
+                { uuid: 'ir-1', controlId: 'IA-5', description: 'nginx enforces password policy for admin access.' },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  });
+  return cdUuid;
+}
+
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   _resetDbForTests();
@@ -128,6 +160,7 @@ describe('system implementation — import components from component-definitions
 
     const summaries = screen.getAllByTestId('si-component-summary');
     expect(summaries).toHaveLength(1);
+    expect(summaries[0]).toHaveClass('collapsible-toggle'); // UI feedback items 1+4
     expect(summaries[0]).toHaveTextContent('nginx');
     expect(summaries[0]).toHaveTextContent('software');
 
@@ -184,6 +217,48 @@ describe('control implementation — requirements, by-components, status', () =>
     expect(bc.description).toBe('nginx enforces password policy.');
     expect(bc.componentUuid).toBe(ssp.systemImplementation.components[0]!.uuid);
     expect(bc.props?.find((p) => p.name === 'implementation-status')?.value).toBe('implemented');
+  });
+
+  it('prefills a new by-component\'s description from the source component\'s matching requirement (item 3, ADR-0028)', async () => {
+    await seedComponentDefinitionWithRequirement();
+    const user = userEvent.setup();
+    renderAt('/ssps/new');
+    await user.type(screen.getByTestId('md-title'), 'Prefill SSP');
+
+    await waitFor(() => expect(screen.getByTestId('si-cd-select')).toBeInTheDocument());
+    await user.selectOptions(screen.getByTestId('si-cd-select'), 'nginx CD');
+    await user.selectOptions(screen.getByTestId('si-component-select'), 'comp-nginx');
+    await user.click(screen.getByTestId('si-import'));
+
+    await user.click(screen.getByTestId('ci-add-requirement'));
+    await user.type(screen.getByTestId('ir-control-id'), 'IA-5');
+    await user.click(screen.getByTestId('ci-add-by-component'));
+    await waitFor(() => expect(within(screen.getByTestId('bc-component-select')).getByText('nginx')).toBeInTheDocument());
+    await user.selectOptions(screen.getByTestId('bc-component-select'), 'nginx');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('bc-description-textarea')).toHaveValue(
+        'nginx enforces password policy for admin access.',
+      ),
+    );
+  });
+
+  it('does not overwrite a description the user already typed when picking/changing the component', async () => {
+    await seedComponentDefinitionWithRequirement();
+    const user = userEvent.setup();
+    renderAt('/ssps/new');
+    await waitFor(() => expect(screen.getByTestId('si-cd-select')).toBeInTheDocument());
+    await user.selectOptions(screen.getByTestId('si-cd-select'), 'nginx CD');
+    await user.selectOptions(screen.getByTestId('si-component-select'), 'comp-nginx');
+    await user.click(screen.getByTestId('si-import'));
+
+    await user.click(screen.getByTestId('ci-add-requirement'));
+    await user.type(screen.getByTestId('ir-control-id'), 'IA-5');
+    await user.click(screen.getByTestId('ci-add-by-component'));
+    await user.type(screen.getByTestId('bc-description-textarea'), 'My own custom description.');
+    await user.selectOptions(screen.getByTestId('bc-component-select'), 'nginx');
+
+    expect(screen.getByTestId('bc-description-textarea')).toHaveValue('My own custom description.');
   });
 
   it('control-id datalist shows "{label|id} {title}" display text, unscoped across all workspace catalogs (item 7)', async () => {
@@ -280,6 +355,7 @@ describe('loaded (existing) SSP — sections and rows collapsed by default', () 
     // per-item collapse also applies to requirements within Control Implementation
     await user.click(screen.getByTestId('ssp-section-control-impl-toggle'));
     expect(screen.getByTestId('ir-summary')).toHaveTextContent('IA-5');
+    expect(screen.getByTestId('ir-row')).toHaveClass('collapsible-section'); // UI feedback items 1+4
     expect(screen.queryByTestId('ir-control-id')).not.toBeInTheDocument();
     await user.click(screen.getByTestId('ir-summary'));
     expect(screen.getByTestId('ir-control-id')).toHaveValue('IA-5');

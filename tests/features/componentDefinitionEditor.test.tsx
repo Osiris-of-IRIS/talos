@@ -289,6 +289,7 @@ describe('component list — collapse/expand (item 2)', () => {
 
     const summaries = screen.getAllByTestId('compdef-component-summary');
     expect(summaries).toHaveLength(2);
+    expect(summaries[0]).toHaveClass('collapsible-toggle'); // UI feedback items 1+4
     expect(summaries[0]).toHaveTextContent('nginx');
     expect(summaries[0]).toHaveTextContent('software');
     expect(summaries[0]).toHaveTextContent('2'); // 2 implemented-requirements

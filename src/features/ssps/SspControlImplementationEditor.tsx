@@ -12,8 +12,15 @@ import { useI18n } from '@/shared/i18n';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { MarkupEditor } from '@/shared/MarkupEditor';
 import { DatalistInput } from '@/shared/DatalistInput';
-import { getImplementationStatus, setImplementationStatus, IMPLEMENTATION_STATUS_VALUES } from './componentImport';
+import {
+  getImplementationStatus,
+  setImplementationStatus,
+  findMatchingRequirementDescription,
+  IMPLEMENTATION_STATUS_VALUES,
+} from './componentImport';
 import { allControlIdOptions, type CatalogIndex } from '@/data/catalogResolution';
+import type { StoredArtifact } from '@/data/db';
+import type { ComponentDefinition } from '@/models/componentDefinition';
 import type { SystemComponent, SspControlImplementation, SspImplementedRequirement, ByComponent } from '@/models/ssp';
 
 function uuid(): string {
@@ -25,9 +32,17 @@ interface Props {
   onChange: (next: SspControlImplementation) => void;
   systemComponents: SystemComponent[];
   catalogIndex: CatalogIndex | null;
+  /** For prefilling a by-component's description from its source component (item 3, ADR-0028). */
+  workspaceComponentDefs: StoredArtifact<ComponentDefinition>[];
 }
 
-export function SspControlImplementationEditor({ value, onChange, systemComponents, catalogIndex }: Props) {
+export function SspControlImplementationEditor({
+  value,
+  onChange,
+  systemComponents,
+  catalogIndex,
+  workspaceComponentDefs,
+}: Props) {
   const { t } = useI18n();
   const expanded = useExpandedSet();
 
@@ -88,9 +103,10 @@ export function SspControlImplementationEditor({ value, onChange, systemComponen
         {value.implementedRequirements.map((ir, irIdx) => {
           const isOpen = expanded.isExpanded(ir.uuid);
           return (
-            <div key={ir.uuid} data-testid="ir-row">
+            <div key={ir.uuid} className="collapsible-section" data-testid="ir-row">
               <button
                 type="button"
+                className="collapsible-toggle"
                 data-testid="ir-summary"
                 aria-expanded={isOpen}
                 onClick={() => expanded.toggle(ir.uuid)}
@@ -99,7 +115,7 @@ export function SspControlImplementationEditor({ value, onChange, systemComponen
                 <small>· {t('ssp_by_components_count', { count: (ir.byComponents ?? []).length })}</small>
               </button>
               {isOpen && (
-                <div data-testid="ir-body">
+                <div className="collapsible-body" data-testid="ir-body">
                   <label>
                     {t('ci_control_id_label')}
                     <DatalistInput
@@ -124,13 +140,24 @@ export function SspControlImplementationEditor({ value, onChange, systemComponen
                   <div data-testid="ir-by-components">
                     <strong>{t('ci_by_components_heading')}</strong>
                     {(ir.byComponents ?? []).map((bc, bcIdx) => (
-                      <div key={bc.uuid} data-testid="bc-row">
+                      <div key={bc.uuid} className="collapsible-section" data-testid="bc-row">
                         <select
                           data-testid="bc-component-select"
                           aria-label={t('bc_component_label')}
                           value={bc.componentUuid}
                           onChange={(e) =>
-                            updateByComponent(irIdx, bcIdx, (b) => ({ ...b, componentUuid: e.target.value }))
+                            updateByComponent(irIdx, bcIdx, (b) => {
+                              const componentUuid = e.target.value;
+                              // Prefill from the source component's own matching requirement
+                              // (item 3, ADR-0028) — only when the description is still empty, so
+                              // a description the user already typed is never silently overwritten.
+                              if (b.description) return { ...b, componentUuid };
+                              const selected = systemComponents.find((c) => c.uuid === componentUuid);
+                              const prefill = selected
+                                ? findMatchingRequirementDescription(selected, ir.controlId, workspaceComponentDefs)
+                                : undefined;
+                              return prefill ? { ...b, componentUuid, description: prefill } : { ...b, componentUuid };
+                            })
                           }
                         >
                           <option value="">{t('bc_component_placeholder')}</option>

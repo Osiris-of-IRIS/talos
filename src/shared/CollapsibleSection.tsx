@@ -19,7 +19,7 @@ export function CollapsibleSection({
   children,
 }: CollapsibleSectionProps) {
   return (
-    <Wrapper data-testid={testId}>
+    <Wrapper className="collapsible-section" data-testid={testId}>
       <button
         type="button"
         className="collapsible-toggle"
@@ -29,7 +29,11 @@ export function CollapsibleSection({
       >
         {isOpen ? '▾' : '▸'} {summary}
       </button>
-      {isOpen && <div data-testid={testId ? `${testId}-body` : undefined}>{children}</div>}
+      {isOpen && (
+        <div className="collapsible-body" data-testid={testId ? `${testId}-body` : undefined}>
+          {children}
+        </div>
+      )}
     </Wrapper>
   );
 }
