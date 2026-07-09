@@ -29,7 +29,7 @@ async function seedTwoAssets() {
     .getState()
     .importCsvTrio(
       'uuid,title\nclient-pc,Desktop-PC (Client)\n',
-      'uuid,name,asset_type,description,security-sensitivity-level,information-types\n' +
+      'asset-id,name,asset-type,description,security-sensitivity-level,information-types\n' +
         'C001,Finance Clients,client-pc,,normal,\nC002,IT Clients,client-pc,,normal,\n',
       'asset_type_uuid,targetobj_class_uuid\nclient-pc,837781a4-7b47-4695-9545-a3310eac7a66\n',
     );
@@ -52,7 +52,7 @@ describe('AssetsListPage', () => {
         .getState()
         .importCsvTrio(
           'uuid,title\nclient-pc,Desktop-PC (Client)\n',
-          'uuid,name,asset_type,description,security-sensitivity-level,information-types\nC001,Finance Clients,client-pc,,normal,\n',
+          'asset-id,name,asset-type,description,security-sensitivity-level,information-types\nC001,Finance Clients,client-pc,,normal,\n',
           'asset_type_uuid,targetobj_class_uuid\nclient-pc,837781a4-7b47-4695-9545-a3310eac7a66\n',
         );
     });
@@ -73,11 +73,22 @@ describe('AssetsListPage', () => {
     expect(await screen.findByTestId('assets-upload-error')).toBeInTheDocument();
   });
 
+  it('shows a validation error when the JSON upload has no file (ADR-0031)', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AssetsListPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByTestId('assets-upload-json-submit'));
+    expect(await screen.findByTestId('assets-upload-error')).toBeInTheDocument();
+  });
+
   it('clears the asset list', async () => {
     const user = userEvent.setup();
     await useAssetsStore.getState().importCsvTrio(
       'uuid,title\nclient-pc,Desktop\n',
-      'uuid,name,asset_type,description,security-sensitivity-level,information-types\nC001,Finance Clients,client-pc,,,\n',
+      'asset-id,name,asset-type,description,security-sensitivity-level,information-types\nC001,Finance Clients,client-pc,,,\n',
       'asset_type_uuid,targetobj_class_uuid\nclient-pc,837781a4-7b47-4695-9545-a3310eac7a66\n',
     );
     render(
@@ -179,5 +190,68 @@ describe('bulk selection (ADR-0027)', () => {
     await user.click(screen.getByTestId('assets-delete-selected'));
     await waitFor(() => expect(useAssetsStore.getState().assets).toHaveLength(1));
     expect(useAssetsStore.getState().assetTypes).toHaveLength(1); // asset types untouched
+  });
+
+  it('downloads the whole workspace as JSON (ADR-0031)', async () => {
+    const user = userEvent.setup();
+    const createObjectURL = vi.fn((blob: Blob) => {
+      void blob;
+      return 'blob:mock';
+    });
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    await act(async () => {
+      await seedTwoAssets();
+    });
+    render(
+      <MemoryRouter>
+        <AssetsListPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByTestId('assets-download-json'));
+
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    expect(createObjectURL.mock.calls[0]![0].type).toBe('application/json');
+
+    clickSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('cross-page asset filter (ADR-0031)', () => {
+  it('filters the table to the ?asset= id, with a banner and a way to clear it', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      await seedTwoAssets();
+    });
+    render(
+      <MemoryRouter initialEntries={['/assets?asset=C001']}>
+        <AssetsListPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('assets-filter-banner')).toBeInTheDocument());
+    expect(screen.getAllByTestId('assets-row')).toHaveLength(1);
+    expect(screen.getByText('Finance Clients')).toBeInTheDocument();
+    expect(screen.queryByText('IT Clients')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('assets-filter-clear'));
+    expect(screen.queryByTestId('assets-filter-banner')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('assets-row')).toHaveLength(2);
+  });
+
+  it('shows the full table with no banner when there is no filter', async () => {
+    await act(async () => {
+      await seedTwoAssets();
+    });
+    render(
+      <MemoryRouter initialEntries={['/assets']}>
+        <AssetsListPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getAllByTestId('assets-row')).toHaveLength(2));
+    expect(screen.queryByTestId('assets-filter-banner')).not.toBeInTheDocument();
   });
 });

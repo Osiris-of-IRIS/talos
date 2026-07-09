@@ -10,7 +10,7 @@ import type { OscalArtifactType } from '@/models/oscalBase';
 import type { Asset, AssetType } from '@/models/asset';
 
 export const DB_NAME = 'talos';
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 
 export type ArtifactStore =
   | 'catalogs'
@@ -102,7 +102,15 @@ let dbPromise: Promise<IDBPDatabase<TalosDB>> | null = null;
 export function getDb(): Promise<IDBPDatabase<TalosDB>> {
   if (!dbPromise) {
     dbPromise = openDB<TalosDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
+        // v3->v4 (ADR-0031): Asset.uuid renamed to Asset.assetId (it was never a real uuid — see
+        // the model doc comment) — the store's keyPath must follow. No migration of existing rows:
+        // assets are re-uploadable bootstrap input data, not user-authored artifacts, so dropping
+        // and recreating is simplest; a re-upload (CSV trio or the new JSON alternative) restores
+        // the workspace exactly as it was.
+        if (oldVersion > 0 && oldVersion < 4 && db.objectStoreNames.contains('assets')) {
+          db.deleteObjectStore('assets');
+        }
         for (const store of ARTIFACT_STORES) {
           if (!db.objectStoreNames.contains(store)) {
             db.createObjectStore(store, { keyPath: 'uuid' });
@@ -119,7 +127,7 @@ export function getDb(): Promise<IDBPDatabase<TalosDB>> {
           db.createObjectStore('settings', { keyPath: 'key' });
         }
         if (!db.objectStoreNames.contains('assets')) {
-          db.createObjectStore('assets', { keyPath: 'uuid' });
+          db.createObjectStore('assets', { keyPath: 'assetId' });
         }
         if (!db.objectStoreNames.contains('assetTypes')) {
           db.createObjectStore('assetTypes', { keyPath: 'uuid' });

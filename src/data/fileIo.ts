@@ -86,12 +86,30 @@ export function defaultFilename(record: StoredArtifact): string {
 /**
  * Validity problems that must be resolved before an artifact can be exported (ADR-0019, and the
  * T-151 export-validity path). Draft-friendly: this gates *export*, never editing. Returns an
- * empty list when the artifact is exportable.
+ * empty list when the artifact is exportable; collects every violation, not just the first, so
+ * the caller can show them all at once.
+ *
+ * Scope is the shared base envelope only (uuid/metadata are always present by construction —
+ * `blank.ts` seeds them and `parseOscalUpload` rejects a missing uuid/title — but `title` and
+ * `version` are free-text fields a user can clear while editing, draft-friendly). `oscal-version`
+ * is deliberately not checked here: `serializeArtifact`'s `normalizeExportVersion` unconditionally
+ * rewrites it to the authoring version on every export, so no exported document can ever carry an
+ * invalid one regardless of what's stored. Per-type field validation (e.g. SSP system
+ * characteristics) and full NIST JSON-Schema validation are deferred to T-030.
  */
 export function validateForExport(record: StoredArtifact): string[] {
   const metadata = (record.artifact as { metadata?: Metadata }).metadata;
   if (!metadata) return ['Artifact has no metadata.'];
-  return validateCreator(metadata);
+
+  const problems: string[] = [];
+  if (typeof metadata.title !== 'string' || metadata.title.trim().length === 0) {
+    problems.push('metadata.title is required — give the artifact a title before exporting.');
+  }
+  if (typeof metadata.version !== 'string' || metadata.version.trim().length === 0) {
+    problems.push('metadata.version is required — give the artifact a version before exporting.');
+  }
+  problems.push(...validateCreator(metadata));
+  return problems;
 }
 
 /**

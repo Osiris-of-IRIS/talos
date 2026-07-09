@@ -10,6 +10,9 @@ import { resolveControl } from '@/data/catalogResolution';
 import { viewerHref } from '@/config';
 import { useI18n } from '@/shared/i18n';
 import { useExpandedSet } from '@/shared/useExpandedSet';
+import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
+import { buildImportTree } from '@/data/componentImportResolution';
+import { ImportTreeView } from './ImportTreeView';
 import type { StoredArtifact } from '@/data/db';
 import type { ComponentDefinition, DefinedComponent } from '@/models/componentDefinition';
 
@@ -25,6 +28,7 @@ export function ComponentDefinitionDetailPage() {
   const [exportError, setExportError] = useState<string | null>(null);
   // Every component starts collapsed (item 3): a scannable list first, full detail on click.
   const expanded = useExpandedSet();
+  const workspaceComponentDefs = useWorkspaceComponentDefinitions();
 
   function onDownload(r: StoredArtifact<ComponentDefinition>) {
     try {
@@ -60,6 +64,7 @@ export function ComponentDefinitionDetailPage() {
   }
 
   const cd = record.artifact;
+  const importTree = buildImportTree(record, workspaceComponentDefs);
   return (
     <main data-testid="compdef-detail">
       <p>
@@ -85,6 +90,13 @@ export function ComponentDefinitionDetailPage() {
         <p role="alert" data-testid="compdef-export-error" style={{ color: 'var(--color-error, #cf222e)' }}>
           ⚠️ {exportError}
         </p>
+      )}
+
+      {importTree.length > 0 && (
+        <section data-testid="cdef-imported-definitions">
+          <h2>{t('cdef_imported_definitions_heading', { count: importTree.length })}</h2>
+          <ImportTreeView nodes={importTree} />
+        </section>
       )}
 
       <h2>{t('compdef_components_count', { count: cd.components?.length ?? 0 })}</h2>

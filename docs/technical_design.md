@@ -199,27 +199,44 @@ incremental search index. Tracked in `docs/performance.md` (T-016), verified T-5
 
 ## 11. Configuration schema `[ADR-0002, ADR-0004]`
 
-Runtime config (build-time env + `settings` store), validated at startup:
+Runtime config, validated at startup — **built (T-025)**, `src/config.ts`:
 
 ```ts
 interface TalosConfig {
-  basePath: string;                 // Vite base, e.g. "/talos/"
+  basePath: string;                 // Vite base, e.g. "/talos/" — a plain constant, not
+                                     // import.meta.env.BASE_URL, since e2e specs import this
+                                     // module directly under Node (no Vite env replacement there)
   library: {
-    manifestUrl: string;            // public/library-index.json
     rawBase: string;                // raw.githubusercontent base
-    liveRefresh: boolean;           // enable GitHub Contents API refresh
-    includeSourceCatalogs: boolean; // Quellkataloge toggle default
   };
   viewerUrl: string;                // Stand-der-Technik-Viewer base
   defaultLanguage: 'de' | 'en';     // 'de'
-  oscalVersion: '1.2.2';
+  oscalVersion: string;             // must equal OSCAL_AUTHORING_VERSION ('1.2.2')
   backMatter: {
     maxEmbeddedFileBytes: number;   // hard limit for base64-embedded files (default 5 MiB, ADR-0015)
   };
 }
 ```
 
-Invalid config → fail fast, red error, halt boot (T-025).
+`validateConfig(config)` returns every violation found (not just the first); `main.tsx` calls it
+against the single `TALOS_CONFIG` instance before mounting React. On failure it logs a structured
+error (`src/shared/logger.ts`) and renders a plain-DOM fail-fast error screen
+(`src/app/bootError.ts`) instead of the app — **fail fast, red error, halt boot**. The original
+draft's `library.manifestUrl`/`liveRefresh`/`includeSourceCatalogs` fields were dropped from the
+schema: nothing reads them yet (the library manifest is a bundled JSON import, and the
+live-refresh/advanced-toggle defaults are still local component state) — adding validated-but-unused
+config knobs would be premature; they can return if/when the library feature is refactored to
+consume `TalosConfig`.
+
+**Structured logging** (`src/shared/logger.ts`): `createLogger(version)` returns a logger whose
+every record is `{ timestamp, level, message, decisionIds, version, context? }` — JSON-shaped,
+carrying ADR references and the running app version (injected at build time from `package.json`
+via `define: { __APP_VERSION__ }` in `vite.config.ts`/`vitest.config.ts`). Console output routes
+to `console.info`/`warn`/`error` styled amber/red per ADR-0010's tokens; a capped 200-record
+in-memory ring buffer stands in for a rotating file handler (there is no filesystem in a static,
+client-side app) and is available for a future in-app diagnostics view. The app-wide singleton is
+`src/shared/logger.ts`'s exported `logger`. Not yet retrofitted into pre-existing warn/error paths
+(e.g. `libraryLoader`'s offline fallback, `fileIo`'s import warnings) — flagged as follow-up work.
 
 ---
 

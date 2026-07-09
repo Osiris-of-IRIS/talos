@@ -10,6 +10,7 @@ import type { Catalog } from '@/models/catalog';
 import { buildCategoryIndex } from '@/data/targetObjectHierarchy';
 import { assetCorrelationKey } from './bootstrapProvenance';
 import {
+  buildAssetInventoryItem,
   buildAssetSystemCharacteristics,
   buildControlImplementation,
   resolveAssetCategory,
@@ -51,7 +52,7 @@ export function generateNist(params: GenerateNistParams): GenerateResult {
     }
     if (resolved.category.typ !== SYSTEM_TYP) continue; // not a "system"-typed asset — not an error, just excluded
 
-    const correlationKey = assetCorrelationKey(asset.uuid);
+    const correlationKey = assetCorrelationKey(asset.assetId);
     plans.push({
       correlationKey,
       systemCharacteristics: buildAssetSystemCharacteristics(asset, correlationKey),
@@ -59,6 +60,7 @@ export function generateNist(params: GenerateNistParams): GenerateResult {
         `Bootstrapped from catalog "${catalog.metadata.title}" (NIST-style, ADR-0026).`,
         controls,
       ),
+      inventoryItems: [buildAssetInventoryItem(asset, typeByUuid.get(asset.assetType))],
     });
   }
   return { plans, warnings };

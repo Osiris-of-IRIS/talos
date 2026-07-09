@@ -8,12 +8,15 @@ import { join } from 'node:path';
 import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests, getDb } from '@/data/db';
 import { useAssetsStore, replaceAssetLists } from '@/features/assets/store';
+import { serializeAssetWorkspaceJson } from '@/models/asset';
 import type { AssetType } from '@/models/asset';
 
 const GOLDEN_DIR = join(__dirname, '../data/golden/recplast');
 function readGolden(name: string): string {
   return readFileSync(join(GOLDEN_DIR, name), 'utf-8');
 }
+
+const ASSETS_HEADER = 'asset-id,name,asset-type,description,security-sensitivity-level,information-types';
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
@@ -33,8 +36,7 @@ async function seedThreeAssets() {
     .getState()
     .importCsvTrio(
       'uuid,title\nclient-pc,Desktop\n',
-      'uuid,name,asset_type,description,security-sensitivity-level,information-types\n' +
-        'A1,First,client-pc,,,\nA2,Second,client-pc,,,\nA3,Third,client-pc,,,\n',
+      `${ASSETS_HEADER}\n` + 'A1,First,client-pc,,,\nA2,Second,client-pc,,,\nA3,Third,client-pc,,,\n',
       'asset_type_uuid,targetobj_class_uuid\nclient-pc,837781a4-7b47-4695-9545-a3310eac7a66\n',
     );
 }
@@ -57,7 +59,7 @@ describe('useAssetsStore', () => {
     const store = useAssetsStore.getState();
     await store.importCsvTrio(
       'uuid,title\nclient-pc,Desktop\n',
-      'uuid,name,asset_type,description,security-sensitivity-level,information-types\nX1,Ghost,phantom,,,\n',
+      `${ASSETS_HEADER}\nX1,Ghost,phantom,,,\n`,
       'asset_type_uuid,targetobj_class_uuid\nclient-pc,837781a4-7b47-4695-9545-a3310eac7a66\n',
     );
     const state = useAssetsStore.getState();
@@ -70,17 +72,17 @@ describe('useAssetsStore', () => {
     const store = useAssetsStore.getState();
     await store.importCsvTrio(
       'uuid,title\nclient-pc,Desktop\n',
-      'uuid,name,asset_type,description,security-sensitivity-level,information-types\nC1,First,client-pc,,,\n',
+      `${ASSETS_HEADER}\nC1,First,client-pc,,,\n`,
       'asset_type_uuid,targetobj_class_uuid\nclient-pc,837781a4-7b47-4695-9545-a3310eac7a66\n',
     );
     await store.importCsvTrio(
       'uuid,title\nserver,Server\n',
-      'uuid,name,asset_type,description,security-sensitivity-level,information-types\nS1,Second,server,,,\n',
+      `${ASSETS_HEADER}\nS1,Second,server,,,\n`,
       'asset_type_uuid,targetobj_class_uuid\nserver,19c946fc-e991-44ee-87c5-7bbe5d5aaf55\n',
     );
     const state = useAssetsStore.getState();
     expect(state.assets).toHaveLength(1);
-    expect(state.assets[0]!.uuid).toBe('S1');
+    expect(state.assets[0]!.assetId).toBe('S1');
     expect(state.assetTypes).toHaveLength(1);
     expect(state.assetTypes[0]!.uuid).toBe('server');
   });
@@ -102,7 +104,7 @@ describe('useAssetsStore', () => {
     const store = useAssetsStore.getState();
     await store.importCsvTrio(
       'uuid,title\nclient-pc,Desktop\n',
-      'uuid,name,asset_type,description,security-sensitivity-level,information-types\nX1,Ghost,phantom,,,\n',
+      `${ASSETS_HEADER}\nX1,Ghost,phantom,,,\n`,
       'asset_type_uuid,targetobj_class_uuid\nclient-pc,837781a4-7b47-4695-9545-a3310eac7a66\n',
     );
     expect(useAssetsStore.getState().warnings).toHaveLength(1);
@@ -115,7 +117,7 @@ describe('useAssetsStore', () => {
     const store = useAssetsStore.getState();
     await store.importCsvTrio(
       'uuid,title\nclient-pc,Desktop\n',
-      'uuid,name,asset_type,description,security-sensitivity-level,information-types\nC1,First,client-pc,,,\n',
+      `${ASSETS_HEADER}\nC1,First,client-pc,,,\n`,
       'asset_type_uuid,targetobj_class_uuid\nclient-pc,837781a4-7b47-4695-9545-a3310eac7a66\n',
     );
 
@@ -131,7 +133,7 @@ describe('useAssetsStore', () => {
     await useAssetsStore.getState().load();
     const state = useAssetsStore.getState();
     expect(state.assetTypes.map((t) => t.uuid)).toEqual(['client-pc']);
-    expect(state.assets.map((a) => a.uuid)).toEqual(['C1']);
+    expect(state.assets.map((a) => a.assetId)).toEqual(['C1']);
   });
 
   it('removeMany deletes only the given assets, leaving asset types untouched, and clears the selection', async () => {
@@ -143,7 +145,7 @@ describe('useAssetsStore', () => {
     await useAssetsStore.getState().removeMany(['A1', 'A2']);
 
     const state = useAssetsStore.getState();
-    expect(state.assets.map((a) => a.uuid)).toEqual(['A3']);
+    expect(state.assets.map((a) => a.assetId)).toEqual(['A3']);
     expect(state.assetTypes).toHaveLength(1); // asset types are never bulk-deleted with assets
     expect(state.selected.size).toBe(0);
   });
@@ -157,9 +159,35 @@ describe('useAssetsStore', () => {
       .getState()
       .importCsvTrio(
         'uuid,title\nserver,Server\n',
-        'uuid,name,asset_type,description,security-sensitivity-level,information-types\nS1,New,server,,,\n',
+        `${ASSETS_HEADER}\nS1,New,server,,,\n`,
         'asset_type_uuid,targetobj_class_uuid\nserver,19c946fc-e991-44ee-87c5-7bbe5d5aaf55\n',
       );
     expect(useAssetsStore.getState().selected.size).toBe(0);
+  });
+
+  it('importJson replaces the whole asset list from a combined workspace file (ADR-0031)', async () => {
+    await seedThreeAssets();
+    const json = serializeAssetWorkspaceJson(
+      [{ uuid: 'server', title: 'Server', targetObjectCategoryUuid: '19c946fc-e991-44ee-87c5-7bbe5d5aaf55' }],
+      [{ assetId: 'S1', name: 'New', assetType: 'server', description: '', securitySensitivityLevel: '', informationTypes: '' }],
+    );
+
+    await useAssetsStore.getState().importJson(json);
+
+    const state = useAssetsStore.getState();
+    expect(state.assets.map((a) => a.assetId)).toEqual(['S1']);
+    expect(state.assetTypes.map((t) => t.uuid)).toEqual(['server']);
+    expect(state.selected.size).toBe(0); // previous selection invalidated by the replace
+  });
+
+  it('importJson surfaces a non-blocking warning for an asset referencing an unknown asset type', async () => {
+    const json = serializeAssetWorkspaceJson(
+      [{ uuid: 'client-pc', title: 'Desktop' }],
+      [{ assetId: 'X1', name: 'Ghost', assetType: 'phantom', description: '', securitySensitivityLevel: '', informationTypes: '' }],
+    );
+    await useAssetsStore.getState().importJson(json);
+    const state = useAssetsStore.getState();
+    expect(state.warnings).toHaveLength(1);
+    expect(state.warnings[0]).toMatch(/phantom/);
   });
 });

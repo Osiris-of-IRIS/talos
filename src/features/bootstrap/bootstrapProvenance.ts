@@ -15,8 +15,8 @@ const PROP_BOOTSTRAP_SOURCE = 'bootstrap-source';
 export const ISMS_CORRELATION_KEY = 'isms';
 
 /** Correlation key for a per-asset generated SSP. */
-export function assetCorrelationKey(assetUuid: string): string {
-  return `asset:${assetUuid}`;
+export function assetCorrelationKey(assetId: string): string {
+  return `asset:${assetId}`;
 }
 
 /** Set (replacing any existing) the `bootstrap-source` prop. */

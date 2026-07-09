@@ -2,7 +2,7 @@
  * OSCAL System Security Plan (SSP) model — extends the shared OscalArtifact base with the
  * SSP body. Priority feature (IMPL-002). Decision IDs: ADR-0003.
  */
-import type { OscalArtifact, Prop, Link, MarkupLine, MarkupMultiline } from './oscalBase';
+import type { OscalArtifact, Prop, Link, MarkupLine, MarkupMultiline, ResponsibleParty } from './oscalBase';
 
 export interface ImportProfile {
   href: string;
@@ -83,12 +83,37 @@ export interface SystemUser {
   remarks?: MarkupMultiline;
 }
 
+/** A component implemented within a given inventory item (ADR-0031). Generation never populates
+ * this — it would need an asset↔component mapping TALOS doesn't have (ADR-0026 scopes
+ * system-implementation components as a manual, post-bootstrap step) — but the type is complete
+ * per the OSCAL v1.2.2 `inventory-item/implemented-components` assembly. */
+export interface ImplementedComponentRef {
+  componentUuid: string;
+  props?: Prop[];
+  links?: Link[];
+  responsibleParties?: ResponsibleParty[];
+  remarks?: MarkupMultiline;
+}
+
+/** A single managed inventory item (ADR-0031), mirroring OSCAL v1.2.2's `inventory-item`
+ * assembly. `uuid` must be a real RFC4122 UUID (OSCAL's own cross-reference id) — an asset's
+ * human tracking code becomes a `props[name="asset-id"]` entry instead, never this uuid. */
+export interface InventoryItem {
+  uuid: string;
+  description: MarkupMultiline;
+  props?: Prop[];
+  links?: Link[];
+  responsibleParties?: ResponsibleParty[];
+  implementedComponents?: ImplementedComponentRef[];
+  remarks?: MarkupMultiline;
+}
+
 export interface SystemImplementation {
   props?: Prop[];
   links?: Link[];
   users: SystemUser[];
   components: SystemComponent[];
-  inventoryItems?: unknown[];
+  inventoryItems?: InventoryItem[];
   remarks?: MarkupMultiline;
 }
 

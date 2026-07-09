@@ -9,7 +9,8 @@ import type { Catalog } from '@/models/catalog';
 import type { Control } from '@/models/control';
 import type { Asset, AssetType } from '@/models/asset';
 import type { TargetObjectCategory } from '@/models/targetObjectCategory';
-import type { SspControlImplementation, SystemCharacteristics } from '@/models/ssp';
+import type { Prop } from '@/models/oscalBase';
+import type { InventoryItem, SspControlImplementation, SystemCharacteristics } from '@/models/ssp';
 import { withBootstrapSource } from './bootstrapProvenance';
 
 /** A generated (or to-be-updated) SSP body, correlated to its source asset / the ISMS sentinel. */
@@ -17,6 +18,9 @@ export interface BootstrapSspPlan {
   correlationKey: string;
   systemCharacteristics: SystemCharacteristics;
   controlImplementation: SspControlImplementation;
+  /** One inventory-item for the source asset (ADR-0031); absent for the BSI ISMS-wide plan, which
+   * isn't itself an asset. */
+  inventoryItems?: InventoryItem[];
 }
 
 /** Every distinct control in a catalog (deduped across its literal-id / alt-id index entries). */
@@ -78,10 +82,43 @@ export function resolveAssetCategory(
   if (!type || !categoryUuid || !category) {
     return {
       ok: false,
-      warning: `Asset "${asset.uuid}" (${asset.name}) has no resolvable target-object-category; skipped.`,
+      warning: `Asset "${asset.assetId}" (${asset.name}) has no resolvable target-object-category; skipped.`,
     };
   }
   return { ok: true, category };
+}
+
+/**
+ * Build a single `inventory-item` from an asset (ADR-0031): a fresh real `uuid` is minted (OSCAL
+ * requires one — the asset's own tracking code is not a uuid), carrying `asset-id`/`asset-type`
+ * plus every populated optional prop as `props[]`. A prop is included only when the asset has a
+ * value for it — never emitted blank.
+ */
+export function buildAssetInventoryItem(asset: Asset, assetType: AssetType | undefined): InventoryItem {
+  const props: Prop[] = [
+    { name: 'asset-id', value: asset.assetId },
+    { name: 'asset-type', value: assetType?.oscalAssetType || assetType?.title || asset.assetType },
+  ];
+  const optionalProps: [string, string | undefined][] = [
+    ['ipv4-address', asset.ipv4Address],
+    ['ipv6-address', asset.ipv6Address],
+    ['fqdn', asset.fqdn],
+    ['netbios-name', asset.netbiosName],
+    ['mac-address', asset.macAddress],
+    ['serial-number', asset.serialNumber],
+    ['physical-location', asset.physicalLocation],
+    ['vendor-name', asset.vendorName],
+    ['uri', asset.uri],
+    ['is-scanned', asset.isScanned],
+  ];
+  for (const [name, value] of optionalProps) {
+    if (value) props.push({ name, value });
+  }
+  return {
+    uuid: globalThis.crypto.randomUUID(),
+    description: asset.description || asset.name,
+    props,
+  };
 }
 
 /** Build `control-implementation.implemented-requirements` from a set of controls (no by-components — see ADR-0026). */

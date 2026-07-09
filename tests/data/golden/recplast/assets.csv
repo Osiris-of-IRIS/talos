@@ -1,95 +1,95 @@
-uuid,name,asset_type,description,security-sensitivity-level,information-types
-C001,Clients der Finanzbuchhaltung,client-pc,Desktop-PCs für Finanzbuchhaltung,erhöht,Finanzdaten
-C002,Clients der Geschäftsführung,client-pc,Desktop-PCs für Geschäftsführung,hoch,Strategische Informationen
-C003,Clients der Personalabteilung,client-pc,Desktop-PCs für Personalabteilung,erhöht,Personaldaten
-C004,Clients der Informationstechnik,client-pc,Desktop-PCs für IT-Abteilung,normal,Technische Daten
-C005,Clients des Marketings & Vertrieb,client-pc,Desktop-PCs für Marketing und Vertrieb,normal,Marketing- und Vertriebsdaten
-C006,Clients der Fertigung und Lager,client-pc,Desktop-PCs für Fertigung und Lager,normal,Produktionsdaten
-C007,Clients der Entwicklungsabteilung,client-pc,Desktop-PCs für Entwicklung,erhöht,Entwicklungsdaten
-C008,Clients der Einkaufsabteilung,client-pc,Desktop-PCs für Einkauf,normal,Einkaufsdaten
-C009,Clients in den Vertriebsbüros,client-pc,Desktop-PCs in Vertriebsbüros,normal,Vertriebsdaten
-L001,Laptops der Finanzbuchhaltung,laptop,Laptops für Finanzbuchhaltung,erhöht,Finanzdaten
-L002,Laptops der Geschäftsführung,laptop,Laptops für Geschäftsführung,hoch,Strategische Informationen
-L003,Laptops der Personalabteilung,laptop,Laptops für Personalabteilung,erhöht,Personaldaten
-L004,Laptops der Informationstechnik,laptop,Laptops für IT-Abteilung,normal,Technische Daten
-L005,Laptops Marketing & Vertrieb,laptop,Laptops für Marketing und Vertrieb,normal,Marketing- und Vertriebsdaten
-L006,Laptops von Fertigung und Lager,laptop,Laptops für Fertigung und Lager,normal,Produktionsdaten
-L007,Laptops der Entwicklungsabteilung,laptop,Laptops für Entwicklung,erhöht,Entwicklungsdaten
-L008,Laptops der Einkaufsabteilung,laptop,Laptops für Einkauf,normal,Einkaufsdaten
-L009,Laptops in den Vertriebsbüros,laptop,Laptops in Vertriebsbüros,normal,Vertriebsdaten
-S001,Domänen-Controller,server,Active Directory Domänen-Controller,hoch,Identitäts- und Zugriffsdaten
-S002,Dateiserver,server,Zentraler Dateiserver,erhöht,Geschäftsdaten
-S003,Druckserver,server,Zentraler Druckserver,normal,Druckaufträge
-S004,Kommunikationsserver,server,Server für E-Mail und Kommunikation,erhöht,Kommunikationsdaten
-S005,DB-Server der Kunden- und Auftragsbearbeitung,server,Datenbankserver für Kunden und Aufträge,hoch,Kundendaten
-S006,DB-Server der Finanzbuchhaltung,server,Datenbankserver für Finanzbuchhaltung,hoch,Finanzdaten
-S007,Virtualisierungsserver,server,Virtualisierungsserver (primär),erhöht,Virtuelle Maschinen
-S008,Server für Produktionssteuerung,server,Server für Produktionssteuerung,erhöht,Produktionsdaten
-S009,Wiki-Server,server,Interner Wiki-Server,normal,Dokumentation
-S010,Virtualisierungsserver2,server,Virtualisierungsserver (sekundär),erhöht,Virtuelle Maschinen
-S011,Ticketsystem,server,Internes Ticketsystem,normal,Support-Tickets
-S012,Backupserver,server,Backup-Server,hoch,Backup-Daten
-S013,Windows-Update-Server,server,Windows-Update-Server (WSUS),normal,Software-Updates
-S014,Linux-Update-Server,server,Linux-Update-Server,normal,Software-Updates
-S015,DB-Server fürs Systemmanagement,server,Datenbankserver für Systemmanagement,normal,Systemdaten
-A001,Textverarbeitung Präsentation Tabellenkalkulation,application-office,Office-Suite (Word Excel PowerPoint),normal,Bürodokumente
-A002,E-Mail-Client,application-office,E-Mail-Client-Software,erhöht,E-Mail-Kommunikation
-A003,Web-Browser,application-office,Webbrowser,normal,Web-Zugriff
-A004,Prozessleitsystem,application-business,Prozessleitsystem für Produktion,erhöht,Produktionssteuerung
-A005,Entwicklungssystem,application-business,Entwicklungsumgebung,normal,Quellcode
-A006,Personaldatenverarbeitung,application-business,Personalverwaltungssoftware,hoch,Personaldaten
-A007,Reisekostenabrechnung,application-business,Reisekostenabrechnungssystem,normal,Reisekosten
-A008,Finanzbuchhaltung,application-business,Finanzbuchhaltungssoftware,hoch,Finanzdaten
-A009,Auftrags- und Kundenverwaltung,application-business,CRM- und Auftragssystem,hoch,Kundendaten
-A010,Active Directory,application-server,Active Directory Verzeichnisdienst,hoch,Identitätsdaten
-A011,Systemmanagement,application-server,Systemmanagement-Software,erhöht,Systemdaten
-A012,Zentrale Dokumentenverwaltung,application-server,Dokumentenmanagementsystem,erhöht,Geschäftsdokumente
-A013,Druckservice Bad Godesberg,application-server,Druckdienst Standort Bad Godesberg,normal,Druckaufträge
-A014,Druckservice Beuel,application-server,Druckdienst Standort Beuel,normal,Druckaufträge
-A015,Firewall,application-server,Firewall-Software,hoch,Sicherheitsregeln
-A016,Steuerung der Produktionsanlagen,application-business,Produktionsanlagensteuerung,erhöht,Produktionsdaten
-A017,Content Management System,application-web,CMS für Website,normal,Web-Inhalte
-A018,Backupsoftware,application-server,Backup-Management-Software,hoch,Backup-Daten
-A019,Webserver,application-web,Webserver-Software,normal,Web-Inhalte
-A020,Datenbanksystem,application-database,Datenbankmanagementsystem,erhöht,Datenbank-Daten
-A021,Internes Ticketsystem,application-business,Ticket-Management-System,normal,Support-Tickets
-A022,Internes Wiki,application-business,Wiki-Software,normal,Dokumentation
-A023,Virtualisierungssoftware,application-virtualization,Virtualisierungsplattform,erhöht,Virtuelle Maschinen
-A024,Voice over IP,application-server,VoIP-Server,normal,Sprachkommunikation
-A025,Chat-Anwendung,application-business,Interne Chat-Anwendung,normal,Chat-Nachrichten
-A026,Mobile Device Management,application-server,MDM-System,erhöht,Geräteverwaltung
-A027,ReCoBS,application-business,ReCoBS-Anwendung,normal,ReCoBS-Daten
-A028,Updateverwaltung Windows,application-server,Windows-Updateverwaltung,normal,Software-Updates
-A029,Updateverwaltung Linux,application-server,Linux-Updateverwaltung,normal,Software-Updates
-A030,Cloud-APP,application-business,Cloud-Anwendung,erhöht,Cloud-Daten
-A031,Cloud-Umgebung,application-business,Cloud-Umgebung,erhöht,Cloud-Daten
-A032,CAD/CAM,application-business,CAD/CAM-Software,erhöht,Konstruktionsdaten
-N001,Router zum Internet,network-router,Internet-Uplink-Router,hoch,Netzwerk-Verkehr
-N002,Firewall,network-firewall,Perimeter-Firewall,hoch,Sicherheitsregeln
-N003,Zentrale Switche in Bad Godesberg und Beuel,network-switch,Core-Switches beide Standorte,erhöht,Netzwerk-Verkehr
-N004,Router zur Verbindung der Standorte BG und BE,network-router,Standortverbindungs-Router,erhöht,Netzwerk-Verkehr
-N005,ReCoBS,network-recobs,ReCoBS-Netzwerkverbindung,normal,ReCoBS-Daten
-N006,Switche in den Vertriebsbüros,network-switch,Switches in Vertriebsbüros,normal,Netzwerk-Verkehr
-N007,Router zum Internet der Vertriebsbüros,network-router,Internet-Router Vertriebsbüros,erhöht,Netzwerk-Verkehr
-N008,WLAN-Access-Points,network-wlan-ap,WLAN-Zugangspunkte,erhöht,WLAN-Verkehr
-T001,Telefonanlagen Bad Godesberg und Beuel,telecom-phone-system,Telefonanlagen beide Standorte,normal,Telefonie
-T002,Faxgeräte,telecom-fax,Faxgeräte,normal,Fax-Kommunikation
-GB001,Verwaltungsgebäude Bad Godesberg,building,Verwaltungsgebäude in Bad Godesberg,normal,
-GB002,Produktionsgebäude Beuel,building,Produktionsgebäude in Beuel,normal,
-R001,Technikraum,room-technical,Technikraum Bad Godesberg,normal,
-R002,Serverraum,room-server,Serverraum Bad Godesberg,erhöht,
-R003,Büros IT-Abteilung,room-office,Büros der IT-Abteilung,normal,
-R009,Serverraum,room-server,Serverraum Beuel,erhöht,
-R010,Technikraum,room-technical,Technikraum Beuel,normal,
-R011,Büros Fertigung/Lager,room-office,Büros für Fertigung und Lager,normal,
-R012,Büros Entwicklungsabteilung,room-office,Büros der Entwicklungsabteilung,normal,
-R013,Produktionshalle,room-production,Produktionshalle,normal,
-R014,Vertriebsbüros,room-office,Vertriebsbüros,normal,
-R018,Technikraum Vertriebsbüros,room-technical,Technikraum in Vertriebsbüros,normal,
-R019,Datenträgerarchiv,room-archive,Datenträgerarchiv,erhöht,
-D001,Die Putzfee AG,service-provider,Reinigungsdienstleister,normal,
-D002,GetMobileDevice GmbH,service-provider,MDM-Dienstleister,erhöht,
-D003,Hosting Website GmbH&Co.KG,service-provider,Website-Hosting-Dienstleister,normal,
-D004,Telfcom,service-provider,Telekommunikationsdienstleister,normal,
-D005,Indust GmbH & Co.KG,service-provider,Industrie-Dienstleister,normal,
-D006,VPN Ware GmbH,service-provider,VPN-Dienstleister,erhöht,
+asset-id,name,asset-type,description,security-sensitivity-level,information-types,ipv4-address,ipv6-address,fqdn,netbios-name,mac-address,serial-number,physical-location,vendor-name,uri,is-scanned
+C001,Clients der Finanzbuchhaltung,client-pc,Desktop-PCs für Finanzbuchhaltung,erhöht,Finanzdaten,10.10.1.10,,,C001-CLIENTSDER,02:00:00:00:00:00,,Bad Godesberg,Dell,,yes
+C002,Clients der Geschäftsführung,client-pc,Desktop-PCs für Geschäftsführung,hoch,Strategische Informationen,10.10.1.11,,,C002-CLIENTSDER,02:00:00:00:00:01,,Bad Godesberg,Lenovo,,yes
+C003,Clients der Personalabteilung,client-pc,Desktop-PCs für Personalabteilung,erhöht,Personaldaten,10.10.1.12,,,C003-CLIENTSDER,02:00:00:00:00:02,,Bad Godesberg,HP,,yes
+C004,Clients der Informationstechnik,client-pc,Desktop-PCs für IT-Abteilung,normal,Technische Daten,10.10.1.13,,,C004-CLIENTSDER,02:00:00:00:00:03,,Bad Godesberg,Dell,,yes
+C005,Clients des Marketings & Vertrieb,client-pc,Desktop-PCs für Marketing und Vertrieb,normal,Marketing- und Vertriebsdaten,10.10.1.14,,,C005-CLIENTSDES,02:00:00:00:00:04,,Bad Godesberg,Lenovo,,yes
+C006,Clients der Fertigung und Lager,client-pc,Desktop-PCs für Fertigung und Lager,normal,Produktionsdaten,10.10.1.15,,,C006-CLIENTSDER,02:00:00:00:00:05,,Bad Godesberg,HP,,yes
+C007,Clients der Entwicklungsabteilung,client-pc,Desktop-PCs für Entwicklung,erhöht,Entwicklungsdaten,10.10.1.16,,,C007-CLIENTSDER,02:00:00:00:00:06,,Bad Godesberg,Dell,,yes
+C008,Clients der Einkaufsabteilung,client-pc,Desktop-PCs für Einkauf,normal,Einkaufsdaten,10.10.1.17,,,C008-CLIENTSDER,02:00:00:00:00:07,,Bad Godesberg,Lenovo,,yes
+C009,Clients in den Vertriebsbüros,client-pc,Desktop-PCs in Vertriebsbüros,normal,Vertriebsdaten,10.10.1.18,,,C009-CLIENTSIND,02:00:00:00:00:08,,Bad Godesberg,HP,,yes
+L001,Laptops der Finanzbuchhaltung,laptop,Laptops für Finanzbuchhaltung,erhöht,Finanzdaten,10.10.2.19,,,L001-LAPTOPSDER,02:00:00:00:00:09,,Bad Godesberg,Dell,,yes
+L002,Laptops der Geschäftsführung,laptop,Laptops für Geschäftsführung,hoch,Strategische Informationen,10.10.2.20,,,L002-LAPTOPSDER,02:00:00:00:00:0A,,Bad Godesberg,Lenovo,,yes
+L003,Laptops der Personalabteilung,laptop,Laptops für Personalabteilung,erhöht,Personaldaten,10.10.2.21,,,L003-LAPTOPSDER,02:00:00:00:00:0B,,Bad Godesberg,HP,,yes
+L004,Laptops der Informationstechnik,laptop,Laptops für IT-Abteilung,normal,Technische Daten,10.10.2.22,,,L004-LAPTOPSDER,02:00:00:00:00:0C,,Bad Godesberg,Dell,,yes
+L005,Laptops Marketing & Vertrieb,laptop,Laptops für Marketing und Vertrieb,normal,Marketing- und Vertriebsdaten,10.10.2.23,,,L005-LAPTOPSMAR,02:00:00:00:00:0D,,Bad Godesberg,Lenovo,,yes
+L006,Laptops von Fertigung und Lager,laptop,Laptops für Fertigung und Lager,normal,Produktionsdaten,10.10.2.24,,,L006-LAPTOPSVON,02:00:00:00:00:0E,,Bad Godesberg,HP,,yes
+L007,Laptops der Entwicklungsabteilung,laptop,Laptops für Entwicklung,erhöht,Entwicklungsdaten,10.10.2.25,,,L007-LAPTOPSDER,02:00:00:00:00:0F,,Bad Godesberg,Dell,,yes
+L008,Laptops der Einkaufsabteilung,laptop,Laptops für Einkauf,normal,Einkaufsdaten,10.10.2.26,,,L008-LAPTOPSDER,02:00:00:00:00:10,,Bad Godesberg,Lenovo,,yes
+L009,Laptops in den Vertriebsbüros,laptop,Laptops in Vertriebsbüros,normal,Vertriebsdaten,10.10.2.27,,,L009-LAPTOPSIND,02:00:00:00:00:11,,Bad Godesberg,HP,,yes
+S001,Domänen-Controller,server,Active Directory Domänen-Controller,hoch,Identitäts- und Zugriffsdaten,10.10.9.28,,s001.recplast.internal,S001-DOMNENCONT,02:00:00:00:03:FA,SN-S001,Serverraum Bad Godesberg,Dell PowerEdge,,yes
+S002,Dateiserver,server,Zentraler Dateiserver,erhöht,Geschäftsdaten,10.10.9.29,,s002.recplast.internal,S002-DATEISERVE,02:00:00:00:03:FB,SN-S002,Serverraum Bad Godesberg,HPE ProLiant,,yes
+S003,Druckserver,server,Zentraler Druckserver,normal,Druckaufträge,10.10.9.30,,s003.recplast.internal,S003-DRUCKSERVE,02:00:00:00:03:FC,SN-S003,Serverraum Bad Godesberg,Supermicro,,yes
+S004,Kommunikationsserver,server,Server für E-Mail und Kommunikation,erhöht,Kommunikationsdaten,10.10.9.31,,s004.recplast.internal,S004-KOMMUNIKAT,02:00:00:00:03:FD,SN-S004,Serverraum Bad Godesberg,Dell PowerEdge,,yes
+S005,DB-Server der Kunden- und Auftragsbearbeitung,server,Datenbankserver für Kunden und Aufträge,hoch,Kundendaten,10.10.9.32,,s005.recplast.internal,S005-DBSERVERDE,02:00:00:00:03:FE,SN-S005,Serverraum Bad Godesberg,HPE ProLiant,,yes
+S006,DB-Server der Finanzbuchhaltung,server,Datenbankserver für Finanzbuchhaltung,hoch,Finanzdaten,10.10.9.33,,s006.recplast.internal,S006-DBSERVERDE,02:00:00:00:03:FF,SN-S006,Serverraum Bad Godesberg,Supermicro,,yes
+S007,Virtualisierungsserver,server,Virtualisierungsserver (primär),erhöht,Virtuelle Maschinen,10.10.9.34,,s007.recplast.internal,S007-VIRTUALISI,02:00:00:00:04:00,SN-S007,Serverraum Bad Godesberg,Dell PowerEdge,,yes
+S008,Server für Produktionssteuerung,server,Server für Produktionssteuerung,erhöht,Produktionsdaten,10.10.9.35,,s008.recplast.internal,S008-SERVERFRPR,02:00:00:00:04:01,SN-S008,Serverraum Beuel,HPE ProLiant,,yes
+S009,Wiki-Server,server,Interner Wiki-Server,normal,Dokumentation,10.10.9.36,,s009.recplast.internal,S009-WIKISERVER,02:00:00:00:04:02,SN-S009,Serverraum Bad Godesberg,Supermicro,,yes
+S010,Virtualisierungsserver2,server,Virtualisierungsserver (sekundär),erhöht,Virtuelle Maschinen,10.10.9.37,,s010.recplast.internal,S010-VIRTUALISI,02:00:00:00:04:03,SN-S010,Serverraum Bad Godesberg,Dell PowerEdge,,yes
+S011,Ticketsystem,server,Internes Ticketsystem,normal,Support-Tickets,10.10.9.38,,s011.recplast.internal,S011-TICKETSYST,02:00:00:00:04:04,SN-S011,Serverraum Bad Godesberg,HPE ProLiant,,yes
+S012,Backupserver,server,Backup-Server,hoch,Backup-Daten,10.10.9.39,,s012.recplast.internal,S012-BACKUPSERV,02:00:00:00:04:05,SN-S012,Serverraum Bad Godesberg,Supermicro,,yes
+S013,Windows-Update-Server,server,Windows-Update-Server (WSUS),normal,Software-Updates,10.10.9.40,,s013.recplast.internal,S013-WINDOWSUPD,02:00:00:00:04:06,SN-S013,Serverraum Bad Godesberg,Dell PowerEdge,,yes
+S014,Linux-Update-Server,server,Linux-Update-Server,normal,Software-Updates,10.10.9.41,,s014.recplast.internal,S014-LINUXUPDAT,02:00:00:00:04:07,SN-S014,Serverraum Bad Godesberg,HPE ProLiant,,yes
+S015,DB-Server fürs Systemmanagement,server,Datenbankserver für Systemmanagement,normal,Systemdaten,10.10.9.42,,s015.recplast.internal,S015-DBSERVERFR,02:00:00:00:04:08,SN-S015,Serverraum Bad Godesberg,Supermicro,,yes
+A001,Textverarbeitung Präsentation Tabellenkalkulation,application-office,Office-Suite (Word Excel PowerPoint),normal,Bürodokumente,,,,,,,,Microsoft,,no
+A002,E-Mail-Client,application-office,E-Mail-Client-Software,erhöht,E-Mail-Kommunikation,,,,,,,,Microsoft,,no
+A003,Web-Browser,application-office,Webbrowser,normal,Web-Zugriff,,,,,,,,Microsoft,,no
+A004,Prozessleitsystem,application-business,Prozessleitsystem für Produktion,erhöht,Produktionssteuerung,,,,,,,,SAP,,no
+A005,Entwicklungssystem,application-business,Entwicklungsumgebung,normal,Quellcode,,,,,,,,SAP,,no
+A006,Personaldatenverarbeitung,application-business,Personalverwaltungssoftware,hoch,Personaldaten,,,,,,,,SAP,,no
+A007,Reisekostenabrechnung,application-business,Reisekostenabrechnungssystem,normal,Reisekosten,,,,,,,,SAP,,no
+A008,Finanzbuchhaltung,application-business,Finanzbuchhaltungssoftware,hoch,Finanzdaten,,,,,,,,SAP,,no
+A009,Auftrags- und Kundenverwaltung,application-business,CRM- und Auftragssystem,hoch,Kundendaten,,,,,,,,SAP,,no
+A010,Active Directory,application-server,Active Directory Verzeichnisdienst,hoch,Identitätsdaten,,,,,,,,Microsoft,,no
+A011,Systemmanagement,application-server,Systemmanagement-Software,erhöht,Systemdaten,,,,,,,,Microsoft,,no
+A012,Zentrale Dokumentenverwaltung,application-server,Dokumentenmanagementsystem,erhöht,Geschäftsdokumente,,,,,,,,Microsoft,,no
+A013,Druckservice Bad Godesberg,application-server,Druckdienst Standort Bad Godesberg,normal,Druckaufträge,,,,,,,,Microsoft,,no
+A014,Druckservice Beuel,application-server,Druckdienst Standort Beuel,normal,Druckaufträge,,,,,,,,Microsoft,,no
+A015,Firewall,application-server,Firewall-Software,hoch,Sicherheitsregeln,,,,,,,,Microsoft,,no
+A016,Steuerung der Produktionsanlagen,application-business,Produktionsanlagensteuerung,erhöht,Produktionsdaten,,,,,,,,SAP,,no
+A017,Content Management System,application-web,CMS für Website,normal,Web-Inhalte,,,,,,,,Apache,https://intranet.recplast.internal/,no
+A018,Backupsoftware,application-server,Backup-Management-Software,hoch,Backup-Daten,,,,,,,,Microsoft,,no
+A019,Webserver,application-web,Webserver-Software,normal,Web-Inhalte,,,,,,,,Apache,https://intranet.recplast.internal/,no
+A020,Datenbanksystem,application-database,Datenbankmanagementsystem,erhöht,Datenbank-Daten,,,,,,,,Oracle,,no
+A021,Internes Ticketsystem,application-business,Ticket-Management-System,normal,Support-Tickets,,,,,,,,SAP,,no
+A022,Internes Wiki,application-business,Wiki-Software,normal,Dokumentation,,,,,,,,SAP,,no
+A023,Virtualisierungssoftware,application-virtualization,Virtualisierungsplattform,erhöht,Virtuelle Maschinen,,,,,,,,VMware,,no
+A024,Voice over IP,application-server,VoIP-Server,normal,Sprachkommunikation,,,,,,,,Microsoft,,no
+A025,Chat-Anwendung,application-business,Interne Chat-Anwendung,normal,Chat-Nachrichten,,,,,,,,SAP,,no
+A026,Mobile Device Management,application-server,MDM-System,erhöht,Geräteverwaltung,,,,,,,,Microsoft,,no
+A027,ReCoBS,application-business,ReCoBS-Anwendung,normal,ReCoBS-Daten,,,,,,,,SAP,,no
+A028,Updateverwaltung Windows,application-server,Windows-Updateverwaltung,normal,Software-Updates,,,,,,,,Microsoft,,no
+A029,Updateverwaltung Linux,application-server,Linux-Updateverwaltung,normal,Software-Updates,,,,,,,,Microsoft,,no
+A030,Cloud-APP,application-business,Cloud-Anwendung,erhöht,Cloud-Daten,,,,,,,,SAP,,no
+A031,Cloud-Umgebung,application-business,Cloud-Umgebung,erhöht,Cloud-Daten,,,,,,,,SAP,,no
+A032,CAD/CAM,application-business,CAD/CAM-Software,erhöht,Konstruktionsdaten,,,,,,,,SAP,,no
+N001,Router zum Internet,network-router,Internet-Uplink-Router,hoch,Netzwerk-Verkehr,10.10.254.75,,,,02:00:00:00:08:11,SN-N001,Technikraum Bad Godesberg,Fortinet,,yes
+N002,Firewall,network-firewall,Perimeter-Firewall,hoch,Sicherheitsregeln,10.10.254.76,,,,02:00:00:00:08:12,SN-N002,Technikraum Bad Godesberg,Ubiquiti,,yes
+N003,Zentrale Switche in Bad Godesberg und Beuel,network-switch,Core-Switches beide Standorte,erhöht,Netzwerk-Verkehr,10.10.254.77,,,,02:00:00:00:08:13,SN-N003,Technikraum Bad Godesberg,Juniper,,yes
+N004,Router zur Verbindung der Standorte BG und BE,network-router,Standortverbindungs-Router,erhöht,Netzwerk-Verkehr,10.10.254.78,,,,02:00:00:00:08:14,SN-N004,Technikraum Bad Godesberg,Cisco,,yes
+N005,ReCoBS,network-recobs,ReCoBS-Netzwerkverbindung,normal,ReCoBS-Daten,10.10.254.79,,,,02:00:00:00:08:15,SN-N005,Technikraum Bad Godesberg,Fortinet,,yes
+N006,Switche in den Vertriebsbüros,network-switch,Switches in Vertriebsbüros,normal,Netzwerk-Verkehr,10.10.254.80,,,,02:00:00:00:08:16,SN-N006,Technikraum Bad Godesberg,Ubiquiti,,yes
+N007,Router zum Internet der Vertriebsbüros,network-router,Internet-Router Vertriebsbüros,erhöht,Netzwerk-Verkehr,10.10.254.81,,,,02:00:00:00:08:17,SN-N007,Technikraum Bad Godesberg,Juniper,,yes
+N008,WLAN-Access-Points,network-wlan-ap,WLAN-Zugangspunkte,erhöht,WLAN-Verkehr,10.10.254.82,,,,02:00:00:00:08:18,SN-N008,Technikraum Bad Godesberg,Cisco,,yes
+T001,Telefonanlagen Bad Godesberg und Beuel,telecom-phone-system,Telefonanlagen beide Standorte,normal,Telefonie,,,,,,,Bad Godesberg,Avaya,,yes
+T002,Faxgeräte,telecom-fax,Faxgeräte,normal,Fax-Kommunikation,,,,,,,Bad Godesberg,Brother,,no
+GB001,Verwaltungsgebäude Bad Godesberg,building,Verwaltungsgebäude in Bad Godesberg,normal,,,,,,,,Verwaltungsgebäude Bad Godesberg,,,
+GB002,Produktionsgebäude Beuel,building,Produktionsgebäude in Beuel,normal,,,,,,,,Produktionsgebäude Beuel,,,
+R001,Technikraum,room-technical,Technikraum Bad Godesberg,normal,,,,,,,,"Technikraum, Bad Godesberg",,,
+R002,Serverraum,room-server,Serverraum Bad Godesberg,erhöht,,,,,,,,"Serverraum, Bad Godesberg",,,
+R003,Büros IT-Abteilung,room-office,Büros der IT-Abteilung,normal,,,,,,,,"Büros IT-Abteilung, Bad Godesberg",,,
+R009,Serverraum,room-server,Serverraum Beuel,erhöht,,,,,,,,"Serverraum, Beuel",,,
+R010,Technikraum,room-technical,Technikraum Beuel,normal,,,,,,,,"Technikraum, Beuel",,,
+R011,Büros Fertigung/Lager,room-office,Büros für Fertigung und Lager,normal,,,,,,,,"Büros Fertigung/Lager, Beuel",,,
+R012,Büros Entwicklungsabteilung,room-office,Büros der Entwicklungsabteilung,normal,,,,,,,,"Büros Entwicklungsabteilung, Beuel",,,
+R013,Produktionshalle,room-production,Produktionshalle,normal,,,,,,,,"Produktionshalle, Beuel",,,
+R014,Vertriebsbüros,room-office,Vertriebsbüros,normal,,,,,,,,"Vertriebsbüros, Bad Godesberg",,,
+R018,Technikraum Vertriebsbüros,room-technical,Technikraum in Vertriebsbüros,normal,,,,,,,,"Technikraum Vertriebsbüros, Bad Godesberg",,,
+R019,Datenträgerarchiv,room-archive,Datenträgerarchiv,erhöht,,,,,,,,"Datenträgerarchiv, Bad Godesberg",,,
+D001,Die Putzfee AG,service-provider,Reinigungsdienstleister,normal,,,,,,,,,,,
+D002,GetMobileDevice GmbH,service-provider,MDM-Dienstleister,erhöht,,,,,,,,,,,
+D003,Hosting Website GmbH&Co.KG,service-provider,Website-Hosting-Dienstleister,normal,,,,,,,,,,,
+D004,Telfcom,service-provider,Telekommunikationsdienstleister,normal,,,,,,,,,,,
+D005,Indust GmbH & Co.KG,service-provider,Industrie-Dienstleister,normal,,,,,,,,,,,
+D006,VPN Ware GmbH,service-provider,VPN-Dienstleister,erhöht,,,,,,,,,,,

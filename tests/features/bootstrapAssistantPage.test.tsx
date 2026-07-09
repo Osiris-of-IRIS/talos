@@ -46,7 +46,7 @@ async function seedAsset() {
     .getState()
     .importCsvTrio(
       'uuid,title\nclient-pc,Desktop\n',
-      'uuid,name,asset_type,description,security-sensitivity-level,information-types\nC001,Finance Clients,client-pc,,normal,\n',
+      'asset-id,name,asset-type,description,security-sensitivity-level,information-types\nC001,Finance Clients,client-pc,,normal,\n',
       'asset_type_uuid,targetobj_class_uuid\nclient-pc,7e41ecf5-1831-4691-ad0c-4fc7bbc1b871\n',
     );
 }

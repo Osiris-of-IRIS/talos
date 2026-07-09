@@ -35,6 +35,7 @@ the order decisions were made.
 | [ADR-0028](adr/ADR-0028-detail-editor-visual-unification.md) | Detail/Editor Visual Unification — Full-Width Nested Boxes, SSP Control\|Implementation Table, By-Component Description Prefill | Approved | ADR-0028 |
 | [ADR-0029](adr/ADR-0029-sidebar-navigation-branding.md) | Sidebar Navigation, Logo Branding, Configurable Hero Background | Approved | ADR-0029 |
 | [ADR-0030](adr/ADR-0030-expanded-markup-rendering.md) | Expanded OSCAL Markup Rendering — Full Metaschema Subset | Approved | ADR-0030 |
+| [ADR-0031](adr/ADR-0031-asset-inventory-oscal-alignment.md) | Asset Inventory Data Structure — OSCAL Alignment & Inventory-Item Generation | Approved | ADR-0031 |
 
 ## Notes
 

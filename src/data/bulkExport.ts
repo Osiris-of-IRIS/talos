@@ -7,7 +7,7 @@
  */
 import { zipSync, strToU8 } from 'fflate';
 import { serializeArtifact, defaultFilename, validateForExport } from './fileIo';
-import { serializeAssetsCsv, type Asset } from '@/models/asset';
+import { serializeAssetsCsv, serializeAssetWorkspaceJson, type Asset, type AssetType } from '@/models/asset';
 import type { StoredArtifact } from './db';
 
 export interface BuildZipResult {
@@ -81,6 +81,22 @@ export function downloadArtifactsAsZip(records: StoredArtifact[], zipFilename: s
  */
 export function downloadAssetsAsCsv(assets: Asset[], filename: string): void {
   const blob = new Blob([serializeAssetsCsv(assets)], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Trigger a browser download of the whole asset workspace (types + assets) as the bespoke
+ * combined JSON document (ADR-0031) — the alternative to the three-file CSV trio.
+ */
+export function downloadAssetWorkspaceJson(types: AssetType[], assets: Asset[], filename: string): void {
+  const blob = new Blob([serializeAssetWorkspaceJson(types, assets)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

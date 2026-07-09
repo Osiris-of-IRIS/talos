@@ -7,7 +7,7 @@ import { BackMatterEditor } from '@/features/shared/BackMatterEditor';
 import { CollapsibleSection } from '@/shared/CollapsibleSection';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
-import { useWorkspaceComponentDefinitions } from './useWorkspaceComponentDefinitions';
+import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
 import { SystemCharacteristicsEditor } from './SystemCharacteristicsEditor';
 import { SystemImplementationEditor } from './SystemImplementationEditor';
 import { SspControlImplementationEditor } from './SspControlImplementationEditor';

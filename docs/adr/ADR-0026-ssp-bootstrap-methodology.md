@@ -124,6 +124,14 @@ SSP's `system-characteristics.system-name` defaults to the literal string `"ISMS
 content, not translated, per the existing "seed values aren't translated" convention) rather than
 a supervisor-chosen name.
 
+## Amendment (ADR-0031)
+The Consequences note below about avoiding "any temptation to misuse `inventory-items`" is
+superseded for the asset-derived subset: ADR-0031 deliberately wires each per-asset generated SSP
+to exactly one `system-implementation.inventory-items` entry. The CSV-trio/JSON-vs-OSCAL
+separation this ADR established for the asset list itself (never imported/exported as an OSCAL
+document) still holds — only the generated *projection* of an asset into an SSP's inventory
+changed.
+
 ## References
 - ADR-0003 (OSCAL model), ADR-0004 (IndexedDB stores), ADR-0005 (live-fetch + offline-fallback
   pattern reused here), ADR-0006 (landing page / assistants), ADR-0012 (i18n — UI copy vs.

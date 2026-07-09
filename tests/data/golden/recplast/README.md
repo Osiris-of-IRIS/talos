@@ -7,11 +7,22 @@ This directory contains asset data for the example organization "Recplast" migra
 ### New Format Files (for import into OSCAL tool)
 
 1. **asset_types.csv** - Defines 23 asset type categories
-   - Columns: `uuid`, `title`
+   - Columns: `uuid`, `title`, `oscal-asset-type` (optional — ADR-0031)
    - Examples: `client-pc`, `laptop`, `server`, `application-office`, etc.
+   - `oscal-asset-type` aligns to the NIST OSCAL `asset-type` prop enum only where a clean match
+     exists (`network-router`→`router`, `network-switch`→`switch`, `network-firewall`→`firewall`,
+     `application-database`→`database`, `application-web`→`web-server`); blank for the rest, which
+     fall back to their own `title` at generation time (the enum allows arbitrary other values).
 
 2. **assets.csv** - Contains 94 individual assets from Recplast organization
-   - Columns: `uuid`, `name`, `asset_type`, `description`, `security-sensitivity-level`, `information-types`
+   - Columns (ADR-0031): `asset-id` (renamed from `uuid` — it was always a human tracking code
+     like `C001`, never a real UUID), `name`, `asset-type` (renamed from `asset_type`),
+     `description`, `security-sensitivity-level`, `information-types`, plus these optional columns
+     mirroring OSCAL's `inventory-item` recognized props — populated only where physically
+     plausible for that asset's type (a room has no MAC address; an application has no IP since
+     there's no asset-to-host mapping in this data; a service provider gets none of these, being
+     an external party): `ipv4-address`, `ipv6-address`, `fqdn`, `netbios-name`, `mac-address`,
+     `serial-number`, `physical-location`, `vendor-name`, `uri`, `is-scanned`.
    - Includes:
      - 18 Desktop PCs (C001-C009, organized by department)
      - 18 Laptops (L001-L009, organized by department)

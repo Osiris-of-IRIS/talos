@@ -1,0 +1,24 @@
+{
+  "component-definition": {
+    "uuid": "77777777-7777-4777-8777-777777777771",
+    "metadata": {
+      "title": "Importing Component-Definition",
+      "last-modified": "2026-07-09T10:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.2.2"
+    },
+    "import-component-definitions": [
+      { "href": "#88888888-8888-4888-8888-888888888881", "remarks": "shared authentication library" },
+      { "href": "https://example.org/external-component-definition.json" }
+    ],
+    "back-matter": {
+      "resources": [
+        {
+          "uuid": "88888888-8888-4888-8888-888888888881",
+          "title": "Shared Auth Component-Definition",
+          "document-ids": [{ "identifier": "77777777-7777-4777-8777-777777777772" }]
+        }
+      ]
+    }
+  }
+}

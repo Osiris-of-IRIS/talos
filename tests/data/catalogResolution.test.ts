@@ -22,7 +22,7 @@ import {
   allControlIdOptions,
   resolveControlForSource,
 } from '@/data/catalogResolution';
-import { ensureCatalogSourceResource } from '@/models/backMatter';
+import { ensureArtifactResource } from '@/models/backMatter';
 import { parseOscalUpload } from '@/data/fileIo';
 import type { Catalog } from '@/models/catalog';
 import type { BackMatter, OscalArtifact } from '@/models/oscalBase';
@@ -127,7 +127,7 @@ describe('back-matter-mediated source resolution (item 5, ADR-0024)', () => {
   it('resolves via a back-matter resource document-id, tried before the direct-uuid fallback', () => {
     const { idx, catalogUuid } = build();
     const holder: OscalArtifact = { uuid: 'x', metadata: { title: 't', version: '1', oscalVersion: '1.2.2' } };
-    const resourceUuid = ensureCatalogSourceResource(holder, catalogUuid, 'BSI Kernel (excerpt)');
+    const resourceUuid = ensureArtifactResource(holder, catalogUuid, 'BSI Kernel (excerpt)');
 
     const entry = findCatalogEntry(idx, `#${resourceUuid}`, holder.backMatter);
     expect(entry?.uuid).toBe(catalogUuid);

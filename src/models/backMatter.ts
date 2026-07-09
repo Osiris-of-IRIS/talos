@@ -109,24 +109,26 @@ export function shouldWarnFileSize(byteLength: number): boolean {
 }
 
 /**
- * Ensure a back-matter resource exists identifying `catalogUuid` as a document-id (item 5,
- * ADR-0024) and return its uuid; `control-implementation.source` should reference this resource
- * (`#<resourceUuid>`), not the catalog's own uuid directly — the resource is the OSCAL-correct
- * indirection real tooling expects. Reuses an existing resource for the same catalog (dedupe).
+ * Ensure a back-matter resource exists identifying `targetUuid` (some other workspace artifact —
+ * a catalog for `control-implementation.source`, item 5/ADR-0024; a component-definition for
+ * `import-component-definition`, ADR-0014) as a document-id, and return its uuid; the referencing
+ * field should point at this resource (`#<resourceUuid>`), not the target's own uuid directly —
+ * the resource is the OSCAL-correct indirection real tooling expects. Reuses an existing resource
+ * for the same target (dedupe).
  */
-export function ensureCatalogSourceResource(
+export function ensureArtifactResource(
   artifact: OscalArtifact,
-  catalogUuid: string,
-  catalogTitle: string,
+  targetUuid: string,
+  targetTitle: string,
   newResourceUuid?: string,
 ): string {
   const bm = ensureBackMatter(artifact);
-  const existing = bm.resources?.find((r) => r.documentIds?.some((d) => d.identifier === catalogUuid));
+  const existing = bm.resources?.find((r) => r.documentIds?.some((d) => d.identifier === targetUuid));
   if (existing) return existing.uuid;
   const resource: Resource = {
     uuid: newResourceUuid ?? uuid(),
-    title: catalogTitle,
-    documentIds: [{ identifier: catalogUuid }],
+    title: targetTitle,
+    documentIds: [{ identifier: targetUuid }],
   };
   bm.resources!.push(resource);
   return resource.uuid;

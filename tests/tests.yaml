@@ -21,6 +21,7 @@ version: 1
 # its feature lands, so the harness guards it against regression.
 adr_coverage_required:
   - ADR-0001 # TDD methodology (every suite references it)
+  - ADR-0002 # static client-side architecture: runtime config validation + structured logging
   - ADR-0003 # OSCAL artifact data model / envelope codec
   - ADR-0004 # client-side persistence + file I/O
   - ADR-0005 # BSI library loader (lazy fetch, cache, offline fallback, adopt)
@@ -41,6 +42,7 @@ adr_coverage_required:
   - ADR-0028 # detail/editor visual unification: nested boxes, SSP control|implementation table, by-component prefill
   - ADR-0029 # sidebar navigation, logo branding, configurable hero background
   - ADR-0030 # expanded OSCAL markup rendering: headings/lists/code/blockquote/table, char escaping, param insertion
+  - ADR-0031 # asset inventory OSCAL alignment: asset-id/uuid split, NIST asset-type alignment, inventory-item generation
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -68,6 +70,9 @@ golden_data:
   - path: tests/data/component-definition-with-creator.json
     kind: oscal-document
     artifact_type: component-definition
+  - path: tests/data/component-definition-with-import.json
+    kind: oscal-document
+    artifact_type: component-definition
 
 suites:
   # ---- Shared platform (PLAT-004) -------------------------------------------------
@@ -78,10 +83,11 @@ suites:
     runner: vitest
     status: implemented
     feature: PLAT-004
-    adr_refs: [ADR-0001, ADR-0003]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0014]
     golden:
       - tests/data/component-definition-minimal.json
       - tests/data/component-definition-referencing.json
+      - tests/data/component-definition-with-import.json
       - tests/data/catalog-minimal.json
       - tests/data/ssp-minimal.json
 
@@ -268,6 +274,34 @@ suites:
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0019]
 
+  # ---- Platform config & logging (PLAT-005) ---------------------------------------
+  - id: TEST-CONFIG-01
+    title: Runtime config schema validation (fail-fast on invalid config, T-025)
+    file: tests/config.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-005
+    adr_refs: [ADR-0001, ADR-0002]
+
+  - id: TEST-LOG-01
+    title: Structured logger (decision_ids, app version, console styling, ring buffer)
+    file: tests/shared/logger.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-005
+    adr_refs: [ADR-0001, ADR-0002]
+
+  - id: TEST-BOOT-01
+    title: Fail-fast boot error screen renders config violations without mounting the app
+    file: tests/app/bootError.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-005
+    adr_refs: [ADR-0001, ADR-0002]
+
   # ---- Persistence & file I/O (PLAT-003) ------------------------------------------
   - id: TEST-PERS-01
     title: ArtifactRepository CRUD (create/get/update/put/delete/count, timestamps)
@@ -288,13 +322,13 @@ suites:
     adr_refs: [ADR-0001, ADR-0004]
 
   - id: TEST-FILE-01
-    title: File I/O upload parse/validate/store + serialize round-trip + filename
+    title: File I/O upload parse/validate/store + serialize round-trip + filename + export-validity gate (title/version, T-151)
     file: tests/data/fileIo.test.ts
     type: integration
     runner: vitest
     status: implemented
     feature: PLAT-003
-    adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0019]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0004, ADR-0007, ADR-0019]
     golden: [tests/data/component-definition-minimal.json]
 
   - id: TEST-BULK-01
@@ -409,13 +443,13 @@ suites:
     golden: [tests/data/component-definition-minimal.json, tests/data/component-definition-with-creator.json]
 
   - id: TEST-CDEF-EDIT-01
-    title: "Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance, component list collapse/expand, markup editor, back-matter source resolution)"
+    title: "Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance, component list collapse/expand, markup editor, back-matter source resolution, import-component-definition add/remove/cycle-rejection + unresolved-ref recording)"
     file: tests/features/componentDefinitionEditor.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: IMPL-001
-    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0015, ADR-0016, ADR-0024, ADR-0025, ADR-0028]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0024, ADR-0025, ADR-0028]
 
   - id: TEST-CDEF-EDIT-02
     title: E2E create a component-definition end to end (full body flow)
@@ -436,12 +470,31 @@ suites:
     adr_refs: [ADR-0001, ADR-0016, ADR-0028]
 
   - id: TEST-CDEF-IMP-01
-    title: import-component-definition composition (resolved/unresolved refs, cycles)
+    title: "import-component-definition resolution: back-matter-mediated href resolution (mirrors control-implementation.source, T-142), cycle/self-import protection, unresolved-href listing"
+    file: tests/data/componentImportResolution.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0014, ADR-0017, ADR-0024]
+
+  - id: TEST-CDEF-IMP-02
+    title: "Component-def detail: read-only transitive Imported Definitions tree, resolved/unresolved nodes, cycle-flagged leaf (not re-expanded)"
+    file: tests/features/componentDefinitionImportedTree.test.tsx
     type: component
     runner: vitest
-    status: planned
+    status: implemented
     feature: IMPL-001
-    adr_refs: [ADR-0001, ADR-0014, ADR-0017]
+    adr_refs: [ADR-0001, ADR-0010, ADR-0014]
+
+  - id: TEST-CDEF-IMP-03
+    title: "Unresolved cross-artifact reference persistence — never silently dropped, re-sync replaces the prior set per refKind"
+    file: tests/data/unresolvedReferences.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0004, ADR-0014]
 
   - id: TEST-CDEF-EDIT-03
     title: "ControlImplementationsEditor: resolved-control 40/60 display in the requirement editor (with unresolved hint), choice-constrained set-parameters (single-select + multi-select checkboxes vs. free text) (T-160 items 3, 4)"
@@ -499,6 +552,15 @@ suites:
     feature: IMPL-002
     adr_refs: [ADR-0001, ADR-0016, ADR-0028]
     golden: [tests/data/catalog-minimal.json]
+
+  - id: TEST-SSP-INV-01
+    title: "SSP detail: Inventory Items section (description/asset-id/asset-type), asset-id links to the filtered asset list"
+    file: tests/features/sspDetailInventory.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: IMPL-002
+    adr_refs: [ADR-0001, ADR-0031]
 
   # ---- Profiles (CTRL-001, deferred per ADR-0017) --------------------------------
   - id: TEST-PROF-01
@@ -561,13 +623,13 @@ suites:
     adr_refs: [ADR-0001, ADR-0006, ADR-0026]
 
   - id: TEST-ASSET-01
-    title: Asset / asset-type / mapping CSV parsing, validation, cross-check
+    title: "Asset / asset-type / mapping CSV+JSON parsing, validation, cross-check; asset-id rename, NIST asset-type alignment, optional inventory-prop columns (ADR-0031)"
     file: tests/models/asset.test.ts
     type: unit
     runner: vitest
     status: implemented
     feature: ASST-002
-    adr_refs: [ADR-0001, ADR-0026]
+    adr_refs: [ADR-0001, ADR-0026, ADR-0031]
     golden: [tests/data/golden/recplast/asset_types.csv, tests/data/golden/recplast/assets.csv, tests/data/golden/recplast/mappings.csv]
 
   - id: TEST-ASSET-02
@@ -580,22 +642,22 @@ suites:
     adr_refs: [ADR-0001, ADR-0026]
 
   - id: TEST-ASSET-03
-    title: "Assets workspace store (CSV-trio upload replaces the whole asset list); bulk selection + removeMany (assets only, asset types untouched)"
+    title: "Assets workspace store (CSV-trio or workspace-JSON upload replaces the whole asset list); bulk selection + removeMany (assets only, asset types untouched)"
     file: tests/features/assetsStore.test.ts
     type: integration
     runner: vitest
     status: implemented
     feature: ASST-002
-    adr_refs: [ADR-0001, ADR-0004, ADR-0026, ADR-0027]
+    adr_refs: [ADR-0001, ADR-0004, ADR-0026, ADR-0027, ADR-0031]
 
   - id: TEST-ASSET-04
-    title: "Assets upload/list page (empty state, table, clear); bulk selection (checkboxes, select-all, CSV download, delete-with-confirm)"
+    title: "Assets upload/list page (empty state, table, clear, JSON upload/download); bulk selection (checkboxes, select-all, CSV download, delete-with-confirm); ?asset= cross-page filter"
     file: tests/features/assetsListPage.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: ASST-002
-    adr_refs: [ADR-0001, ADR-0012, ADR-0026, ADR-0027]
+    adr_refs: [ADR-0001, ADR-0012, ADR-0026, ADR-0027, ADR-0031]
 
   - id: TEST-TOC-01
     title: BSI target-object-category namespace CSV model (Zielobjekt/ChildOfUUID parsing)
@@ -626,23 +688,23 @@ suites:
     golden: [tests/data/catalog-target-object-categories.json]
 
   - id: TEST-BOOTSTRAP-01
-    title: NIST-style and BSI-style SSP generation (pure) against target-object-category-tagged fixtures
+    title: "NIST-style and BSI-style SSP generation (pure) against target-object-category-tagged fixtures; per-asset inventory-item generation with NIST asset-type alignment (ADR-0031)"
     file: tests/features/bootstrapGenerate.test.ts
     type: unit
     runner: vitest
     status: implemented
     feature: ASST-002
-    adr_refs: [ADR-0001, ADR-0003, ADR-0026]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0026, ADR-0031]
     golden: [tests/data/catalog-target-object-categories.json]
 
   - id: TEST-BOOTSTRAP-02
-    title: Applying bootstrap plans — create-then-update idempotency, preserves hand-edited fields
+    title: "Applying bootstrap plans — create-then-update idempotency, preserves hand-edited fields; inventory-items written/regenerated (ADR-0031)"
     file: tests/features/bootstrapApplyPlans.test.ts
     type: integration
     runner: vitest
     status: implemented
     feature: ASST-002
-    adr_refs: [ADR-0001, ADR-0004, ADR-0023, ADR-0026]
+    adr_refs: [ADR-0001, ADR-0004, ADR-0023, ADR-0026, ADR-0031]
 
   - id: TEST-ASST-03
     title: "E2E: landing gating, asset+catalog upload, generate SSPs, idempotent re-run"

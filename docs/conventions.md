@@ -43,9 +43,11 @@ Engineering conventions for TALOS. Decision IDs referenced inline.
 - Draft-friendly editing: validation is non-blocking; enforced at export.
 
 ## Logging & errors
-- Use the logging util; every record includes `decision_ids`. Warnings **yellow**, errors
-  **red** in console + toasts `[ADR-0002]`.
-- Fail fast on invalid config at startup with a clear red error.
+- Use the logging util (`src/shared/logger.ts`'s `logger`, `createLogger(version)` factory);
+  every record includes `decisionIds` + app version. Warnings **yellow**, errors
+  **red** in console (toasts still T-035) `[ADR-0002]`.
+- Fail fast on invalid config at startup with a clear red error — `validateConfig()` in
+  `src/config.ts`, wired in `main.tsx` (T-025).
 
 ## Git & commits
 - Dedicated `talos` repo. Conventional-commit style (`feat:`, `fix:`, `docs:`, `test:`).

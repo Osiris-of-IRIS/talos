@@ -12,7 +12,10 @@ import { useI18n } from '@/shared/i18n';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { MarkupEditor } from '@/shared/MarkupEditor';
 import { DatalistInput } from '@/shared/DatalistInput';
-import { ensureCatalogSourceResource } from '@/models/backMatter';
+import { ensureArtifactResource } from '@/models/backMatter';
+import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
+import { resolveImport, wouldCreateCycle, unresolvedImportHrefs } from '@/data/componentImportResolution';
+import { syncUnresolvedReferences } from '@/data/unresolvedReferences';
 import type { ComponentDefinition, DefinedComponent } from '@/models/componentDefinition';
 
 const COMPONENT_TYPE_OPTIONS = COMPONENT_TYPES.map((ct) => ({ value: ct.value, label: ct.description }));
@@ -31,6 +34,9 @@ export function ComponentDefinitionEditorPage() {
   // Which components render their full editor vs. a collapsed summary row (item 2). A newly
   // added component auto-opens; an existing/loaded one starts collapsed.
   const expanded = useExpandedSet();
+  const workspaceComponentDefs = useWorkspaceComponentDefinitions();
+  const [importPick, setImportPick] = useState('');
+  const [importError, setImportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isNew || !uuid) return;
@@ -116,10 +122,51 @@ export function ComponentDefinitionEditorPage() {
     setDraft((prev) => {
       if (!prev) return prev;
       const next = structuredClone(prev);
-      ensureCatalogSourceResource(next, catalogUuid, catalogTitle, resourceUuid);
+      ensureArtifactResource(next, catalogUuid, catalogTitle, resourceUuid);
       return next;
     });
     return `#${resourceUuid}`;
+  }
+
+  /** Add an import of the picked workspace component-definition (ADR-0014): rejects a self-import
+   * or a cycle before committing, then references the target via a back-matter resource
+   * (never the target's own uuid directly). */
+  function addImport() {
+    const targetUuid = importPick.trim();
+    if (!targetUuid) return;
+    if (wouldCreateCycle(draft!.uuid, targetUuid, workspaceComponentDefs)) {
+      setImportError(t('cdef_imports_cycle_error'));
+      return;
+    }
+    const target = workspaceComponentDefs.find((w) => w.uuid === targetUuid);
+    if (!target) return;
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      const resourceUuid = ensureArtifactResource(next, target.uuid, target.artifact.metadata.title);
+      (next.importComponentDefinitions ??= []).push({ href: `#${resourceUuid}` });
+      return next;
+    });
+    setImportPick('');
+    setImportError(null);
+  }
+
+  function removeImport(idx: number) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      next.importComponentDefinitions!.splice(idx, 1);
+      return next;
+    });
+  }
+
+  function patchImportRemarks(idx: number, remarks: string) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      next.importComponentDefinitions![idx]!.remarks = remarks;
+      return next;
+    });
   }
 
   async function save() {
@@ -139,6 +186,13 @@ export function ComponentDefinitionEditorPage() {
       } else {
         await repo().update(toSave.uuid, toSave);
       }
+      // Never silently drop a dangling import (ADR-0014) — record it for a later resolve pass.
+      await syncUnresolvedReferences(
+        toSave.uuid,
+        'componentDefinitions',
+        'import-component-definition',
+        unresolvedImportHrefs(toSave.importComponentDefinitions, toSave.backMatter, workspaceComponentDefs),
+      );
       navigate(`/component-definitions/${toSave.uuid}`);
     } finally {
       setSaving(false);
@@ -146,6 +200,10 @@ export function ComponentDefinitionEditorPage() {
   }
 
   const components = draft.components ?? [];
+  const imports = draft.importComponentDefinitions ?? [];
+  const importOptions = workspaceComponentDefs
+    .filter((w) => w.uuid !== draft.uuid && !wouldCreateCycle(draft.uuid, w.uuid, workspaceComponentDefs))
+    .map((w) => ({ value: w.uuid, label: w.artifact.metadata.title }));
 
   return (
     <main data-testid="compdef-editor">
@@ -155,6 +213,60 @@ export function ComponentDefinitionEditorPage() {
       <h1>{isNew ? `➕ ${t('cdef_new')}` : `✎ ${t('cdef_edit_heading')}`}</h1>
 
       <MetadataEditor artifact={draft} onChange={update} />
+
+      <fieldset>
+        <legend>{t('cdef_imports_heading', { count: imports.length })}</legend>
+        <ul data-testid="cdef-imports-list">
+          {imports.map((imp, i) => {
+            const resolved = resolveImport(imp, draft.backMatter, workspaceComponentDefs);
+            return (
+              <li key={`${imp.href}-${i}`} data-testid="cdef-import-item">
+                {resolved ? (
+                  <Link to={`/component-definitions/${resolved.uuid}`}>{resolved.artifact.metadata.title}</Link>
+                ) : (
+                  <span data-testid="cdef-import-unresolved" title={imp.href}>
+                    ⚠️ {t('cdef_imports_unresolved')}
+                  </span>
+                )}{' '}
+                <input
+                  aria-label={t('cdef_imports_remarks_label')}
+                  placeholder={t('cdef_imports_remarks_label')}
+                  data-testid="cdef-import-remarks"
+                  value={imp.remarks ?? ''}
+                  onChange={(e) => patchImportRemarks(i, e.target.value)}
+                />{' '}
+                <button
+                  type="button"
+                  aria-label={t('cdef_imports_remove_aria', { title: resolved?.artifact.metadata.title ?? imp.href })}
+                  data-testid="cdef-import-remove"
+                  onClick={() => removeImport(i)}
+                >
+                  🗑️ {t('cdef_imports_remove_button')}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <label>
+          {t('cdef_imports_add_label')}
+          <DatalistInput
+            ariaLabel={t('cdef_imports_add_aria')}
+            dataTestId="cdef-import-picker"
+            listId="cdef-import-options"
+            options={importOptions}
+            value={importPick}
+            onChange={setImportPick}
+          />
+        </label>{' '}
+        <button type="button" data-testid="cdef-import-add" onClick={addImport}>
+          ➕ {t('cdef_imports_add_label')}
+        </button>
+        {importError && (
+          <p role="alert" data-testid="cdef-import-error">
+            ⚠️ {importError}
+          </p>
+        )}
+      </fieldset>
 
       <fieldset>
         <legend>{t('compdef_components_count', { count: components.length })}</legend>

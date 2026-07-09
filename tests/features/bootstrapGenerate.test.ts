@@ -33,10 +33,10 @@ const ASSET_TYPES: AssetType[] = [
 ];
 
 const ASSETS: Asset[] = [
-  { uuid: 'C001', name: 'Clients der Finanzbuchhaltung', assetType: 'client-pc', description: 'Desktop-PCs', securitySensitivityLevel: 'erhöht', informationTypes: 'Finanzdaten' },
-  { uuid: 'S001', name: 'Domänen-Controller', assetType: 'server', description: 'AD-DC', securitySensitivityLevel: 'hoch', informationTypes: 'Identitätsdaten' },
-  { uuid: 'A019', name: 'Webserver', assetType: 'application-web', description: 'Webserver-Software', securitySensitivityLevel: 'normal', informationTypes: 'Web-Inhalte' },
-  { uuid: 'D001', name: 'Cloud-Provider', assetType: 'service-provider', description: 'Externer Dienstleister', securitySensitivityLevel: 'normal', informationTypes: '' },
+  { assetId: 'C001', name: 'Clients der Finanzbuchhaltung', assetType: 'client-pc', description: 'Desktop-PCs', securitySensitivityLevel: 'erhöht', informationTypes: 'Finanzdaten', ipv4Address: '10.10.1.11' },
+  { assetId: 'S001', name: 'Domänen-Controller', assetType: 'server', description: 'AD-DC', securitySensitivityLevel: 'hoch', informationTypes: 'Identitätsdaten' },
+  { assetId: 'A019', name: 'Webserver', assetType: 'application-web', description: 'Webserver-Software', securitySensitivityLevel: 'normal', informationTypes: 'Web-Inhalte' },
+  { assetId: 'D001', name: 'Cloud-Provider', assetType: 'service-provider', description: 'Externer Dienstleister', securitySensitivityLevel: 'normal', informationTypes: '' },
 ];
 
 const ALL_CONTROL_IDS = ['APP.1.1.1', 'APP.1.1.2', 'SYS.1.1.1', 'ISMS.1.1.1'];
@@ -61,6 +61,36 @@ describe('generateNist', () => {
     expect(c001?.correlationKey).toBe(assetCorrelationKey('C001'));
     expect(getBootstrapSource(c001?.systemCharacteristics.props)).toBe(assetCorrelationKey('C001'));
   });
+
+  it('builds a single inventory-item per asset, with a fresh real uuid and asset-id/asset-type props (ADR-0031)', () => {
+    const { plans } = generateNist({ assets: ASSETS, assetTypes: ASSET_TYPES, categoryRows: CATEGORY_ROWS, catalog });
+    const c001 = plans.find((p) => p.systemCharacteristics.systemName === 'Clients der Finanzbuchhaltung');
+    expect(c001?.inventoryItems).toHaveLength(1);
+    const item = c001!.inventoryItems![0]!;
+    expect(item.uuid).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(item.props).toEqual(
+      expect.arrayContaining([
+        { name: 'asset-id', value: 'C001' },
+        { name: 'asset-type', value: 'Desktop-PC (Client)' }, // no oscalAssetType -> falls back to title
+        { name: 'ipv4-address', value: '10.10.1.11' },
+      ]),
+    );
+    // No fabricated props for fields the asset doesn't have.
+    expect(item.props!.some((p) => p.name === 'mac-address')).toBe(false);
+  });
+
+  it('uses the NIST-aligned oscalAssetType for the asset-type prop when the asset type has one (ADR-0031)', () => {
+    const alignedTypes: AssetType[] = [
+      { uuid: 'network-router', title: 'Router', targetObjectCategoryUuid: '427da6dd-d744-4b2b-88b7-f0a695f21e14', oscalAssetType: 'router' },
+    ];
+    const alignedAssets: Asset[] = [
+      { assetId: 'N001', name: 'Internet-Router', assetType: 'network-router', description: '', securitySensitivityLevel: 'hoch', informationTypes: '' },
+    ];
+    const { plans } = generateNist({ assets: alignedAssets, assetTypes: alignedTypes, categoryRows: CATEGORY_ROWS, catalog });
+    expect(plans[0]!.inventoryItems![0]!.props).toEqual(
+      expect.arrayContaining([{ name: 'asset-type', value: 'router' }]),
+    );
+  });
 });
 
 describe('generateBsi', () => {
@@ -77,6 +107,8 @@ describe('generateBsi', () => {
     expect(plans[0]!.controlImplementation.implementedRequirements.map((r) => r.controlId)).toEqual([
       'ISMS.1.1.1',
     ]);
+    // The ISMS-wide plan isn't itself an asset — no inventory-item (ADR-0031).
+    expect(plans[0]!.inventoryItems).toBeUndefined();
   });
 
   it('creates one SSP per mapped asset, filtered to controls tagged with its category or an ancestor', () => {
@@ -97,6 +129,7 @@ describe('generateBsi', () => {
     expect(serverPlan?.controlImplementation.implementedRequirements.map((r) => r.controlId)).toEqual([
       'SYS.1.1.1', // Hostsysteme only
     ]);
+    expect(serverPlan?.inventoryItems).toHaveLength(1);
   });
 
   it('warns and skips assets whose mapped category is not in the loaded hierarchy', () => {

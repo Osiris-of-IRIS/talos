@@ -71,7 +71,7 @@ describe('Sidebar', () => {
   it('renders the bootstrap-assistant link live once an asset exists', async () => {
     const db = await getDb();
     await db.put('assets', {
-      uuid: 'C001',
+      assetId: 'C001',
       name: 'Test asset',
       assetType: 'client-pc',
       description: '',

@@ -37,6 +37,10 @@ async function applyOnePlan(
       metadata: { ...match.artifact.metadata, title },
       systemCharacteristics: plan.systemCharacteristics,
       controlImplementation: plan.controlImplementation,
+      // inventoryItems is regenerated every run, same as system-characteristics/control-implementation
+      // above; components/users are preserved (spread from the existing systemImplementation) since
+      // those stay a manual, post-bootstrap editing step (ADR-0026, ADR-0031).
+      systemImplementation: { ...match.artifact.systemImplementation, inventoryItems: plan.inventoryItems },
     });
     return 'updated';
   }
@@ -46,6 +50,7 @@ async function applyOnePlan(
     metadata: { ...blank.metadata, title },
     systemCharacteristics: plan.systemCharacteristics,
     controlImplementation: plan.controlImplementation,
+    systemImplementation: { ...blank.systemImplementation, inventoryItems: plan.inventoryItems },
   };
   await repo.create({ uuid: blank.uuid, type: 'systemSecurityPlan', origin: 'user', artifact });
   return 'created';

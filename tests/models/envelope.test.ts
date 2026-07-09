@@ -12,6 +12,7 @@ import {
 import type { ComponentDefinition } from '@/models/componentDefinition';
 import golden from '../data/component-definition-minimal.json';
 import cdReferencing from '../data/component-definition-referencing.json';
+import cdWithImport from '../data/component-definition-with-import.json';
 import catalogMinimal from '../data/catalog-minimal.json';
 import sspMinimal from '../data/ssp-minimal.json';
 
@@ -71,6 +72,7 @@ describe('golden round-trip (import -> model -> export)', () => {
   // or case-conversion regression specific to one shape would otherwise slip through.
   it.each([
     ['component-definition (referencing)', cdReferencing],
+    ['component-definition (import-component-definitions, ADR-0014)', cdWithImport],
     ['catalog (grouped controls)', catalogMinimal],
     ['system-security-plan', sspMinimal],
   ])('round-trips %s losslessly', (_label, doc) => {

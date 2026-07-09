@@ -9,7 +9,11 @@ import { _resetDbForTests } from '@/data/db';
 import { ArtifactRepository } from '@/data/artifactRepository';
 import type { SystemSecurityPlan } from '@/models/ssp';
 import { applyBootstrapPlans } from '@/features/bootstrap/applyPlans';
-import { buildAssetSystemCharacteristics, buildControlImplementation } from '@/features/bootstrap/planBuilders';
+import {
+  buildAssetInventoryItem,
+  buildAssetSystemCharacteristics,
+  buildControlImplementation,
+} from '@/features/bootstrap/planBuilders';
 import { assetCorrelationKey } from '@/features/bootstrap/bootstrapProvenance';
 import type { Asset } from '@/models/asset';
 import type { Control } from '@/models/control';
@@ -20,7 +24,7 @@ beforeEach(() => {
 });
 
 const ASSET: Asset = {
-  uuid: 'C001',
+  assetId: 'C001',
   name: 'Clients der Finanzbuchhaltung',
   assetType: 'client-pc',
   description: 'Desktop-PCs',
@@ -34,11 +38,12 @@ function control(id: string): Control {
 
 describe('applyBootstrapPlans', () => {
   it('creates a new SSP for a plan with no prior correlation match', async () => {
-    const key = assetCorrelationKey(ASSET.uuid);
+    const key = assetCorrelationKey(ASSET.assetId);
     const plan = {
       correlationKey: key,
       systemCharacteristics: buildAssetSystemCharacteristics(ASSET, key),
       controlImplementation: buildControlImplementation('note', [control('A.1')]),
+      inventoryItems: [buildAssetInventoryItem(ASSET, undefined)],
     };
     const result = await applyBootstrapPlans([plan]);
     expect(result).toEqual({ created: 1, updated: 0 });
@@ -50,10 +55,15 @@ describe('applyBootstrapPlans', () => {
     // Regression: metadata.title must be set too (createBlankSsp seeds it ''), otherwise the SSP
     // list page's <Link>{title}</Link> renders with no visible/clickable text.
     expect(all[0]!.artifact.metadata.title).toBe(ASSET.name);
+    // ADR-0031: the generated inventory-item is written into system-implementation on create.
+    expect(all[0]!.artifact.systemImplementation.inventoryItems).toHaveLength(1);
+    expect(all[0]!.artifact.systemImplementation.inventoryItems![0]!.props).toEqual(
+      expect.arrayContaining([{ name: 'asset-id', value: 'C001' }]),
+    );
   });
 
   it('updates the same SSP in place on re-run (no duplicate), preserving hand-edited fields', async () => {
-    const key = assetCorrelationKey(ASSET.uuid);
+    const key = assetCorrelationKey(ASSET.assetId);
     const planV1 = {
       correlationKey: key,
       systemCharacteristics: buildAssetSystemCharacteristics(ASSET, key),
@@ -85,6 +95,7 @@ describe('applyBootstrapPlans', () => {
       correlationKey: key,
       systemCharacteristics: buildAssetSystemCharacteristics(ASSET, key),
       controlImplementation: buildControlImplementation('note v2', [control('A.1'), control('A.2')]),
+      inventoryItems: [buildAssetInventoryItem(ASSET, undefined)],
     };
     const result = await applyBootstrapPlans([planV2]);
     expect(result).toEqual({ created: 0, updated: 1 });
@@ -97,10 +108,12 @@ describe('applyBootstrapPlans', () => {
       'A.2',
     ]);
     expect(all[0]!.artifact.systemImplementation.components).toHaveLength(1); // preserved
+    // ADR-0031: inventory-items are regenerated on re-run, same convention as system-characteristics.
+    expect(all[0]!.artifact.systemImplementation.inventoryItems).toHaveLength(1);
   });
 
   it('re-running heals a pre-fix SSP that was created with an empty metadata.title', async () => {
-    const key = assetCorrelationKey(ASSET.uuid);
+    const key = assetCorrelationKey(ASSET.assetId);
     const plan = {
       correlationKey: key,
       systemCharacteristics: buildAssetSystemCharacteristics(ASSET, key),

@@ -11,6 +11,7 @@ import { _resetDbForTests } from '@/data/db';
 import { ArtifactRepository } from '@/data/artifactRepository';
 import { ComponentDefinitionEditorPage } from '@/features/componentDefinitions/ComponentDefinitionEditorPage';
 import { parseOscalUpload } from '@/data/fileIo';
+import { getUnresolvedReferencesFor } from '@/data/unresolvedReferences';
 import type { ComponentDefinition } from '@/models/componentDefinition';
 import type { Catalog } from '@/models/catalog';
 import catalogJson from '../data/catalog-minimal.json';
@@ -238,6 +239,155 @@ describe('edit', () => {
     await waitFor(() => expect(screen.getByTestId('detail-landed')).toBeInTheDocument());
     const rec = await repo().get(uuid);
     expect(rec?.artifact.metadata.title).toBe('New Title');
+  });
+});
+
+describe('imports (ADR-0014)', () => {
+  const editorUuid = '77777777-7777-4777-8777-777777777771';
+  const otherUuid = '77777777-7777-4777-8777-777777777772';
+
+  async function seedEditorAndOther() {
+    await repo().create({
+      uuid: editorUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: { uuid: editorUuid, metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' } },
+    });
+    await repo().create({
+      uuid: otherUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: { uuid: otherUuid, metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2' } },
+    });
+  }
+
+  it('does not offer the definition itself as an import option', async () => {
+    await seedEditorAndOther();
+    renderAt(`/component-definitions/${editorUuid}/edit`);
+    await waitFor(() => expect(screen.getByTestId('md-title')).toHaveValue('Editor Def'));
+
+    const options = [...document.getElementById('cdef-import-options')!.querySelectorAll('option')].map(
+      (o) => o.value,
+    );
+    expect(options).toContain(otherUuid);
+    expect(options).not.toContain(editorUuid);
+  });
+
+  it('adds an import, referencing the target via a back-matter resource (not its uuid directly)', async () => {
+    await seedEditorAndOther();
+    const user = userEvent.setup();
+    renderAt(`/component-definitions/${editorUuid}/edit`);
+    await waitFor(() => expect(screen.getByTestId('md-title')).toHaveValue('Editor Def'));
+
+    await user.type(screen.getByTestId('cdef-import-picker'), otherUuid);
+    await user.click(screen.getByTestId('cdef-import-add'));
+
+    expect(await screen.findByRole('link', { name: 'Other Def' })).toBeInTheDocument();
+    await user.click(screen.getByTestId('save-compdef'));
+
+    const rec = await repo().get(editorUuid);
+    const imports = rec?.artifact.importComponentDefinitions;
+    expect(imports).toHaveLength(1);
+    expect(imports![0]!.href).not.toBe(`#${otherUuid}`); // resource-mediated, not the raw uuid
+    const resource = rec?.artifact.backMatter?.resources?.find((r) => `#${r.uuid}` === imports![0]!.href);
+    expect(resource?.documentIds?.[0]?.identifier).toBe(otherUuid);
+  });
+
+  it('removes an import', async () => {
+    await repo().create({
+      uuid: editorUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: editorUuid,
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: `#${otherUuid}` }],
+      },
+    });
+    await repo().create({
+      uuid: otherUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: { uuid: otherUuid, metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2' } },
+    });
+
+    const user = userEvent.setup();
+    renderAt(`/component-definitions/${editorUuid}/edit`);
+    expect(await screen.findByTestId('cdef-import-item')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('cdef-import-remove'));
+    expect(screen.queryByTestId('cdef-import-item')).not.toBeInTheDocument();
+  });
+
+  it('records a dangling import href in unresolvedReferences on save (ADR-0014)', async () => {
+    await repo().create({
+      uuid: editorUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: editorUuid,
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: '#nonexistent' }],
+      },
+    });
+    const user = userEvent.setup();
+    renderAt(`/component-definitions/${editorUuid}/edit`);
+    await waitFor(() => expect(screen.getByTestId('md-title')).toHaveValue('Editor Def'));
+
+    await user.click(screen.getByTestId('save-compdef'));
+    await waitFor(() => expect(screen.getByTestId('detail-landed')).toBeInTheDocument());
+
+    const refs = await getUnresolvedReferencesFor(editorUuid);
+    expect(refs).toHaveLength(1);
+    expect(refs[0]!.href).toBe('#nonexistent');
+    expect(refs[0]!.refKind).toBe('import-component-definition');
+  });
+
+  it('shows an unresolved-reference marker for a dangling import href', async () => {
+    await repo().create({
+      uuid: editorUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: editorUuid,
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: '#nonexistent' }],
+      },
+    });
+    renderAt(`/component-definitions/${editorUuid}/edit`);
+    expect(await screen.findByTestId('cdef-import-unresolved')).toBeInTheDocument();
+  });
+
+  it('rejects an import that would create a cycle', async () => {
+    await repo().create({
+      uuid: editorUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: editorUuid,
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+      },
+    });
+    // otherDef already imports editorDef — editorDef importing otherDef would close the loop.
+    await repo().create({
+      uuid: otherUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: otherUuid,
+        metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: `#${editorUuid}` }],
+      },
+    });
+
+    renderAt(`/component-definitions/${editorUuid}/edit`);
+    await waitFor(() => expect(screen.getByTestId('md-title')).toHaveValue('Editor Def'));
+
+    // The cycle-inducing definition isn't even offered as an option (proactive UX filter).
+    const options = [...document.getElementById('cdef-import-options')!.querySelectorAll('option')].map(
+      (o) => o.value,
+    );
+    expect(options).not.toContain(otherUuid);
   });
 });
 

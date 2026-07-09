@@ -103,6 +103,44 @@ describe('validateForExport / export gate (ADR-0019)', () => {
   });
 });
 
+describe('validateForExport / required base fields (T-151)', () => {
+  it('blocks export when metadata.title is empty (draft-friendly editing can clear it)', () => {
+    const { record } = parseOscalUpload(goldenText);
+    const withCreatorRecord = withCreator(record);
+    const artifact = structuredClone(withCreatorRecord.artifact) as { metadata: { title: string } };
+    artifact.metadata.title = '   ';
+    const problems = validateForExport({ ...withCreatorRecord, artifact });
+    expect(problems.some((p) => /title/i.test(p))).toBe(true);
+    expect(() => downloadArtifact({ ...withCreatorRecord, artifact })).toThrow(/Cannot export.*title/i);
+  });
+
+  it('blocks export when metadata.version is empty', () => {
+    const { record } = parseOscalUpload(goldenText);
+    const withCreatorRecord = withCreator(record);
+    const artifact = structuredClone(withCreatorRecord.artifact) as { metadata: { version: string } };
+    artifact.metadata.version = '';
+    const problems = validateForExport({ ...withCreatorRecord, artifact });
+    expect(problems.some((p) => /version/i.test(p))).toBe(true);
+    expect(() => downloadArtifact({ ...withCreatorRecord, artifact })).toThrow(/Cannot export.*version/i);
+  });
+
+  it('reports every violation at once, not just the first', () => {
+    const { record } = parseOscalUpload(goldenText); // no creator either
+    const artifact = structuredClone(record.artifact) as { metadata: { title: string; version: string } };
+    artifact.metadata.title = '';
+    artifact.metadata.version = '';
+    const problems = validateForExport({ ...record, artifact });
+    expect(problems.some((p) => /title/i.test(p))).toBe(true);
+    expect(problems.some((p) => /version/i.test(p))).toBe(true);
+    expect(problems.some((p) => /creator/i.test(p))).toBe(true);
+  });
+
+  it('still allows export when title/version/creator are all present (unchanged happy path)', () => {
+    const { record } = parseOscalUpload(goldenText);
+    expect(validateForExport(withCreator(record))).toEqual([]);
+  });
+});
+
 describe('defaultFilename', () => {
   it('builds <type>-<slug>-<uuid8>.json', () => {
     const { record } = parseOscalUpload(goldenText);

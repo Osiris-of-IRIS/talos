@@ -10,6 +10,7 @@ import type { Catalog } from '@/models/catalog';
 import { buildCategoryIndex, categoryTitlesInChain, hasNoTargetObjectCategory, controlMatchesAnyTitle } from '@/data/targetObjectHierarchy';
 import { ISMS_CORRELATION_KEY, assetCorrelationKey } from './bootstrapProvenance';
 import {
+  buildAssetInventoryItem,
   buildAssetSystemCharacteristics,
   buildIsmsSystemCharacteristics,
   buildControlImplementation,
@@ -52,7 +53,7 @@ export function generateBsi(params: GenerateBsiParams): GenerateResult {
       warnings.push(resolved.warning);
       continue;
     }
-    const correlationKey = assetCorrelationKey(asset.uuid);
+    const correlationKey = assetCorrelationKey(asset.assetId);
     // Resolve the ancestor chain once per asset (not once per control): controlMatchesAnyTitle
     // just checks against this precomputed set instead of re-walking ChildOfUUID for every control.
     const eligibleTitles = new Set(categoryTitlesInChain(resolved.category.uuid, byUuid));
@@ -64,6 +65,7 @@ export function generateBsi(params: GenerateBsiParams): GenerateResult {
         `Bootstrapped from catalog "${catalog.metadata.title}" (BSI-style, ADR-0026).`,
         matching,
       ),
+      inventoryItems: [buildAssetInventoryItem(asset, typeByUuid.get(asset.assetType))],
     });
   }
 

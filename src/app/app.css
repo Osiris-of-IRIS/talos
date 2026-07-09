@@ -556,6 +556,16 @@ main > ul > li {
   background: var(--color-imported-fill);
 }
 
+/* Generic "this links to read-only imported content" treatment (ADR-0010/0014), reused by any
+   feature displaying a resolved reference to another artifact — not scoped to a specific testid
+   like the library-page rules above. */
+.imported-badge {
+  border: 1px dashed var(--color-imported-border);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.8rem;
+}
+
 [data-testid='library-badge'] {
   border: 1px dashed var(--color-imported-border);
   border-radius: 999px;

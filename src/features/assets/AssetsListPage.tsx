@@ -1,9 +1,9 @@
-// Asset-list upload + overview — the SSP-bootstrap assistant's input data. Decision IDs: ADR-0026, ADR-0027.
+// Asset-list upload + overview — the SSP-bootstrap assistant's input data. Decision IDs: ADR-0026, ADR-0027, ADR-0031.
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAssetsStore } from './store';
 import { useI18n } from '@/shared/i18n';
-import { downloadAssetsAsCsv } from '@/data/bulkExport';
+import { downloadAssetsAsCsv, downloadAssetWorkspaceJson } from '@/data/bulkExport';
 import { BulkActionsBar } from '@/features/shared/BulkActionsBar';
 
 export function AssetsListPage() {
@@ -17,6 +17,7 @@ export function AssetsListPage() {
     selected,
     load,
     importCsvTrio,
+    importJson,
     clear,
     toggleSelected,
     selectAll,
@@ -25,7 +26,12 @@ export function AssetsListPage() {
   const typesInput = useRef<HTMLInputElement>(null);
   const assetsInput = useRef<HTMLInputElement>(null);
   const mappingsInput = useRef<HTMLInputElement>(null);
+  const jsonInput = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Cross-page deep link (ADR-0031): an SSP detail page's inventory-item links here with
+  // ?asset=<id> to jump straight to that one asset instead of re-searching the whole list.
+  const assetFilter = searchParams.get('asset');
 
   useEffect(() => {
     void load();
@@ -56,6 +62,22 @@ export function AssetsListPage() {
     }
   }
 
+  async function onUploadJson() {
+    setUploadError(null);
+    const file = jsonInput.current?.files?.[0];
+    if (!file) {
+      setUploadError(t('assets_upload_missing_files'));
+      return;
+    }
+    try {
+      await importJson(await file.text());
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      if (jsonInput.current) jsonInput.current.value = '';
+    }
+  }
+
   function onClear() {
     if (globalThis.confirm(t('assets_clear_confirm'))) {
       void clear();
@@ -64,9 +86,13 @@ export function AssetsListPage() {
 
   function onDownloadSelected() {
     downloadAssetsAsCsv(
-      assets.filter((a) => selected.has(a.uuid)),
+      assets.filter((a) => selected.has(a.assetId)),
       `assets-export-${Date.now()}.csv`,
     );
+  }
+
+  function onDownloadJson() {
+    downloadAssetWorkspaceJson(assetTypes, assets, `asset-workspace-${Date.now()}.json`);
   }
 
   async function onDeleteSelected() {
@@ -74,8 +100,17 @@ export function AssetsListPage() {
     await removeMany([...selected]);
   }
 
+  function showAllAssets() {
+    setSearchParams((params) => {
+      const next = new URLSearchParams(params);
+      next.delete('asset');
+      return next;
+    });
+  }
+
   const typesByUuid = new Map(assetTypes.map((at) => [at.uuid, at]));
-  const allSelected = assets.length > 0 && assets.every((a) => selected.has(a.uuid));
+  const visibleAssets = assetFilter ? assets.filter((a) => a.assetId === assetFilter) : assets;
+  const allSelected = visibleAssets.length > 0 && visibleAssets.every((a) => selected.has(a.assetId));
 
   return (
     <main data-testid="assets-page">
@@ -112,6 +147,22 @@ export function AssetsListPage() {
         </button>
       </fieldset>
 
+      <fieldset>
+        <legend>{t('assets_upload_json_button')}</legend>
+        <p>
+          <small>{t('assets_upload_json_hint')}</small>
+        </p>
+        <p>
+          <label>
+            {t('assets_upload_json_label')}
+            <input ref={jsonInput} type="file" accept=".json,application/json" data-testid="assets-upload-json" />
+          </label>
+        </p>
+        <button type="button" onClick={() => void onUploadJson()} data-testid="assets-upload-json-submit">
+          ⭱ {t('assets_upload_json_button')}
+        </button>
+      </fieldset>
+
       {uploadError && (
         <p role="alert" data-testid="assets-upload-error">
           ⚠️ {uploadError}
@@ -136,7 +187,19 @@ export function AssetsListPage() {
           </p>
           <button type="button" onClick={onClear} data-testid="assets-clear">
             🗑️ {t('assets_clear_button')}
+          </button>{' '}
+          <button type="button" onClick={onDownloadJson} data-testid="assets-download-json">
+            ⭳ {t('assets_download_json_button')}
           </button>
+
+          {assetFilter && (
+            <p role="status" data-testid="assets-filter-banner">
+              🔍 {t('assets_filter_showing', { assetId: assetFilter })}{' '}
+              <button type="button" onClick={showAllAssets} data-testid="assets-filter-clear">
+                {t('assets_filter_show_all')}
+              </button>
+            </p>
+          )}
 
           <BulkActionsBar
             count={selected.size}
@@ -153,7 +216,7 @@ export function AssetsListPage() {
                   <input
                     type="checkbox"
                     checked={allSelected}
-                    onChange={() => selectAll(assets.map((a) => a.uuid))}
+                    onChange={() => selectAll(visibleAssets.map((a) => a.assetId))}
                     aria-label={t('bulk_select_all')}
                     data-testid="assets-select-all"
                   />
@@ -164,13 +227,13 @@ export function AssetsListPage() {
               </tr>
             </thead>
             <tbody>
-              {assets.map((a) => (
-                <tr key={a.uuid} data-testid="assets-row">
+              {visibleAssets.map((a) => (
+                <tr key={a.assetId} data-testid="assets-row">
                   <td>
                     <input
                       type="checkbox"
-                      checked={selected.has(a.uuid)}
-                      onChange={() => toggleSelected(a.uuid)}
+                      checked={selected.has(a.assetId)}
+                      onChange={() => toggleSelected(a.assetId)}
                       aria-label={t('bulk_select_item', { title: a.name })}
                       data-testid="assets-select-item"
                     />

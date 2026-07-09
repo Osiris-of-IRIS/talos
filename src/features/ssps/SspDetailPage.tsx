@@ -7,7 +7,7 @@ import { MarkupView } from '@/shared/MarkupView';
 import { CollapsibleSection } from '@/shared/CollapsibleSection';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { useI18n } from '@/shared/i18n';
-import { useWorkspaceComponentDefinitions } from './useWorkspaceComponentDefinitions';
+import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
 import { componentStaleness, getImplementationStatus } from './componentImport';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
 import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
@@ -65,6 +65,7 @@ export function SspDetailPage() {
 
   const ssp = record.artifact;
   const components = ssp.systemImplementation?.components ?? [];
+  const inventoryItems = ssp.systemImplementation?.inventoryItems ?? [];
   const requirements = ssp.controlImplementation?.implementedRequirements ?? [];
 
   return (
@@ -151,6 +152,44 @@ export function SspDetailPage() {
           );
         })}
       </CollapsibleSection>
+
+      {inventoryItems.length > 0 && (
+        <CollapsibleSection
+          testId="ssp-section-inventory"
+          isOpen={sections.isExpanded('inventory')}
+          onToggle={() => sections.toggle('inventory')}
+          summary={t('ssp_inventory_items_heading', { count: inventoryItems.length })}
+        >
+          <ul data-testid="ssp-inventory-items">
+            {inventoryItems.map((item) => {
+              const assetId = item.props?.find((p) => p.name === 'asset-id')?.value;
+              const assetType = item.props?.find((p) => p.name === 'asset-type')?.value;
+              return (
+                <li key={item.uuid} data-testid="ssp-inventory-item">
+                  <MarkupView value={item.description} label={t('common_description')} />
+                  {assetId && (
+                    <>
+                      {' — '}
+                      <small>
+                        {t('ssp_inventory_item_asset_id_label')}:{' '}
+                        <Link to={`/assets?asset=${encodeURIComponent(assetId)}`} data-testid="ssp-inventory-item-asset-link">
+                          {assetId}
+                        </Link>
+                        {assetType && (
+                          <>
+                            {' · '}
+                            {t('ssp_inventory_item_asset_type_label')}: {assetType}
+                          </>
+                        )}
+                      </small>
+                    </>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </CollapsibleSection>
+      )}
 
       <CollapsibleSection
         testId="ssp-section-control-impl"

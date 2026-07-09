@@ -33,7 +33,7 @@ describe('LandingPage — bootstrap assistant card gating', () => {
   it('renders the bootstrap card as a live link once an asset exists', async () => {
     const db = await getDb();
     await db.put('assets', {
-      uuid: 'C001',
+      assetId: 'C001',
       name: 'Test asset',
       assetType: 'client-pc',
       description: '',
