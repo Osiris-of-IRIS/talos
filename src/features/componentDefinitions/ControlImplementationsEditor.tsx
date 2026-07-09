@@ -20,12 +20,15 @@ import {
   controlIdOptionsForSource,
   findCatalogEntry,
   paramsForControl,
+  resolveControlForSource,
   sourceToCatalogUuid,
   type CatalogIndex,
 } from '@/data/catalogResolution';
 import { useI18n } from '@/shared/i18n';
 import { MarkupEditor } from '@/shared/MarkupEditor';
 import { DatalistInput } from '@/shared/DatalistInput';
+import { ControlDisplay } from '@/features/shared/ControlDisplay';
+import { viewerHref } from '@/config';
 import type { Parameter } from '@/models/control';
 import type { BackMatter } from '@/models/oscalBase';
 import type {
@@ -77,6 +80,18 @@ function SetParameterRow({
 }) {
   const { t } = useI18n();
   const [rawValues, setRawValues] = useState((value.values ?? []).join(', '));
+  // Item 4 (UI feedback): once a choice-constrained param is picked, values must come from its
+  // defined choices — no free text — so a selection can never drift out of sync with the control.
+  const selectedParam = paramOptions.find((p) => p.id === value.paramId);
+  const choices = selectedParam?.select?.choice;
+
+  function toggleChoice(choice: string) {
+    const set = new Set(value.values ?? []);
+    if (set.has(choice)) set.delete(choice);
+    else set.add(choice);
+    onChange({ ...value, values: set.size > 0 ? [...set] : undefined });
+  }
+
   return (
     <div data-testid="set-parameter">
       <DatalistInput
@@ -88,16 +103,48 @@ function SetParameterRow({
         options={paramOptions.map((p) => ({ value: p.id, label: p.label ?? p.id }))}
         onChange={(v) => onChange({ ...value, paramId: v })}
       />
-      <input
-        aria-label={t('ci_param_values_aria')}
-        data-testid="sp-values"
-        value={rawValues}
-        placeholder={t('ci_param_values_placeholder')}
-        onChange={(e) => {
-          setRawValues(e.target.value);
-          onChange({ ...value, values: parseValues(e.target.value) });
-        }}
-      />
+      {choices ? (
+        selectedParam!.select!.howMany === 'one-or-more' ? (
+          <fieldset data-testid="sp-values-choice">
+            <legend>{t('ci_param_choice_legend')}</legend>
+            {choices.map((c) => (
+              <label key={c}>
+                <input
+                  type="checkbox"
+                  checked={(value.values ?? []).includes(c)}
+                  onChange={() => toggleChoice(c)}
+                />
+                {c}
+              </label>
+            ))}
+          </fieldset>
+        ) : (
+          <select
+            data-testid="sp-values-select"
+            aria-label={t('ci_param_values_aria')}
+            value={value.values?.[0] ?? ''}
+            onChange={(e) => onChange({ ...value, values: e.target.value ? [e.target.value] : undefined })}
+          >
+            <option value="">{t('ci_param_choice_placeholder')}</option>
+            {choices.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        )
+      ) : (
+        <input
+          aria-label={t('ci_param_values_aria')}
+          data-testid="sp-values"
+          value={rawValues}
+          placeholder={t('ci_param_values_placeholder')}
+          onChange={(e) => {
+            setRawValues(e.target.value);
+            onChange({ ...value, values: parseValues(e.target.value) });
+          }}
+        />
+      )}
       <button type="button" aria-label={t('ci_remove_set_parameter')} onClick={onRemove}>
         ✕
       </button>
@@ -199,6 +246,12 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
               const controlIdOptions = catalogIndex
                 ? controlIdOptionsForSource(catalogIndex, ci.source, backMatter)
                 : [];
+              // Item 3 (UI feedback): show the actual control content next to the editable
+              // fields, 40/60 like the read-only viewer (ADR-0028), so an author can see whether
+              // the description/remarks actually fit the control they picked.
+              const resolvedControl = catalogIndex
+                ? resolveControlForSource(catalogIndex, ci.source, ir.controlId, backMatter)
+                : undefined;
               return (
               <fieldset key={ir.uuid} data-testid="implemented-requirement">
                 <label>
@@ -214,73 +267,97 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
                     }
                   />
                 </label>
-                <label>
-                  {t('common_description')}
-                  <MarkupEditor
-                    dataTestId="ir-description"
-                    ariaLabel={t('common_description')}
-                    rows={5}
-                    value={ir.description ?? ''}
-                    onChange={(v) =>
-                      update(
-                        (c) =>
-                          (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.description =
-                            v || undefined),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  {t('md_remarks_label')}
-                  <MarkupEditor
-                    dataTestId="ir-remarks"
-                    ariaLabel={t('md_remarks_label')}
-                    rows={5}
-                    value={ir.remarks ?? ''}
-                    onChange={(v) =>
-                      update(
-                        (c) =>
-                          (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.remarks =
-                            v || undefined),
-                      )
-                    }
-                  />
-                </label>
 
-                <div data-testid="set-parameters">
-                  <em>{t('ci_set_parameters_heading')}</em>
-                  {(ir.setParameters ?? []).map((sp, spIdx) => (
-                    <SetParameterRow
-                      key={spIdx}
-                      value={sp}
-                      onChange={(next) =>
-                        update(
-                          (c) =>
-                            (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.setParameters![spIdx] = next),
-                        )
-                      }
-                      onRemove={() =>
-                        update((c) =>
-                          c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.setParameters!.splice(spIdx, 1),
-                        )
-                      }
-                      paramOptions={paramOptions}
-                      listId={`params-${ir.uuid}`}
-                    />
-                  ))}
-                  <button
-                    type="button"
-                    data-testid="add-set-parameter"
-                    onClick={() =>
-                      update((c) => {
-                        const req = c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!;
-                        (req.setParameters ??= []).push({ paramId: '' });
-                      })
-                    }
-                  >
-                    ➕ {t('ci_add_set_parameter')}
-                  </button>
-                </div>
+                <table className="control-requirements-table" data-testid="ir-requirements-table">
+                  <colgroup>
+                    <col className="control-requirements-col-control" />
+                    <col className="control-requirements-col-detail" />
+                  </colgroup>
+                  <tbody>
+                    <tr>
+                      <td>
+                        {resolvedControl ? (
+                          <ControlDisplay
+                            control={resolvedControl.control}
+                            setParameters={ir.setParameters}
+                            viewerUrl={viewerHref(resolvedControl.catalogLibraryPath)}
+                          />
+                        ) : (
+                          <em data-testid="ir-control-unresolved-hint">{t('ci_control_unresolved_hint')}</em>
+                        )}
+                      </td>
+                      <td>
+                        <label>
+                          {t('common_description')}
+                          <MarkupEditor
+                            dataTestId="ir-description"
+                            ariaLabel={t('common_description')}
+                            rows={5}
+                            value={ir.description ?? ''}
+                            onChange={(v) =>
+                              update(
+                                (c) =>
+                                  (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.description =
+                                    v || undefined),
+                              )
+                            }
+                          />
+                        </label>
+                        <label>
+                          {t('md_remarks_label')}
+                          <MarkupEditor
+                            dataTestId="ir-remarks"
+                            ariaLabel={t('md_remarks_label')}
+                            rows={5}
+                            value={ir.remarks ?? ''}
+                            onChange={(v) =>
+                              update(
+                                (c) =>
+                                  (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.remarks =
+                                    v || undefined),
+                              )
+                            }
+                          />
+                        </label>
+
+                        <div data-testid="set-parameters">
+                          <em>{t('ci_set_parameters_heading')}</em>
+                          {(ir.setParameters ?? []).map((sp, spIdx) => (
+                            <SetParameterRow
+                              key={spIdx}
+                              value={sp}
+                              onChange={(next) =>
+                                update(
+                                  (c) =>
+                                    (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.setParameters![spIdx] = next),
+                                )
+                              }
+                              onRemove={() =>
+                                update((c) =>
+                                  c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.setParameters!.splice(spIdx, 1),
+                                )
+                              }
+                              paramOptions={paramOptions}
+                              listId={`params-${ir.uuid}`}
+                            />
+                          ))}
+                          <button
+                            type="button"
+                            data-testid="add-set-parameter"
+                            onClick={() =>
+                              update((c) => {
+                                const req = c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!;
+                                (req.setParameters ??= []).push({ paramId: '' });
+                              })
+                            }
+                          >
+                            ➕ {t('ci_add_set_parameter')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
 
                 <button
                   type="button"

@@ -168,10 +168,13 @@ on quota error, warn + guide to export, never drop data.
 
 ---
 
-## 9. Security `[ADR-0002, ADR-0009]`
+## 9. Security `[ADR-0002, ADR-0009, ADR-0030]`
 
 - **XSS:** all OSCAL markup rendered through the single sanitizing renderer (HTML-escape →
-  subset → link-URL allowlist); no raw HTML, no images `[ADR-0009]`.
+  subset → link-URL allowlist); no raw HTML, no images `[ADR-0009]`. The subset now covers the
+  full metaschema markup-line/markup-multiline set — headings, nested lists, code blocks,
+  blockquotes, tables, specialized-character escaping, parameter-insertion placeholders — images
+  stay excluded on the same XSS grounds `[ADR-0030]`.
 - **Safe parsing:** uploaded JSON parsed defensively + schema-validated before use.
 - **External links / hand-off:** `rel="noopener"` new-tab; viewer receives only public URLs.
 - **Privacy:** no telemetry, no third-party calls except the read-only BSI fetch; all user data

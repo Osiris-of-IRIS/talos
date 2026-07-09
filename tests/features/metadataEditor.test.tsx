@@ -59,6 +59,18 @@ async function addParty(
   await user.click(screen.getByTestId('md-add-party'));
 }
 
+describe('MetadataEditor layout (UI feedback item 2)', () => {
+  it('gives title/version/remarks each their own row, title wider than version', () => {
+    render(<Harness />);
+    // Each field is its own block-level row (not floating inline next to its neighbor) and the
+    // title field is visually wider than version — asserted via the layout hook classNames the
+    // CSS keys off, since jsdom doesn't compute real widths.
+    expect(screen.getByTestId('md-title').closest('label')).toHaveClass('md-field', 'md-field--title');
+    expect(screen.getByTestId('md-version').closest('label')).toHaveClass('md-field', 'md-field--version');
+    expect(screen.getByTestId('md-remarks').closest('label')).toHaveClass('md-field', 'md-field--remarks');
+  });
+});
+
 describe('MetadataEditor roles & parties', () => {
   it('adds a role and a party into metadata', async () => {
     const user = userEvent.setup();

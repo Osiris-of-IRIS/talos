@@ -175,7 +175,7 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
     <fieldset data-testid="metadata-editor">
       <legend>{t('md_legend')}</legend>
 
-      <label>
+      <label className="md-field md-field--title">
         {t('md_title_label')}
         <input
           data-testid="md-title"
@@ -184,7 +184,7 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
         />
       </label>
 
-      <label>
+      <label className="md-field md-field--version">
         {t('md_version_label')}
         <input
           data-testid="md-version"
@@ -193,7 +193,7 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
         />
       </label>
 
-      <label>
+      <label className="md-field md-field--remarks">
         {t('md_remarks_label')}
         <MarkupEditor
           dataTestId="md-remarks"

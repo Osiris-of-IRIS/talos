@@ -149,6 +149,9 @@
   "ci_remove_ci_aria": "Control-Umsetzung entfernen",
   "ci_remove_ci_button": "Control-Umsetzung entfernen",
   "ci_add_ci": "Control-Umsetzung hinzufügen",
+  "ci_control_unresolved_hint": "Wählen Sie oben eine Control-ID, um deren aufgelösten Inhalt hier zu sehen.",
+  "ci_param_choice_legend": "Wert(e) auswählen",
+  "ci_param_choice_placeholder": "— auswählen —",
 
   "ssp_empty": "Noch keine System-Sicherheitspläne. Laden Sie eine OSCAL-Datei hoch, um zu beginnen.",
   "ssp_delete": "{title} löschen",

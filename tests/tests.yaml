@@ -40,6 +40,7 @@ adr_coverage_required:
   - ADR-0027 # bulk artifact selection: shared selection slice, multi-delete, zip/CSV bundle download
   - ADR-0028 # detail/editor visual unification: nested boxes, SSP control|implementation table, by-component prefill
   - ADR-0029 # sidebar navigation, logo branding, configurable hero background
+  - ADR-0030 # expanded OSCAL markup rendering: headings/lists/code/blockquote/table, char escaping, param insertion
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -85,13 +86,13 @@ suites:
       - tests/data/ssp-minimal.json
 
   - id: TEST-MD-01
-    title: OSCAL markdown renderer (inline/multiline/strip, XSS-safe)
+    title: "OSCAL markdown renderer (inline/multiline/strip, XSS-safe, full metaschema block subset)"
     file: tests/shared/oscalMarkdown.test.ts
     type: unit
     runner: vitest
     status: implemented
     feature: PLAT-004
-    adr_refs: [ADR-0001, ADR-0009]
+    adr_refs: [ADR-0001, ADR-0009, ADR-0030]
 
   - id: TEST-MDV-01
     title: "<MarkupView> truncate/expand helper (budget heuristic, expand modal)"
@@ -167,13 +168,13 @@ suites:
     adr_refs: [ADR-0001, ADR-0016]
 
   - id: TEST-CATRES-01
-    title: "Catalog resolution index + source→catalog/control/param pickers (T-142); back-matter-mediated source resolution + control-id typeahead richness (items 5, 7)"
+    title: "Catalog resolution index + source→catalog/control/param pickers (T-142); back-matter-mediated source resolution + control-id typeahead richness (items 5, 7); source-scoped control resolution for the CD editor's 40/60 display (T-160 item 3)"
     file: tests/data/catalogResolution.test.ts
     type: integration
     runner: vitest
     status: implemented
     feature: PLAT-004
-    adr_refs: [ADR-0001, ADR-0013, ADR-0016, ADR-0024]
+    adr_refs: [ADR-0001, ADR-0013, ADR-0016, ADR-0024, ADR-0028]
     golden: [tests/data/catalog-minimal.json]
 
   - id: TEST-CATRES-02
@@ -250,7 +251,7 @@ suites:
     adr_refs: [ADR-0001, ADR-0007]
 
   - id: TEST-META-01
-    title: Shared MetadataEditor roles/parties/responsible-parties + referential integrity + party depth
+    title: "Shared MetadataEditor roles/parties/responsible-parties + referential integrity + party depth; title/version/remarks field layout (T-160 item 2)"
     file: tests/features/metadataEditor.test.tsx
     type: component
     runner: vitest
@@ -441,6 +442,15 @@ suites:
     status: planned
     feature: IMPL-001
     adr_refs: [ADR-0001, ADR-0014, ADR-0017]
+
+  - id: TEST-CDEF-EDIT-03
+    title: "ControlImplementationsEditor: resolved-control 40/60 display in the requirement editor (with unresolved hint), choice-constrained set-parameters (single-select + multi-select checkboxes vs. free text) (T-160 items 3, 4)"
+    file: tests/features/controlImplementationsEditor.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0003, ADR-0016, ADR-0028]
 
   # ---- SSPs (IMPL-002) ------------------------------------------------------------
   - id: TEST-SSP-01

@@ -149,6 +149,9 @@
   "ci_remove_ci_aria": "Remove control implementation",
   "ci_remove_ci_button": "Remove control implementation",
   "ci_add_ci": "Add control implementation",
+  "ci_control_unresolved_hint": "Pick a control-id above to see its resolved content here.",
+  "ci_param_choice_legend": "Choose value(s)",
+  "ci_param_choice_placeholder": "— choose —",
 
   "ssp_empty": "No system security plans yet. Upload an OSCAL file to start.",
   "ssp_delete": "Delete {title}",

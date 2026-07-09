@@ -20,6 +20,7 @@ import {
   findCatalogEntry,
   controlIdOptionsForSource,
   allControlIdOptions,
+  resolveControlForSource,
 } from '@/data/catalogResolution';
 import { ensureCatalogSourceResource } from '@/models/backMatter';
 import { parseOscalUpload } from '@/data/fileIo';
@@ -96,6 +97,24 @@ describe('source→catalog + param pickers (T-142)', () => {
     const { idx } = build();
     expect(controlIdsForSource(idx, '#cat-1')).toEqual([]);
     expect(paramsForControl(idx, '#cat-1', 'ASST.1.1.2')).toEqual([]);
+  });
+});
+
+describe('resolveControlForSource (UI feedback item 3 — CD editor 40/60 control display)', () => {
+  it('resolves the control within the chosen source, incl. its library path', () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    const idx = buildCatalogIndex([{ ...record, libraryPath: 'catalogs/kernel.json' }] as never);
+    const resolved = resolveControlForSource(idx, `#${record.uuid}`, 'ASST.1.1.2');
+    expect(resolved?.control.title).toBe('Zuweisung');
+    expect(resolved?.catalogTitle).toBe('BSI Kernel (excerpt)');
+    expect(resolved?.catalogLibraryPath).toBe('catalogs/kernel.json');
+  });
+
+  it('returns undefined for an unresolved source or unknown control-id', () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    const idx = buildCatalogIndex([record] as never);
+    expect(resolveControlForSource(idx, '#cat-1', 'ASST.1.1.2')).toBeUndefined();
+    expect(resolveControlForSource(idx, undefined, 'ASST.1.1.2')).toBeUndefined();
   });
 });
 

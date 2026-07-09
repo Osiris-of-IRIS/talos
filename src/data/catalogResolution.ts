@@ -77,6 +77,8 @@ export interface CatalogEntry {
   uuid: string;
   title: string;
   controlsById: Map<string, Control>;
+  /** public/library path of the catalog, if known (for the viewer hand-off, ADR-0008). */
+  libraryPath?: string;
 }
 
 export interface CatalogIndex {
@@ -94,7 +96,12 @@ export function buildCatalogIndex(catalogs: StoredArtifact<Catalog>[]): CatalogI
   for (const rec of catalogs) {
     const libraryPath = (rec as { libraryPath?: string }).libraryPath;
     const controlsById = indexCatalogControls(rec.artifact);
-    entries.push({ uuid: rec.uuid, title: rec.artifact.metadata.title, controlsById });
+    entries.push({
+      uuid: rec.uuid,
+      title: rec.artifact.metadata.title,
+      controlsById,
+      ...(libraryPath ? { libraryPath } : {}),
+    });
     for (const [id, control] of controlsById) {
       if (!byControlId.has(id)) {
         byControlId.set(id, {
@@ -222,6 +229,28 @@ export function paramsForControl(
 ): Parameter[] {
   const entry = findCatalogEntry(index, source, backMatter);
   return entry?.controlsById.get(normalizeControlIdKey(controlId))?.params ?? [];
+}
+
+/**
+ * Resolve a control within a chosen source (item 3, ADR-0030) — the source-scoped counterpart to
+ * `resolveControl` (which is unscoped, for SSPs). Used to show the actual control content next to
+ * an implemented-requirement's editor fields instead of just the raw id.
+ */
+export function resolveControlForSource(
+  index: CatalogIndex,
+  source: string | undefined,
+  controlId: string,
+  backMatter?: BackMatter,
+): ResolvedControl | undefined {
+  const entry = findCatalogEntry(index, source, backMatter);
+  const control = entry?.controlsById.get(normalizeControlIdKey(controlId));
+  if (!entry || !control) return undefined;
+  return {
+    control,
+    catalogUuid: entry.uuid,
+    catalogTitle: entry.title,
+    ...(entry.libraryPath ? { catalogLibraryPath: entry.libraryPath } : {}),
+  };
 }
 
 /** Load all workspace catalogs and build the resolution index. */

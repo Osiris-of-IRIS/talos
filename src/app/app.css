@@ -416,6 +416,20 @@ label {
   color: var(--color-text);
 }
 
+/* ------------------------------------------------- metadata field rows (UI feedback item 2) */
+/* A bare <label> is inline by default, so title/version/remarks used to flow side-by-side and
+   wrap unpredictably. Each metadata field now owns its own row; the title gets real width
+   instead of the browser's ~20-character default input size. */
+.md-field {
+  display: block;
+  margin: 0 0 0.85rem;
+}
+
+.md-field--title input {
+  width: 100%;
+  max-width: 32rem;
+}
+
 input:not([type='checkbox']):not([type='radio']):not([type='file']),
 select,
 textarea {
@@ -433,6 +447,73 @@ select:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--color-accent-bronze-bright);
   outline-offset: 1px;
+}
+
+/* --------------------------------------------- expanded markup rendering (ADR-0030, feedback item 1) */
+/* Block elements produced by the expanded oscalMarkdown renderer — headings/lists/code/blockquote/
+   table now appear wherever any markup-multiline field is displayed or previewed
+   (<Markup>/<MarkupView>/the <MarkupEditor> preview toggle). */
+.markup-view h1,
+.markup-view h2,
+.markup-view h3,
+.markup-view h4,
+.markup-view h5,
+.markup-view h6,
+.markup-editor-preview h1,
+.markup-editor-preview h2,
+.markup-editor-preview h3,
+.markup-editor-preview h4,
+.markup-editor-preview h5,
+.markup-editor-preview h6 {
+  margin: 0.6rem 0 0.3rem;
+  line-height: 1.25;
+}
+
+.markup-view pre,
+.markup-editor-preview pre {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  overflow-x: auto;
+}
+
+.markup-view blockquote,
+.markup-editor-preview blockquote {
+  margin: 0.5rem 0;
+  padding: 0.2rem 0.9rem;
+  border-left: 3px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+}
+
+.markup-view table,
+.markup-editor-preview table {
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+}
+
+.markup-view th,
+.markup-view td,
+.markup-editor-preview th,
+.markup-editor-preview td {
+  border: 1px solid var(--color-border);
+  padding: 0.3rem 0.6rem;
+  text-align: left;
+}
+
+.markup-view ul,
+.markup-view ol,
+.markup-editor-preview ul,
+.markup-editor-preview ol {
+  margin: 0.3rem 0;
+  padding-left: 1.4rem;
+}
+
+/* Unresolved `{{ insert: param, id }}` placeholder (ADR-0030): no params context outside a
+   resolved control statement (ADR-0016 keeps its own resolved-value rendering, unaffected). */
+.markup-param-insert {
+  color: var(--color-param);
+  font-weight: 600;
 }
 
 /* -------------------------------------------------------------------------------- lists */
