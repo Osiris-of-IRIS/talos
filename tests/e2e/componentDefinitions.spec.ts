@@ -37,7 +37,8 @@ test('upload a component-definition, see it listed, open its detail', async ({ p
 test('landing page links to component-definitions', async ({ page }) => {
   await page.goto('/');
   await useEnglishUi(page);
-  await page.getByRole('link', { name: /Component-Definitions/ }).click();
+  // Scoped to <main>: the persistent sidebar (ADR-0029) also links here, by the same text.
+  await page.locator('main').getByRole('link', { name: /Component-Definitions/ }).click();
   await expect(page).toHaveURL(/#\/component-definitions/);
   await expect(page.getByRole('heading', { name: /Component-Definitions/ })).toBeVisible();
 });

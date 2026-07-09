@@ -1,5 +1,6 @@
 /**
- * Landing page: SSP-bootstrap-assistant card gating on the assets prerequisite (ADR-0026).
+ * Landing page: SSP-bootstrap-assistant card gating on the assets prerequisite (ADR-0026);
+ * configured hero background image (ADR-0029).
  * Covers TEST-LAND-03.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -9,6 +10,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests, getDb } from '@/data/db';
 import { LandingPage } from '@/app/LandingPage';
 import { useAssetsStore } from '@/features/assets/store';
+import { heroBackgroundUrl } from '@/app/heroBackground';
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
@@ -48,5 +50,17 @@ describe('LandingPage — bootstrap assistant card gating', () => {
       expect(screen.getByRole('link', { name: /SSP Bootstrap Assistant/ })).toBeInTheDocument(),
     );
     expect(screen.queryByTestId('feature-card-disabled')).not.toBeInTheDocument();
+  });
+});
+
+describe('LandingPage — hero background (ADR-0029)', () => {
+  it('renders the hero with the background image resolved from the centralized config', () => {
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>,
+    );
+    const hero = screen.getByTestId('landing-hero');
+    expect(hero.style.backgroundImage).toContain(heroBackgroundUrl());
   });
 });

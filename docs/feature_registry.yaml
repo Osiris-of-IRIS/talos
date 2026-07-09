@@ -6,17 +6,19 @@
 # in that catalog, and every implemented catalog entry must map back to a feature id here.
 
 - id: PLAT-001
-  title: "Landing page / feature hub"
-  user_story: "As a user, I want a single landing page linking every feature so I can navigate the whole app."
+  title: "Landing page / feature hub, app-wide sidebar navigation"
+  user_story: "As a user, I want a single landing page linking every feature, and persistent navigation on every page, so I can navigate the whole app."
   acceptance_criteria:
     - "Cards for control/implementation/assessment layers, assistants, dashboard, and data (library/upload/export)."
     - "Priority features (component-definitions, SSPs) visually emphasized."
     - "Per-type artifact counts and empty-state guidance."
     - "Layer colors (ADR-0010) and symbols (ADR-0011); i18n de/en; theme-aware."
+    - "A persistent, collapsible sidebar (logo linking home + the same layer-grouped links as the landing page) is present on every route, not just the landing page (ADR-0029)."
+    - "The landing page's hero background image is a single, centrally-configured choice — the same for every user, not a per-user preference (ADR-0029)."
   status: "In-Progress"
-  scope_note: "ADR-0026: bootstrap-assistant card gains a disabled state (with hover explanation) until the workspace has at least one asset, and a new 'Assistants' layer group holds it; a new 'Assets' card joins the Data layer. TEST-LAND-01/02 (full layer/counts/empty-state coverage) remain planned."
-  linked_adr_ids: ["ADR-0006", "ADR-0010", "ADR-0011", "ADR-0012", "ADR-0020", "ADR-0026"]
-  linked_test_ids: ["TEST-LAND-01", "TEST-LAND-02", "TEST-LAND-03"]
+  scope_note: "ADR-0026: bootstrap-assistant card gains a disabled state (with hover explanation) until the workspace has at least one asset, and a new 'Assistants' layer group holds it; a new 'Assets' card joins the Data layer. TEST-LAND-01/02 (full layer/counts/empty-state coverage) remain planned. ADR-0029: navigationGroups() (src/app/navigation.ts) is now the single source of truth for both the landing page's cards and the new <Sidebar> (src/app/Sidebar.tsx) — a persistent, collapsible left-hand nav (logo->home + the same layer-grouped links) rendered app-wide in App.tsx, not per-page. The landing hero shows a background image resolved via src/app/heroBackground.ts from src/config.ts's HERO_BACKGROUND constant (one of two supplied images, switch by editing the constant and redeploying — deliberately not a per-user setting). Known cost: both hero images ship in the production bundle (~12.5MB combined, no compression tooling available in this environment) even though only one renders at a time — flagged as a follow-up, not silently accepted."
+  linked_adr_ids: ["ADR-0006", "ADR-0010", "ADR-0011", "ADR-0012", "ADR-0020", "ADR-0026", "ADR-0029"]
+  linked_test_ids: ["TEST-LAND-01", "TEST-LAND-02", "TEST-LAND-03", "TEST-SIDEBAR-01"]
 
 - id: PLAT-002
   title: "BSI Stand-der-Technik library integration"

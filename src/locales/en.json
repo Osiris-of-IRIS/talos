@@ -275,5 +275,10 @@
   "bulk_delete_confirm": "Delete {count} selected item(s)? This cannot be undone.",
   "bulk_download_warning": "{count} item(s) skipped (not exportable): {details}",
 
-  "ssp_requirements_col_implementation": "Implementation"
+  "ssp_requirements_col_implementation": "Implementation",
+
+  "sidebar_nav_label": "Main navigation",
+  "sidebar_logo_home_aria": "TALOS home",
+  "sidebar_collapse_aria": "Collapse sidebar",
+  "sidebar_expand_aria": "Expand sidebar"
 }

@@ -37,7 +37,8 @@ test('bootstrap assistant is gated on the landing page until an asset list is up
   await useEnglishUi(page);
   await expect(page.getByTestId('feature-card-disabled')).toContainText('SSP Bootstrap Assistant');
 
-  await page.getByRole('link', { name: 'Assets' }).click();
+  // Scoped to <main>: the persistent sidebar (ADR-0029) also links here, by the same text.
+  await page.locator('main').getByRole('link', { name: 'Assets' }).click();
   await expect(page.getByTestId('assets-empty')).toBeVisible();
   await page.getByTestId('assets-upload-types').setInputFiles(assetTypesCsv);
   await page.getByTestId('assets-upload-assets').setInputFiles(assetsCsv);
@@ -47,7 +48,8 @@ test('bootstrap assistant is gated on the landing page until an asset list is up
 
   await page.goto('/');
   await useEnglishUi(page);
-  await expect(page.getByRole('link', { name: 'SSP Bootstrap Assistant' })).toBeVisible();
+  // Scoped to <main>: the persistent sidebar (ADR-0029) also links here once assets exist.
+  await expect(page.locator('main').getByRole('link', { name: 'SSP Bootstrap Assistant' })).toBeVisible();
 });
 
 test('generates SSPs (NIST-style) from the uploaded asset list, then updates in place on re-run', async ({

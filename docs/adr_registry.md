@@ -33,6 +33,7 @@ the order decisions were made.
 | [ADR-0026](adr/ADR-0026-ssp-bootstrap-methodology.md) | SSP Bootstrap Assistant — Asset Model, Target-Object-Category Hierarchy & Generation Methodology | Approved | ADR-0026 |
 | [ADR-0027](adr/ADR-0027-bulk-artifact-selection.md) | Bulk Artifact Selection — Multi-Delete & Zip/CSV Bundle Download | Approved | ADR-0027 |
 | [ADR-0028](adr/ADR-0028-detail-editor-visual-unification.md) | Detail/Editor Visual Unification — Full-Width Nested Boxes, SSP Control\|Implementation Table, By-Component Description Prefill | Approved | ADR-0028 |
+| [ADR-0029](adr/ADR-0029-sidebar-navigation-branding.md) | Sidebar Navigation, Logo Branding, Configurable Hero Background | Approved | ADR-0029 |
 
 ## Notes
 

@@ -32,7 +32,8 @@ test('upload an SSP, see it listed, open its detail', async ({ page }) => {
 test('landing page links to SSPs', async ({ page }) => {
   await page.goto('/');
   await useEnglishUi(page);
-  await page.getByRole('link', { name: /System Security Plans/ }).click();
+  // Scoped to <main>: the persistent sidebar (ADR-0029) also links here, by the same text.
+  await page.locator('main').getByRole('link', { name: /System Security Plans/ }).click();
   await expect(page).toHaveURL(/#\/ssps/);
   await expect(page.getByRole('heading', { name: /System Security Plans/ })).toBeVisible();
 });

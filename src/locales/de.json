@@ -275,5 +275,10 @@
   "bulk_delete_confirm": "{count} ausgewählte(s) Element(e) löschen? Dies kann nicht rückgängig gemacht werden.",
   "bulk_download_warning": "{count} Element(e) übersprungen (nicht exportierbar): {details}",
 
-  "ssp_requirements_col_implementation": "Umsetzung"
+  "ssp_requirements_col_implementation": "Umsetzung",
+
+  "sidebar_nav_label": "Hauptnavigation",
+  "sidebar_logo_home_aria": "TALOS Startseite",
+  "sidebar_collapse_aria": "Seitenleiste einklappen",
+  "sidebar_expand_aria": "Seitenleiste ausklappen"
 }

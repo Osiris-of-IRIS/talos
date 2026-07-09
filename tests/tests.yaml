@@ -39,6 +39,7 @@ adr_coverage_required:
   - ADR-0026 # SSP bootstrap assistant: asset model, target-object-category hierarchy, generation methodology
   - ADR-0027 # bulk artifact selection: shared selection slice, multi-delete, zip/CSV bundle download
   - ADR-0028 # detail/editor visual unification: nested boxes, SSP control|implementation table, by-component prefill
+  - ADR-0029 # sidebar navigation, logo branding, configurable hero background
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -360,13 +361,22 @@ suites:
     adr_refs: [ADR-0001, ADR-0006, ADR-0012]
 
   - id: TEST-LAND-03
-    title: Bootstrap-assistant card disabled (with hover explanation) until an asset exists
+    title: "Bootstrap-assistant card disabled (with hover explanation) until an asset exists; configured hero background image (ADR-0029)"
     file: tests/app/landingPage.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: PLAT-001
-    adr_refs: [ADR-0001, ADR-0006, ADR-0026]
+    adr_refs: [ADR-0001, ADR-0006, ADR-0026, ADR-0029]
+
+  - id: TEST-SIDEBAR-01
+    title: "Sidebar: logo->home link, primary nav (shared with landing page), collapse/expand toggle, active-route highlight, bootstrap-assistant gating"
+    file: tests/app/sidebar.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-001
+    adr_refs: [ADR-0001, ADR-0006, ADR-0026, ADR-0029]
 
   # ---- Component-definitions (IMPL-001) -------------------------------------------
   - id: TEST-CDEF-01

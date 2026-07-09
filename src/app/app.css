@@ -4,11 +4,147 @@
  * ADR-0010 domain accents (those tokens are reused as-is).
  */
 
-/* ---------------------------------------------------------------- app shell / top bar */
+/* ---------------------------------------------------------------- app shell / sidebar / top bar */
 .app-shell {
   min-height: 100vh;
   display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.app-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
+}
+
+.app-sidebar {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-elevated);
+  border-right: 1px solid var(--color-border);
+  box-shadow: 1px 0 0 var(--color-border-strong);
+  transition: width 0.15s ease;
+}
+
+.app-sidebar[data-collapsed='true'] {
+  width: 4.5rem;
+}
+
+.app-sidebar-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-sidebar-logo {
+  display: block;
+  min-width: 0;
+  border-radius: var(--radius);
+}
+
+.app-sidebar-logo:hover,
+.app-sidebar-logo:focus-visible {
+  background: rgba(193, 125, 63, 0.16);
+}
+
+.app-sidebar-logo img {
+  display: block;
+  width: 100%;
+  max-width: 140px;
+  height: auto;
+}
+
+.app-sidebar[data-collapsed='true'] .app-sidebar-logo img {
+  max-width: 2.25rem;
+}
+
+.app-sidebar-toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1rem;
+  line-height: 1;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: 0 1px 2px var(--color-shadow);
+}
+
+.app-sidebar-toggle:hover,
+.app-sidebar-toggle:focus-visible {
+  box-shadow: 0 0 0 3px rgba(193, 125, 63, 0.35), 0 1px 2px var(--color-shadow);
+}
+
+.app-sidebar-body {
+  padding: 0.85rem;
+  overflow-y: auto;
+}
+
+.app-sidebar-group + .app-sidebar-group {
+  margin-top: 1.35rem;
+}
+
+.app-sidebar-group h3 {
+  margin: 0 0 0.4rem;
+  padding-left: 0;
+  border-left: none;
+  font-size: 0.72rem;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.app-sidebar-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.app-sidebar-group a {
+  display: block;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.app-sidebar-group a:hover,
+.app-sidebar-group a:focus-visible {
+  background: rgba(193, 125, 63, 0.16);
+}
+
+.app-sidebar-group a.active {
+  background: var(--color-accent-bronze);
+  color: var(--color-bg-elevated);
+  font-weight: 700;
+}
+
+.app-sidebar-group span[aria-disabled='true'] {
+  display: block;
+  padding: 0.4rem 0.6rem;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .app-topbar {
@@ -367,17 +503,43 @@ p[role='status'] {
 }
 
 /* -------------------------------------------------------------------------- landing hub */
+/* Configurable hero background (ADR-0029, src/config.ts HERO_BACKGROUND) — a dark gradient
+   scrim keeps the title/tagline readable over any photo, in both themes. */
 .landing-hero {
+  position: relative;
   text-align: center;
-  padding-top: 1rem;
+  padding: 3.5rem 1.25rem;
+  margin: -1.75rem -1.25rem 1.75rem;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.landing-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 8, 4, 0.72) 0%, rgba(10, 8, 4, 0.55) 55%, rgba(10, 8, 4, 0.8) 100%);
+}
+
+.landing-hero h1,
+.landing-hero .landing-tagline {
+  position: relative;
+  z-index: 1;
 }
 
 .landing-hero h1 {
   font-size: 2.1rem;
+  color: #fdf6e6;
+}
+
+.landing-hero h1::before {
+  opacity: 0.28;
 }
 
 .landing-tagline {
-  color: var(--color-text-muted);
+  color: #e7ddc4;
   margin-top: -0.5rem;
 }
 

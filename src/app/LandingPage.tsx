@@ -1,78 +1,11 @@
-// Landing hub — full implementation in T-040. Decision IDs: ADR-0006, ADR-0012.
+// Landing hub — full implementation in T-040. Decision IDs: ADR-0006, ADR-0012, ADR-0029.
 // Cards are grouped by OSCAL layer; priority features (component-definitions, SSPs)
 // live in the implementation layer.
 import { useEffect } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { useAssetsStore } from '@/features/assets/store';
-
-type LayerId = 'Data' | 'Control' | 'Implementation' | 'Assessment' | 'Assistants';
-
-interface FeatureCard {
-  titleKey: string;
-  path: string;
-  priority?: boolean;
-  /** When true, the card renders disabled with `disabledTitleKey` as a hover explanation (ADR-0026). */
-  disabled?: boolean;
-  disabledTitleKey?: string;
-}
-
-interface FeatureGroup {
-  layer: LayerId;
-  features: FeatureCard[];
-}
-
-const LAYER_TITLE_KEY: Record<LayerId, string> = {
-  Data: 'landing_layer_data',
-  Control: 'landing_layer_control',
-  Implementation: 'landing_layer_implementation',
-  Assessment: 'landing_layer_assessment',
-  Assistants: 'landing_layer_assistants',
-};
-
-function groups(hasAssets: boolean): FeatureGroup[] {
-  return [
-    {
-      layer: 'Data',
-      features: [
-        { titleKey: 'landing_feature_library', path: '/library' },
-        { titleKey: 'landing_feature_assets', path: '/assets' },
-      ],
-    },
-    {
-      layer: 'Control',
-      features: [
-        { titleKey: 'landing_feature_catalogs', path: '/catalogs' },
-        { titleKey: 'landing_feature_profiles', path: '/profiles' },
-      ],
-    },
-    {
-      layer: 'Implementation',
-      features: [
-        { titleKey: 'landing_feature_component_definitions', path: '/component-definitions', priority: true },
-        { titleKey: 'landing_feature_ssps', path: '/ssps', priority: true },
-      ],
-    },
-    {
-      layer: 'Assessment',
-      features: [
-        { titleKey: 'landing_feature_assessment_plans', path: '/assessment-plans' },
-        { titleKey: 'landing_feature_assessment_results', path: '/assessment-results' },
-        { titleKey: 'landing_feature_poams', path: '/poams' },
-      ],
-    },
-    {
-      layer: 'Assistants',
-      features: [
-        {
-          titleKey: 'landing_feature_bootstrap',
-          path: '/bootstrap',
-          disabled: !hasAssets,
-          disabledTitleKey: 'landing_bootstrap_disabled_title',
-        },
-      ],
-    },
-  ];
-}
+import { navigationGroups, LAYER_TITLE_KEY } from './navigation';
+import { heroBackgroundUrl } from './heroBackground';
 
 export function LandingPage() {
   const { t } = useI18n();
@@ -85,11 +18,15 @@ export function LandingPage() {
 
   return (
     <main>
-      <header className="landing-hero">
+      <header
+        className="landing-hero"
+        data-testid="landing-hero"
+        style={{ backgroundImage: `url(${heroBackgroundUrl()})` }}
+      >
         <h1>{t('app_title')}</h1>
         <p className="landing-tagline">{t('app_tagline')}</p>
       </header>
-      {groups(hasAssets).map((group) => (
+      {navigationGroups(hasAssets).map((group) => (
         <section key={group.layer} data-layer={group.layer}>
           <h2>{t(LAYER_TITLE_KEY[group.layer])}</h2>
           <ul className="feature-cards">
