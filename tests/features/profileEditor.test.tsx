@@ -197,4 +197,34 @@ describe('set-parameters', () => {
     const rec = (await repo().getAll())[0]!;
     expect(rec.artifact.modify?.setParameters).toEqual([{ paramId: 'ia-5.1_prm_2', values: ['14', '30'] }]);
   });
+
+  it('removing an earlier row does not leak its stale text into the row that shifts into its place', async () => {
+    const user = userEvent.setup();
+    renderAt('/profiles/new');
+    await user.type(screen.getByTestId('md-title'), 'My Profile');
+
+    await user.click(screen.getByTestId('profile-sp-add'));
+    const paramIdInputs1 = screen.getAllByTestId('profile-sp-param-id');
+    await user.type(paramIdInputs1[0]!, 'p1');
+    await user.type(screen.getAllByTestId('profile-sp-values')[0]!, '1, 2');
+
+    await user.click(screen.getByTestId('profile-sp-add'));
+    const paramIdInputs2 = screen.getAllByTestId('profile-sp-param-id');
+    await user.type(paramIdInputs2[1]!, 'p2');
+    await user.type(screen.getAllByTestId('profile-sp-values')[1]!, '3, 4');
+
+    // Remove the first row (p1); the second row (p2) shifts to index 0.
+    await user.click(screen.getAllByTestId('profile-sp-remove')[0]!);
+
+    // The remaining row must display p2's own values, not p1's stale buffered text.
+    expect(screen.getByTestId('profile-sp-param-id')).toHaveValue('p2');
+    expect(screen.getByTestId('profile-sp-values')).toHaveValue('3, 4');
+
+    // Editing it now must only affect p2 — not resurrect/mix in p1's data.
+    await user.type(screen.getByTestId('profile-sp-values'), ', 5');
+    await user.click(screen.getByTestId('save-profile'));
+
+    const rec = (await repo().getAll())[0]!;
+    expect(rec.artifact.modify?.setParameters).toEqual([{ paramId: 'p2', values: ['3', '4', '5'] }]);
+  });
 });

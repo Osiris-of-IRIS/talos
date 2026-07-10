@@ -271,6 +271,15 @@ suites:
     feature: CTRL-001
     adr_refs: [ADR-0001, ADR-0013, ADR-0016, ADR-0026, ADR-0032]
 
+  - id: TEST-PROF-08
+    title: "E2E profile major flows: upload -> list -> detail; create via editor (catalog import, by-id mode); Profile Creation Assistant target-object picker; landing link"
+    file: tests/e2e/profiles.spec.ts
+    type: e2e
+    runner: playwright
+    status: implemented
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0032]
+
   - id: TEST-SELECT-01
     title: Shared bulk-selection zustand slice (toggle/select-all/clear), composed into every list store
     file: tests/features/selectionSlice.test.ts

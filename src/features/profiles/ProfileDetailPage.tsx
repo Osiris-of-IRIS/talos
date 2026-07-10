@@ -154,8 +154,10 @@ export function ProfileDetailPage() {
         <>
           <h2>{t('profile_set_parameters_heading', { count: setParameters.length })}</h2>
           <ul data-testid="profile-detail-set-parameters">
-            {setParameters.map((sp) => (
-              <li key={sp.paramId}>
+            {setParameters.map((sp, i) => (
+              // Index, not paramId — modify.set-parameters has no id field, and paramId is not
+              // guaranteed unique (e.g. two blank entries mid-edit) so keying by it can collide.
+              <li key={i}>
                 λ <code>{sp.paramId}</code> = {(sp.values ?? []).join(', ') || '—'}
               </li>
             ))}

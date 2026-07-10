@@ -78,6 +78,16 @@ export function ProfileCreationAssistantPage() {
     if (!sourceCatalog && mode !== 'all') setMode('all');
   }, [sourceCatalog, mode]);
 
+  // Both selection sets are scoped to whichever source is currently picked (includeIds are
+  // control-ids from that source's own catalog; a stale set from a previously-picked catalog
+  // could reference ids that don't exist in the new one). Reset on every sourcePick change —
+  // including intermediate keystrokes before a new pick is committed, since the old selection is
+  // meaningless once the source it was scoped to is no longer picked.
+  useEffect(() => {
+    setIncludeIds(new Set());
+    setTargetObjectUuids(new Set());
+  }, [sourcePick]);
+
   async function onCreate() {
     if (!draft.metadata.title.trim() || !sourcePick) return;
     const target = sourceCatalog ?? sourceProfile;

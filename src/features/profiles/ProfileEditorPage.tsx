@@ -61,6 +61,13 @@ export function ProfileEditorPage() {
   const [saving, setSaving] = useState(false);
   const [importPick, setImportPick] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
+  // Stable per-row identity for set-parameters, kept in lockstep with
+  // draft.modify.setParameters by every add/remove/load path below — `modify.set-parameters`
+  // has no id field of its own (OSCAL), and keying the list by array index would let a later
+  // row's <SetParameterValuesInput> (which buffers its own text locally) keep showing an
+  // earlier row's stale text after a row above it is removed (React reuses the component
+  // instance for a reused index/key without resetting its local state).
+  const [spKeys, setSpKeys] = useState<string[]>([]);
   const workspaceCatalogs = useWorkspaceCatalogs();
   const workspaceProfiles = useWorkspaceProfiles();
 
@@ -71,8 +78,12 @@ export function ProfileEditorPage() {
       .get(uuid)
       .then((r) => {
         if (!active) return;
-        if (r) setDraft(r.artifact);
-        else setNotFound(true);
+        if (r) {
+          setDraft(r.artifact);
+          setSpKeys((r.artifact.modify?.setParameters ?? []).map(() => globalThis.crypto.randomUUID()));
+        } else {
+          setNotFound(true);
+        }
       });
     return () => {
       active = false;
@@ -190,6 +201,7 @@ export function ProfileEditorPage() {
       next.modify.setParameters!.push({ paramId: '', values: [] });
       return next;
     });
+    setSpKeys((prev) => [...prev, globalThis.crypto.randomUUID()]);
   }
 
   function patchSetParameter(idx: number, patch: Partial<ProfileSetParameter>) {
@@ -208,6 +220,7 @@ export function ProfileEditorPage() {
       next.modify!.setParameters!.splice(idx, 1);
       return next;
     });
+    setSpKeys((prev) => prev.filter((_, i) => i !== idx));
   }
 
   async function save() {
@@ -385,7 +398,7 @@ export function ProfileEditorPage() {
         <legend>{t('profile_set_parameters_heading', { count: setParameters.length })}</legend>
         <ul data-testid="profile-set-parameters-list">
           {setParameters.map((sp, i) => (
-            <li key={i} data-testid="profile-set-parameter">
+            <li key={spKeys[i] ?? i} data-testid="profile-set-parameter">
               <input
                 aria-label={t('ci_param_id_aria')}
                 placeholder={t('ci_param_id_placeholder')}

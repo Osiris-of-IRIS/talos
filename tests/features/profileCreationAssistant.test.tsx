@@ -68,6 +68,21 @@ async function seedCatalog() {
   });
 }
 
+const otherCatalogUuid = 'cccccccc-8888-4888-8888-888888888888';
+
+async function seedOtherCatalog() {
+  await catalogRepo().create({
+    uuid: otherCatalogUuid,
+    type: 'catalog',
+    origin: 'user',
+    artifact: {
+      uuid: otherCatalogUuid,
+      metadata: { title: 'Other Catalog', version: '1.0.0', oscalVersion: '1.2.2' },
+      controls: [{ id: 'X1', title: 'Unrelated control' }],
+    } as Catalog,
+  });
+}
+
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   _resetDbForTests();
@@ -108,6 +123,38 @@ describe('by-id inclusion mode', () => {
 
     const rec = (await repo().getAll())[0]!;
     expect(rec.artifact.imports[0]!.includeControls?.[0]?.withIds).toEqual(['C1']);
+  });
+
+  it('clears previously-picked control ids when the source is changed to a different catalog', async () => {
+    await seedCatalog();
+    await seedOtherCatalog();
+    const user = userEvent.setup();
+    renderAt('/profiles/assistant');
+    await user.type(screen.getByTestId('md-title'), 'Assistant Profile');
+
+    // Pick the first catalog and select one of its controls.
+    await user.type(screen.getByTestId('profile-assistant-source-picker-input'), 'Grundschutz');
+    await user.click(await screen.findByText('Grundschutz Test'));
+    await user.click(screen.getByTestId('profile-assistant-mode-by-id'));
+    const firstBoxes = await screen.findAllByTestId('control-checklist-checkbox');
+    await user.click(firstBoxes[0]!); // picks C1
+
+    // Switch the source to an unrelated catalog that doesn't even have a control id "C1".
+    await user.clear(screen.getByTestId('profile-assistant-source-picker-input'));
+    await user.type(screen.getByTestId('profile-assistant-source-picker-input'), 'Other Catalog');
+    await user.click(await screen.findByText('Other Catalog'));
+    await user.click(screen.getByTestId('profile-assistant-mode-by-id'));
+
+    // The stale "C1" pick from the first catalog must not survive the source change.
+    const secondBoxes = await screen.findAllByTestId('control-checklist-checkbox');
+    expect(secondBoxes).toHaveLength(1); // Other Catalog only has X1
+    expect(secondBoxes[0]).not.toBeChecked();
+
+    await user.click(screen.getByTestId('profile-assistant-create'));
+    await waitFor(() => expect(screen.getByTestId('detail-landed')).toBeInTheDocument());
+
+    const rec = (await repo().getAll())[0]!;
+    expect(rec.artifact.imports[0]!.includeControls?.[0]?.withIds).toEqual([]);
   });
 });
 

@@ -22,11 +22,13 @@ test('create a component-definition end to end', async ({ page }) => {
   // Component type from the allowed list, and a full implemented requirement with a set-parameter.
   await page.getByTestId('component-type').fill('policy');
   await page.getByTestId('add-control-implementation').click();
-  await page.getByTestId('ci-source').fill('#cat-1');
+  // ci-source/ir-control-id/sp-param-id are <EntitySearchField> (ADR-0013, T-036 follow-up) —
+  // the actual fillable input carries `${dataTestId}-input`; the bare testid is a wrapper div.
+  await page.getByTestId('ci-source-input').fill('#cat-1');
   await page.getByTestId('add-requirement').click();
-  await page.getByTestId('ir-control-id').fill('ASST.1.1.2');
+  await page.getByTestId('ir-control-id-input').fill('ASST.1.1.2');
   await page.getByTestId('add-set-parameter').click();
-  await page.getByTestId('sp-param-id').fill('asst.1.1.2-prm1');
+  await page.getByTestId('sp-param-id-input').fill('asst.1.1.2-prm1');
   await page.getByTestId('sp-values').fill('den IT-Betrieb');
 
   await page.getByTestId('save-compdef').click();

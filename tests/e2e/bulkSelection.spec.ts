@@ -32,8 +32,12 @@ test('select multiple component-definitions, download as a zip (one skipped for 
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.zip$/);
 
-  const warning = page.getByTestId('compdef-download-warning');
+  // The per-page skip-warning banner was migrated to the shared <ToastProvider> (ADR-0002,
+  // ADR-0010, ADR-0012, T-036 follow-up) — a generic `toast` testid with `data-level`, not a
+  // page-specific one.
+  const warning = page.getByTestId('toast');
   await expect(warning).toBeVisible();
+  await expect(warning).toHaveAttribute('data-level', 'warning');
   await expect(warning).toContainText('Passwortrichtlinie');
   await expect(warning).toContainText('1');
 
