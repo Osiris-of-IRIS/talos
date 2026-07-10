@@ -1,6 +1,7 @@
 /**
  * Profile `imports[].href` resolution (ADR-0032 §2): back-matter-mediated source lookup across
- * both catalogs and profiles, cycle detection, unresolved-href collection.
+ * both catalogs and profiles, cycle detection, unresolved-href collection, and (ADR-0032 §7) a
+ * profile's effective control-id set for the SSP import-profile "add all controls" offer.
  * Covers TEST-PROF-01.
  */
 import { describe, it, expect } from 'vitest';
@@ -8,6 +9,7 @@ import {
   resolveProfileImportSource,
   wouldCreateProfileCycle,
   unresolvedProfileImportHrefs,
+  resolveProfileControlIds,
 } from '@/data/profileImportResolution';
 import type { StoredArtifact } from '@/data/db';
 import type { Catalog } from '@/models/catalog';
@@ -21,7 +23,7 @@ const catalogUuid = 'cccccccc-0000-4000-8000-000000000001';
 const catalog: StoredArtifact<Catalog> = stored(catalogUuid, {
   uuid: catalogUuid,
   metadata: { title: 'Test Catalog', version: '1.0.0', oscalVersion: '1.2.2' },
-  controls: [{ id: 'CTRL-1', title: 'Control One' }],
+  controls: [{ id: 'CTRL-1', title: 'Control One' }, { id: 'CTRL-2', title: 'Control Two' }, { id: 'CTRL-3', title: 'Control Three' }],
 } as Catalog);
 
 function makeProfile(uuid: string, title: string, imports: Profile['imports'] = []): StoredArtifact<Profile> {
@@ -89,5 +91,59 @@ describe('unresolvedProfileImportHrefs', () => {
   it('collects only dangling hrefs', () => {
     const p = makeProfile('p1', 'P1', [{ href: `#${catalogUuid}` }, { href: '#missing' }]);
     expect(unresolvedProfileImportHrefs(p.artifact.imports, undefined, [catalog], [])).toEqual(['#missing']);
+  });
+});
+
+describe('resolveProfileControlIds', () => {
+  it('expands includeAll against the resolved source catalog', () => {
+    const p = makeProfile('p1', 'P1', [{ href: `#${catalogUuid}`, includeAll: {} }]);
+    const result = resolveProfileControlIds(p.artifact, [catalog], []);
+    expect(result.controlIds.sort()).toEqual(['CTRL-1', 'CTRL-2', 'CTRL-3']);
+    expect(result.hasUnresolvedAll).toBe(false);
+  });
+
+  it('subtracts excludeControls from an includeAll expansion', () => {
+    const p = makeProfile('p1', 'P1', [
+      { href: `#${catalogUuid}`, includeAll: {}, excludeControls: [{ withIds: ['CTRL-2'] }] },
+    ]);
+    const result = resolveProfileControlIds(p.artifact, [catalog], []);
+    expect(result.controlIds.sort()).toEqual(['CTRL-1', 'CTRL-3']);
+  });
+
+  it('uses explicit includeControls ids as-is, minus excludes', () => {
+    const p = makeProfile('p1', 'P1', [
+      {
+        href: `#${catalogUuid}`,
+        includeControls: [{ withIds: ['CTRL-1', 'CTRL-3'] }],
+        excludeControls: [{ withIds: ['CTRL-3'] }],
+      },
+    ]);
+    const result = resolveProfileControlIds(p.artifact, [catalog], []);
+    expect(result.controlIds).toEqual(['CTRL-1']);
+    expect(result.hasUnresolvedAll).toBe(false);
+  });
+
+  it('dedupes ids contributed by multiple imports', () => {
+    const p = makeProfile('p1', 'P1', [
+      { href: `#${catalogUuid}`, includeControls: [{ withIds: ['CTRL-1'] }] },
+      { href: `#${catalogUuid}`, includeControls: [{ withIds: ['CTRL-1', 'CTRL-2'] }] },
+    ]);
+    const result = resolveProfileControlIds(p.artifact, [catalog], []);
+    expect(result.controlIds.sort()).toEqual(['CTRL-1', 'CTRL-2']);
+  });
+
+  it('flags hasUnresolvedAll for a profile-sourced includeAll (T-206 not yet built)', () => {
+    const other = makeProfile('p2', 'Baseline Profile', [{ href: `#${catalogUuid}`, includeAll: {} }]);
+    const p = makeProfile('p1', 'P1', [{ href: `#${other.uuid}`, includeAll: {} }]);
+    const result = resolveProfileControlIds(p.artifact, [catalog], [other]);
+    expect(result.controlIds).toEqual([]);
+    expect(result.hasUnresolvedAll).toBe(true);
+  });
+
+  it('flags hasUnresolvedAll for an includeAll on a dangling href', () => {
+    const p = makeProfile('p1', 'P1', [{ href: '#missing', includeAll: {} }]);
+    const result = resolveProfileControlIds(p.artifact, [catalog], []);
+    expect(result.controlIds).toEqual([]);
+    expect(result.hasUnresolvedAll).toBe(true);
   });
 });

@@ -247,6 +247,12 @@
 
   "ssp_new": "Neuer System-Sicherheitsplan",
   "ssp_edit_heading": "System-Sicherheitsplan bearbeiten",
+  "ssp_import_profile_heading": "Quellprofil",
+  "ssp_import_profile_label": "Profil (Arbeitsbereichsprofil wählen oder Profil-Href eingeben)",
+  "ssp_import_profile_placeholder": "#<uuid> oder Profil-Referenz",
+  "ssp_import_profile_unresolved": "(nicht aufgelöst — Freitext-Href)",
+  "ssp_import_profile_add_controls_confirm": "Alle {count} Controls aus „{title}“ als umgesetzte Anforderungen zu diesem SSP hinzufügen?",
+  "ssp_import_profile_added_toast": "{count} umgesetzte Anforderung(en) aus dem Profil hinzugefügt.",
   "ssp_system_implementation_heading": "Systemumsetzung",
   "ssp_inventory_items_heading": "Inventarelemente ({count})",
   "ssp_inventory_item_asset_id_label": "Asset",

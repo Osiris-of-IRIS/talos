@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Date:** 2026-07-10 (revised 2026-07-10: §4's product-tag correction and dedup fix, §6a nav
-  listing, below)
+  listing; revised 2026-07-11: §7, SSP `import-profile` picker, below)
 - **Deciders:** Human supervisor, engineering
 - **Decision IDs:** ADR-0032 (references ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0013,
   ADR-0014, ADR-0016, ADR-0017, ADR-0021, ADR-0026)
@@ -162,6 +162,35 @@ inline checkbox onto its own line ahead of it. Fixed locally with a flex row
 (`controlSelectionChecklist.css`'s `.control-checklist-row`) scoped to the checklist's own label,
 not a global change to `.control-display`.
 
+### 7. SSP `import-profile` — a real picker, plus an apply-time offer to add its controls (T-204, 2026-07-11)
+
+`import-profile.href` had **no editor field at all** (not even the "manual/free-text" one
+ADR-0017's §"out of scope" described — a gap found while picking up T-204, not a regression).
+Closed the same way §2 closed it for `imports[].href`: `<EntitySearchField>` over workspace
+profiles, back-matter-mediated via the existing `ensureArtifactResource`/`resolveProfileImportSource`
+— no new resolution mechanism, mirroring `control-implementation.source`'s (T-142) exact
+type/upgrade-on-pick pattern in `SspEditorPage.tsx`. This closes the ADR-0017 §"out of scope" line
+("SSP `import-profile.href` stays a manual/free-text field... until the Profile feature lands")
+for this one field.
+
+**Supervisor decision:** picking a profile also offers to add every control it resolves to as a
+blank implemented-requirement (`{ controlId, byComponents: [] }`), via a `globalThis.confirm(...)`
+dialog (same convention as bulk-delete) naming the control count and profile title. New pure helper
+`resolveProfileControlIds` (`profileImportResolution.ts`): `includeControls`' explicit ids are used
+as-is (no resolution needed, works for both catalog- and profile-sourced imports); `includeAll` is
+only expandable when the import resolves to a **catalog** (via `indexCatalogControls` +
+`uniqueCatalogControlEntries`, ADR-0021's dual-key dedup fix from §4 applies here too) — a
+profile-sourced `includeAll` can't be expanded without recursing into *that* profile's own
+imports first (§5's recursive-resolution gap, tracked as T-206) and instead sets a
+`hasUnresolvedAll` flag rather than guessing. Already-present control-ids (matched by
+`controlId`) are skipped, so re-picking the same profile later only tops up what's missing — the
+same picker doubles as a manual "sync new controls" action, deliberately not guarded against
+firing again on an unchanged pick.
+
+**Out of scope, unchanged:** `control-implementation.source → profile` (T-205) and recursive
+profile-of-profile resolution (T-206) — this closes only the `import-profile` half of the
+deferral ADR-0017 named.
+
 ## Alternatives considered
 
 - **Hardcode a color per target-object-category uuid (41 entries):** most literally matches "use
@@ -206,6 +235,7 @@ reproduction of all 41 nodes — accepted given the alternative breaks under a l
   `src/data/profileImportResolution.ts`, `src/features/profiles/` (`store.ts`, `blank.ts`,
   `ProfilesListPage.tsx`, `ProfileDetailPage.tsx`, `ProfileEditorPage.tsx`,
   `ControlSelectionChecklist.tsx`, `TargetObjectPicker.tsx`, `targetObjectColors.ts`,
-  `ProfileCreationAssistantPage.tsx`).
+  `ProfileCreationAssistantPage.tsx`); §7: `src/features/ssps/SspEditorPage.tsx`.
 - Tests: `tests/models/profile.test.ts`, `tests/features/profiles*.test.tsx`,
-  `tests/app/targetObjectColors.test.ts`, `tests/features/profileCreationAssistant.test.tsx`.
+  `tests/app/targetObjectColors.test.ts`, `tests/features/profileCreationAssistant.test.tsx`;
+  §7: `tests/data/profileImportResolution.test.ts`, `tests/features/sspEditor.test.tsx`.

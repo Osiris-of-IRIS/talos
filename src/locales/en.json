@@ -247,6 +247,12 @@
 
   "ssp_new": "New system security plan",
   "ssp_edit_heading": "Edit system security plan",
+  "ssp_import_profile_heading": "Source Profile",
+  "ssp_import_profile_label": "Profile (pick a workspace profile, or enter a profile href)",
+  "ssp_import_profile_placeholder": "#<uuid> or profile reference",
+  "ssp_import_profile_unresolved": "(unresolved — free-text href)",
+  "ssp_import_profile_add_controls_confirm": "Add all {count} controls from \"{title}\" as implemented requirements to this SSP?",
+  "ssp_import_profile_added_toast": "Added {count} implemented requirement(s) from the profile.",
   "ssp_system_implementation_heading": "System implementation",
   "ssp_inventory_items_heading": "Inventory items ({count})",
   "ssp_inventory_item_asset_id_label": "Asset",

@@ -48,6 +48,10 @@ next task) and slots into the same pickers. Pickers are source-agnostic about or
 - **Profiles** entirely — no Profile feature yet; therefore `control-implementation.source →
   profile` and SSP `import-profile → profile` are **not** pickers. SSP `import-profile.href`
   stays a manual/free-text field with a note until the Profile feature lands.
+  **Superseded (SSP `import-profile.href` only) by [ADR-0032](ADR-0032-profile-tailoring.md) §7,
+  2026-07-11** — now the Profile feature has landed, `import-profile.href` is a real
+  `<EntitySearchField>` picker. `control-implementation.source → profile` remains not built
+  (tracked as T-205).
 - `statements`, `capabilities`, and component `purpose/props/links/responsible-roles/protocols`.
 
 ## Consequences

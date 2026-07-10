@@ -1,10 +1,11 @@
 /**
  * SSP editor: create/edit, system-characteristics, system-implementation (component import +
- * staleness + refresh), control-implementation (requirements + by-components + status), and
- * default-collapsed sections/rows. Decision IDs: ADR-0001, ADR-0003, ADR-0017, ADR-0023.
+ * staleness + refresh), control-implementation (requirements + by-components + status),
+ * import-profile picker + apply-time "add all controls" offer (ADR-0032 §7), and
+ * default-collapsed sections/rows. Decision IDs: ADR-0001, ADR-0003, ADR-0017, ADR-0023, ADR-0032.
  * Covers TEST-SSP-03.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -16,11 +17,13 @@ import { parseOscalUpload } from '@/data/fileIo';
 import type { SystemSecurityPlan } from '@/models/ssp';
 import type { ComponentDefinition } from '@/models/componentDefinition';
 import type { Catalog } from '@/models/catalog';
+import type { Profile } from '@/models/profile';
 import catalogJson from '../data/catalog-minimal.json';
 
 const sspRepo = () => ArtifactRepository.forType<SystemSecurityPlan>('systemSecurityPlan');
 const cdRepo = () => ArtifactRepository.forType<ComponentDefinition>('componentDefinition');
 const catalogRepo = () => ArtifactRepository.forType<Catalog>('catalog');
+const profileRepo = () => ArtifactRepository.forType<Profile>('profile');
 
 function renderAt(path: string) {
   return render(
@@ -291,6 +294,120 @@ describe('control implementation — requirements, by-components, status', () =>
 
     await user.click(screen.getByTestId('si-remove-component'));
     expect(screen.queryAllByTestId('bc-row')).toHaveLength(0);
+  });
+});
+
+describe('import-profile picker — resolution + apply-time "add all controls" offer (ADR-0032 §7)', () => {
+  const catalogUuid = 'cccccccc-1111-4000-8000-000000000001';
+
+  async function seedCatalog() {
+    await catalogRepo().create({
+      uuid: catalogUuid,
+      type: 'catalog',
+      origin: 'user',
+      artifact: {
+        uuid: catalogUuid,
+        metadata: { title: 'Source Catalog', version: '1.0.0', oscalVersion: '1.2.2' },
+        controls: [
+          { id: 'CTRL-1', title: 'Control One' },
+          { id: 'CTRL-2', title: 'Control Two' },
+        ],
+      },
+    });
+  }
+
+  async function seedProfile(title: string, imports: Profile['imports']) {
+    const profileUuid = globalThis.crypto.randomUUID();
+    await profileRepo().create({
+      uuid: profileUuid,
+      type: 'profile',
+      origin: 'user',
+      artifact: {
+        uuid: profileUuid,
+        metadata: { title, version: '1.0.0', oscalVersion: '1.2.2' },
+        imports,
+      },
+    });
+    return profileUuid;
+  }
+
+  afterEach(() => {
+    // @ts-expect-error test-only cleanup of the global override
+    delete globalThis.confirm;
+  });
+
+  it('resolves a picked profile via a back-matter reference and offers to add all its controls', async () => {
+    await seedCatalog();
+    await seedProfile('Baseline Profile', [{ href: `#${catalogUuid}`, includeAll: {} }]);
+    globalThis.confirm = () => true;
+    const user = userEvent.setup();
+    renderAt('/ssps/new');
+    await user.type(screen.getByTestId('md-title'), 'Profile-Linked SSP');
+
+    await user.type(screen.getByTestId('ssp-import-profile-input'), 'Baseline');
+    await user.click(await screen.findByText('Baseline Profile'));
+
+    await waitFor(() => expect(screen.getByTestId('ssp-import-profile-resolved')).toHaveTextContent('Baseline Profile'));
+    expect(screen.getAllByTestId('ir-row')).toHaveLength(2);
+
+    await user.click(screen.getByTestId('save-ssp'));
+    await waitFor(() => expect(screen.getByTestId('detail-landed')).toBeInTheDocument());
+    const ssp = (await sspRepo().getAll())[0]!.artifact;
+    expect(ssp.importProfile.href.startsWith('#')).toBe(true);
+    expect(ssp.controlImplementation.implementedRequirements.map((ir) => ir.controlId).sort()).toEqual([
+      'CTRL-1',
+      'CTRL-2',
+    ]);
+  });
+
+  it('adds no requirements when the offer is declined', async () => {
+    await seedCatalog();
+    await seedProfile('Baseline Profile', [{ href: `#${catalogUuid}`, includeAll: {} }]);
+    globalThis.confirm = () => false;
+    const user = userEvent.setup();
+    renderAt('/ssps/new');
+
+    await user.type(screen.getByTestId('ssp-import-profile-input'), 'Baseline');
+    await user.click(await screen.findByText('Baseline Profile'));
+
+    await waitFor(() => expect(screen.getByTestId('ssp-import-profile-resolved')).toBeInTheDocument());
+    expect(screen.queryAllByTestId('ir-row')).toHaveLength(0);
+  });
+
+  it('does not prompt when the picked profile has no resolvable controls', async () => {
+    await seedProfile('Empty Profile', []);
+    let confirmCalls = 0;
+    globalThis.confirm = () => {
+      confirmCalls += 1;
+      return true;
+    };
+    const user = userEvent.setup();
+    renderAt('/ssps/new');
+
+    await user.type(screen.getByTestId('ssp-import-profile-input'), 'Empty');
+    await user.click(await screen.findByText('Empty Profile'));
+
+    await waitFor(() => expect(screen.getByTestId('ssp-import-profile-resolved')).toBeInTheDocument());
+    expect(confirmCalls).toBe(0);
+    expect(screen.queryAllByTestId('ir-row')).toHaveLength(0);
+  });
+
+  it('only offers to add controls not already present as implemented requirements', async () => {
+    await seedCatalog();
+    await seedProfile('Baseline Profile', [{ href: `#${catalogUuid}`, includeAll: {} }]);
+    globalThis.confirm = () => true;
+    const user = userEvent.setup();
+    renderAt('/ssps/new');
+
+    await user.click(screen.getByTestId('ci-add-requirement'));
+    await user.type(screen.getByTestId('ir-control-id-input'), 'CTRL-1');
+
+    await user.type(screen.getByTestId('ssp-import-profile-input'), 'Baseline');
+    await user.click(await screen.findByText('Baseline Profile'));
+
+    await waitFor(() => expect(screen.getByTestId('ssp-import-profile-resolved')).toBeInTheDocument());
+    // pre-existing CTRL-1 requirement stays put; only the missing CTRL-2 is appended
+    expect(screen.getAllByTestId('ir-row')).toHaveLength(2);
   });
 });
 
