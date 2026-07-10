@@ -26,6 +26,7 @@ describe('TYPE_TO_STORE', () => {
     expect(TYPE_TO_STORE.componentDefinition).toBe('componentDefinitions');
     expect(TYPE_TO_STORE.systemSecurityPlan).toBe('ssps');
     expect(TYPE_TO_STORE.planOfActionAndMilestones).toBe('poams');
+    expect(TYPE_TO_STORE.profile).toBe('profiles');
   });
 });
 

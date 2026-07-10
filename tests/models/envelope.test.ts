@@ -15,6 +15,7 @@ import cdReferencing from '../data/component-definition-referencing.json';
 import cdWithImport from '../data/component-definition-with-import.json';
 import catalogMinimal from '../data/catalog-minimal.json';
 import sspMinimal from '../data/ssp-minimal.json';
+import profileMinimal from '../data/profile-minimal.json';
 
 describe('case conversion', () => {
   it('kebabToCamel converts multi-segment keys', () => {
@@ -75,6 +76,7 @@ describe('golden round-trip (import -> model -> export)', () => {
     ['component-definition (import-component-definitions, ADR-0014)', cdWithImport],
     ['catalog (grouped controls)', catalogMinimal],
     ['system-security-plan', sspMinimal],
+    ['profile (ADR-0032)', profileMinimal],
   ])('round-trips %s losslessly', (_label, doc) => {
     const { type, artifact } = parseOscalDocument(doc);
     expect(serializeOscalDocument(type, artifact)).toEqual(doc);

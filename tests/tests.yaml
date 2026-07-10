@@ -43,6 +43,7 @@ adr_coverage_required:
   - ADR-0029 # sidebar navigation, logo branding, configurable hero background
   - ADR-0030 # expanded OSCAL markup rendering: headings/lists/code/blockquote/table, char escaping, param insertion
   - ADR-0031 # asset inventory OSCAL alignment: asset-id/uuid split, NIST asset-type alignment, inventory-item generation
+  - ADR-0032 # profile CRUD, tailoring model (imports/merge/modify), Profile Creation Assistant
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -73,6 +74,9 @@ golden_data:
   - path: tests/data/component-definition-with-import.json
     kind: oscal-document
     artifact_type: component-definition
+  - path: tests/data/profile-minimal.json
+    kind: oscal-document
+    artifact_type: profile
 
 suites:
   # ---- Shared platform (PLAT-004) -------------------------------------------------
@@ -83,13 +87,14 @@ suites:
     runner: vitest
     status: implemented
     feature: PLAT-004
-    adr_refs: [ADR-0001, ADR-0003, ADR-0014]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0014, ADR-0032]
     golden:
       - tests/data/component-definition-minimal.json
       - tests/data/component-definition-referencing.json
       - tests/data/component-definition-with-import.json
       - tests/data/catalog-minimal.json
       - tests/data/ssp-minimal.json
+      - tests/data/profile-minimal.json
 
   - id: TEST-MD-01
     title: "OSCAL markdown renderer (inline/multiline/strip, XSS-safe, full metaschema block subset)"
@@ -201,6 +206,70 @@ suites:
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0008, ADR-0027]
     golden: [tests/data/catalog-minimal.json]
+
+  - id: TEST-PROF-01
+    title: "Profile imports[].href resolution: catalog/profile back-matter-mediated lookup, cycle detection, unresolved-href collection"
+    file: tests/data/profileImportResolution.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0014, ADR-0032]
+
+  - id: TEST-PROF-02
+    title: "Profiles list page: upload/list, bulk selection, delete-with-confirm"
+    file: tests/features/profilesListPage.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0027, ADR-0032]
+    golden: [tests/data/profile-minimal.json]
+
+  - id: TEST-PROF-03
+    title: "Profile editor: create, import source picker (catalog/profile), include-all/by-id/exclude modes, control checklist filtering, set-parameters, cycle rejection"
+    file: tests/features/profileEditor.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0016, ADR-0032]
+
+  - id: TEST-PROF-04
+    title: "Profile detail page: resolved import source, included/excluded control display, set-parameters"
+    file: tests/features/profileDetail.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0016, ADR-0032]
+
+  - id: TEST-PROF-05
+    title: "Control tags prop parsing (BSI comma-separated `tags` prop, verified against the live catalog)"
+    file: tests/models/controlTags.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0032]
+
+  - id: TEST-PROF-07
+    title: "Target-object subtree color ramp (7 pixel-sampled root hex values, depth-lightened)"
+    file: tests/features/targetObjectColors.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0010, ADR-0026, ADR-0032]
+
+  - id: TEST-PROF-06
+    title: "Profile Creation Assistant: metadata/source gating, by-id mode, target-object mode (ancestor-inclusive matching, product-spec filter, deselect)"
+    file: tests/features/profileCreationAssistant.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0013, ADR-0016, ADR-0026, ADR-0032]
 
   - id: TEST-SELECT-01
     title: Shared bulk-selection zustand slice (toggle/select-all/clear), composed into every list store
@@ -589,23 +658,6 @@ suites:
     status: implemented
     feature: IMPL-002
     adr_refs: [ADR-0001, ADR-0031]
-
-  # ---- Profiles (CTRL-001, deferred per ADR-0017) --------------------------------
-  - id: TEST-PROF-01
-    title: Profile CRUD + import controls from catalogs
-    type: component
-    runner: vitest
-    status: planned
-    feature: CTRL-001
-    adr_refs: [ADR-0001, ADR-0003, ADR-0017]
-
-  - id: TEST-PROF-02
-    title: Profile OSCAL import/export round-trip (golden)
-    type: golden-roundtrip
-    runner: vitest
-    status: planned
-    feature: CTRL-001
-    adr_refs: [ADR-0001, ADR-0003, ADR-0007]
 
   # ---- Assessment layer (ASMT-00x) -----------------------------------------------
   - id: TEST-AP-01
