@@ -30,6 +30,7 @@ import { EntitySearchField } from '@/shared/EntitySearchField';
 import type { SearchItem } from '@/shared/useEntitySearch';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
 import { viewerHref } from '@/config';
+import { parseCommaList } from '@/data/commaList';
 import type { Parameter } from '@/models/control';
 import type { BackMatter } from '@/models/oscalBase';
 import type {
@@ -55,10 +56,7 @@ function uuid(): string {
 }
 
 function parseValues(raw: string): string[] | undefined {
-  const vals = raw
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean);
+  const vals = parseCommaList(raw);
   return vals.length > 0 ? vals : undefined;
 }
 

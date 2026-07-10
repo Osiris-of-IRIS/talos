@@ -12,8 +12,8 @@ function control(props: { name: string; value: string }[]): Control {
 
 describe('getControlTags', () => {
   it('splits a comma-separated tags prop, trimmed', () => {
-    const c = control([{ name: 'tags', value: 'Compliance Management, Produktspezifikation ,  Inventories' }]);
-    expect(getControlTags(c)).toEqual(['Compliance Management', 'Produktspezifikation', 'Inventories']);
+    const c = control([{ name: 'tags', value: 'Compliance Management, Produktbeschreibung ,  Inventories' }]);
+    expect(getControlTags(c)).toEqual(['Compliance Management', 'Produktbeschreibung', 'Inventories']);
   });
 
   it('returns an empty array when there is no tags prop', () => {
@@ -23,8 +23,8 @@ describe('getControlTags', () => {
 
 describe('controlHasTag', () => {
   it('matches an exact tag in the list', () => {
-    const c = control([{ name: 'tags', value: 'Compliance Management, Produktspezifikation' }]);
-    expect(controlHasTag(c, 'Produktspezifikation')).toBe(true);
+    const c = control([{ name: 'tags', value: 'Compliance Management, Produktbeschreibung' }]);
+    expect(controlHasTag(c, 'Produktbeschreibung')).toBe(true);
     expect(controlHasTag(c, 'Nope')).toBe(false);
   });
 });

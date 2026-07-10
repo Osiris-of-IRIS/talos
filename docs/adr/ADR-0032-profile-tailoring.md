@@ -1,7 +1,8 @@
 # ADR-0032: OSCAL Profile CRUD, Tailoring Model & the Profile Creation Assistant
 
 - **Status:** Approved
-- **Date:** 2026-07-10
+- **Date:** 2026-07-10 (revised 2026-07-10: §4's product-tag correction and dedup fix, §6a nav
+  listing, below)
 - **Deciders:** Human supervisor, engineering
 - **Decision IDs:** ADR-0032 (references ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0013,
   ADR-0014, ADR-0016, ADR-0017, ADR-0021, ADR-0026)
@@ -96,15 +97,39 @@ reimplementation. Deselecting a node removes it from the explicit set and recomp
 ancestor/eligible union from what's left (so a shared ancestor stays included while any sibling
 selection keeps it alive, per the ticket).
 
-**"Produktspezifikation" filter:** verified against the live BSI catalog (fetched
-`Grundschutz++-catalog.json` directly, not assumed) — a control's tag list is a **single**
-`props[name="tags"]` entry holding a comma-separated string (e.g. `"Compliance Management, ..."`),
-not one prop per tag. The checkbox, when checked, additionally requires `"Produktspezifikation"`
-(trimmed, exact match) in that split list.
+**"Produktbeschreibung" filter:** a control's tag list is a **single** `props[name="tags"]` entry
+holding a comma-separated string (e.g. `"Compliance Management, ..."`), not one prop per tag —
+that structural shape *was* verified against a live fetch of `Grundschutz++-catalog.json` before
+the initial implementation. The **tag value** itself was not independently verified at the time —
+the initial implementation trusted the MVP ticket's literal wording, `"Produktspezifikation"`,
+which turned out not to occur anywhere in the library. **Supervisor correction, 2026-07-10:** the
+real tag is `"Produktbeschreibung"` — confirmed by downloading and parsing the full live
+Grundschutz++ Anwenderkatalog (998 controls): 144 carry `"Produktbeschreibung"`,
+`"Produktspezifikation"` occurs 0 times. The checkbox, when checked, requires `"Produktbeschreibung"`
+(trimmed, exact match) in that split list. Lesson carried forward: "the shape is verified" and
+"the specific value is verified" are different claims — both need an explicit check against real
+data, not just the former standing in for the latter.
 
 **Live counter:** derived from the same `eligibleTitles` computation against the resolved source's
 full control tree (including nested `control.controls`, per the ticket) — no separate count path
 to drift out of sync with what actually gets included.
+
+**Dedup fix, 2026-07-10 (supervisor bug report):** the counter and the by-id checklist were both
+capable of counting/listing the same control twice. Root cause: `indexCatalogControls`
+(`catalogResolution.ts`) deliberately dual-keys a control under both its literal `id` and its
+`_{uuid}` alt-identifier form (ADR-0021) — one control, two map entries, so either id form
+resolves it in O(1). `matchedControlIds` and `<ControlSelectionChecklist>` both iterated the raw
+`Map.entries()`, which is correct for *lookup* but wrong for *enumeration*: a control with an
+alt-identifier (common in BSI data) showed up as two rows and could be written into
+`includeControls[].withIds` twice. Not a hierarchy-traversal bug (the ticket's own guess) — it
+reproduces with a flat, single-category-tagged control the moment it also carries an
+`alt-identifier` prop. Fixed with `uniqueCatalogControlEntries` (`catalogResolution.ts`), which
+filters to the entries whose key equals the control's own `id`; both call sites now use it.
+Deliberately **not** applied to `controlIdOptionsForSource`/`allControlIdOptions` (the
+`ir-control-id`/`sp-param-id` typeaheads) — those intentionally offer both id forms as separate,
+individually-pickable options (their own doc comment: "value is the literal id or `_{uuid}` alt-id
+form actually written to `control-id`"), which is a different, correct use of the same dual-keyed
+map.
 
 ### 5. `imports[].href` control-checklist only resolves controls when the source is a catalog
 
@@ -124,6 +149,18 @@ profile-of-profile control resolution is tracked as a follow-up ticket, not sile
 
 Per the ticket, no UI for `flat`/`custom` merge; earmarked as a future ticket if a real need
 surfaces (custom group reordering has no requester yet).
+
+### 6a. Navigation & layout fixes (supervisor feedback, 2026-07-10)
+
+The Profile Creation Assistant is now listed in the sidebar/landing page's Assistants group
+(`src/app/navigation.ts`), before the SSP Bootstrap Assistant — both share the same
+`navigationGroups()` source of truth (ADR-0029), so no separate landing-page change was needed.
+Separately, `<ControlSelectionChecklist>`'s checkbox rendered *above* each control instead of
+beside it — `<ControlDisplay>`'s own `.control-display` rule is `display: block`
+(`controlDisplay.css`, used everywhere else a control renders, not changed here), which forces an
+inline checkbox onto its own line ahead of it. Fixed locally with a flex row
+(`controlSelectionChecklist.css`'s `.control-checklist-row`) scoped to the checklist's own label,
+not a global change to `.control-display`.
 
 ## Alternatives considered
 

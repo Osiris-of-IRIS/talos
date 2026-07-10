@@ -7,8 +7,10 @@
 import { useState } from 'react';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
 import { getControlHeadline, getControlAltIdentifier, getStatementProse } from '@/models/controlDisplay';
+import { uniqueCatalogControlEntries } from '@/data/catalogResolution';
 import { useI18n } from '@/shared/i18n';
 import type { Control } from '@/models/control';
+import './controlSelectionChecklist.css';
 
 interface Props {
   controlsById: Map<string, Control>;
@@ -41,7 +43,10 @@ export function ControlSelectionChecklist({ controlsById, selectedIds, onChange,
     onChange(next);
   }
 
-  const rows = [...controlsById.entries()].filter(([id, control]) => matchesFilter(id, control, filter));
+  // Each control exactly once — controlsById dual-keys a control under both its literal id and
+  // its `_{uuid}` alt-identifier form for lookup (ADR-0021); a raw `.entries()` iteration here
+  // would show (and let a user pick) the same control twice.
+  const rows = uniqueCatalogControlEntries(controlsById).filter(([id, control]) => matchesFilter(id, control, filter));
 
   return (
     <div data-testid={dataTestId ?? 'control-selection-checklist'}>
@@ -61,14 +66,14 @@ export function ControlSelectionChecklist({ controlsById, selectedIds, onChange,
       <ul data-testid="control-checklist-list">
         {rows.map(([id, control]) => (
           <li key={id} data-testid="control-checklist-item">
-            <label>
+            <label className="control-checklist-row">
               <input
                 type="checkbox"
                 checked={selectedIds.has(id)}
                 onChange={() => toggle(id)}
                 aria-label={t('control_checklist_item_aria', { title: getControlHeadline(control) })}
                 data-testid="control-checklist-checkbox"
-              />{' '}
+              />
               <ControlDisplay control={control} />
             </label>
           </li>

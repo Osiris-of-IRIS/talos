@@ -48,6 +48,31 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('sidebar-nav')).toBeInTheDocument();
   });
 
+  it('lists the Profile Creation Assistant before the SSP Bootstrap Assistant (ADR-0032)', async () => {
+    // Seed an asset so the bootstrap-assistant link is a real <a> too (otherwise it renders
+    // disabled, not a link — see "renders the bootstrap-assistant link live" below).
+    const db = await getDb();
+    await db.put('assets', {
+      assetId: 'C001',
+      name: 'Test asset',
+      assetType: 'client-pc',
+      description: '',
+      securitySensitivityLevel: '',
+      informationTypes: '',
+    });
+
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+    const link = await screen.findByRole('link', { name: 'Profile Creation Assistant' });
+    expect(link).toHaveAttribute('href', '/profiles/assistant');
+    await waitFor(() => expect(screen.getByRole('link', { name: /SSP Bootstrap Assistant/ })).toBeInTheDocument());
+    const links = screen.getAllByRole('link').map((l) => l.textContent);
+    expect(links.indexOf('Profile Creation Assistant')).toBeLessThan(links.indexOf('SSP Bootstrap Assistant'));
+  });
+
   it('highlights the active route', () => {
     render(
       <MemoryRouter initialEntries={['/ssps']}>

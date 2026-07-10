@@ -18,6 +18,7 @@ import type { Catalog, CatalogGroup } from '@/models/catalog';
 import type { Control, Parameter } from '@/models/control';
 import type { BackMatter } from '@/models/oscalBase';
 import { getControlAltIdentifier, getControlHeadline } from '@/models/controlDisplay';
+import { resolveBackMatterReference } from './backMatterReferenceResolution';
 
 const ALT_ID_REF_RE = /^_[0-9a-fA-F-]{36}$/;
 
@@ -70,6 +71,19 @@ export function indexCatalogControls(catalog: Catalog): Map<string, Control> {
   walkControls(catalog.controls, add);
   walkGroups(catalog.groups, add);
   return index;
+}
+
+/**
+ * Every control's canonical `[id, Control]` entry, exactly once — unlike raw `Map.entries()` on
+ * an `indexCatalogControls` result. That map deliberately dual-keys a control under both its
+ * literal id and its `_{uuid}` alt-identifier form (ADR-0021), so any two different id references
+ * to the same control resolve via a single O(1) lookup; a caller that instead wants "the set of
+ * controls" (a checklist row per control, a count of matched controls) must not iterate the raw
+ * map, or a control with an alt-identifier appears twice. Filters to the entries whose key is the
+ * control's own `id` — the alt-identifier-keyed duplicate entry's key never equals that.
+ */
+export function uniqueCatalogControlEntries(controlsById: Map<string, Control>): [string, Control][] {
+  return [...controlsById.entries()].filter(([id, control]) => id === control.id);
 }
 
 /** A single workspace catalog, with its controls indexed by id (for source-scoped pickers). */
@@ -139,24 +153,13 @@ function resolveSourceCatalogUuid(
 ): string | undefined {
   const ref = sourceToCatalogUuid(source);
   if (!ref) return undefined;
-
-  const resource = backMatter?.resources?.find((r) => r.uuid === ref);
-  if (resource) {
-    const byDocId = resource.documentIds
-      ?.map((d) => index.catalogs.find((c) => c.uuid === d.identifier))
-      .find((c): c is CatalogEntry => c !== undefined);
-    if (byDocId) return byDocId.uuid;
-
-    const bySelfUuid = index.catalogs.find((c) => c.uuid === resource.uuid);
-    if (bySelfUuid) return bySelfUuid.uuid;
-
-    const byTitle = resource.title ? index.catalogs.find((c) => c.title === resource.title) : undefined;
-    if (byTitle) return byTitle.uuid;
-
-    return undefined; // a resource exists but doesn't identify any workspace catalog
-  }
-
-  return index.catalogs.find((c) => c.uuid === ref)?.uuid;
+  const entry = resolveBackMatterReference<CatalogEntry>(ref, backMatter, [
+    {
+      findByUuid: (uuid) => index.catalogs.find((c) => c.uuid === uuid),
+      findByTitle: (title) => index.catalogs.find((c) => c.title === title),
+    },
+  ]);
+  return entry?.uuid;
 }
 
 /**

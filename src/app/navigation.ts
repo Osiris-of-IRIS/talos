@@ -58,6 +58,7 @@ export function navigationGroups(hasAssets: boolean): FeatureGroup[] {
     {
       layer: 'Assistants',
       features: [
+        { titleKey: 'landing_feature_profile_assistant', path: '/profiles/assistant' },
         {
           titleKey: 'landing_feature_bootstrap',
           path: '/bootstrap',

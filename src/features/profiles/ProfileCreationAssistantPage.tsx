@@ -13,7 +13,7 @@ import { MetadataEditor } from '@/features/shared/MetadataEditor';
 import { EntitySearchField } from '@/shared/EntitySearchField';
 import type { SearchItem } from '@/shared/useEntitySearch';
 import { ensureArtifactResource } from '@/models/backMatter';
-import { indexCatalogControls } from '@/data/catalogResolution';
+import { useCatalogControlsByUuid } from '@/features/shared/useCatalogControlsByUuid';
 import { useWorkspaceCatalogs } from '@/features/shared/useWorkspaceCatalogs';
 import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
 import { loadTargetObjectCategories } from '@/data/targetObjectCategoryLoader';
@@ -23,7 +23,8 @@ import { TargetObjectPicker, matchedControlIds } from './TargetObjectPicker';
 import { createBlankProfile } from './blank';
 import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/toast';
-import type { Profile } from '@/models/profile';
+import type { Profile, ProfileImport } from '@/models/profile';
+import { applyInclusion } from '@/models/profile';
 import type { Control } from '@/models/control';
 import type { TargetObjectCategory } from '@/models/targetObjectCategory';
 
@@ -37,6 +38,7 @@ export function ProfileCreationAssistantPage() {
   const navigate = useNavigate();
   const workspaceCatalogs = useWorkspaceCatalogs();
   const workspaceProfiles = useWorkspaceProfiles();
+  const catalogControlsByUuid = useCatalogControlsByUuid(workspaceCatalogs);
   const [draft, setDraft] = useState<Profile>(createBlankProfile());
   const [sourcePick, setSourcePick] = useState('');
   const [mode, setMode] = useState<InclusionMode>('all');
@@ -58,7 +60,7 @@ export function ProfileCreationAssistantPage() {
   const sourceCatalog = workspaceCatalogs.find((c) => c.uuid === sourcePick);
   const sourceProfile = workspaceProfiles.find((p) => p.uuid === sourcePick);
   const controlsById: Map<string, Control> | undefined = sourceCatalog
-    ? indexCatalogControls(sourceCatalog.artifact)
+    ? catalogControlsByUuid.get(sourceCatalog.uuid)
     : undefined;
   const byUuid = new Map(categoryRows.map((r) => [r.uuid, r]));
   const eligibleTitles = new Set<string>();
@@ -97,15 +99,16 @@ export function ProfileCreationAssistantPage() {
       const toSave = structuredClone(draft);
       toSave.metadata.lastModified = new Date().toISOString();
       const resourceUuid = ensureArtifactResource(toSave, target.uuid, target.artifact.metadata.title);
-      const href = `#${resourceUuid}`;
+      const imp: ProfileImport = { href: `#${resourceUuid}` };
       if (mode === 'all') {
-        toSave.imports = [{ href, includeAll: {} }];
+        applyInclusion(imp, { mode: 'all' });
       } else if (mode === 'byId') {
-        toSave.imports = [{ href, includeControls: [{ withIds: [...includeIds] }] }];
+        applyInclusion(imp, { mode: 'byId', ids: [...includeIds] });
       } else {
         const ids = controlsById ? matchedControlIds(controlsById, eligibleTitles, productSpecOnly) : [];
-        toSave.imports = [{ href, includeControls: [{ withIds: ids }] }];
+        applyInclusion(imp, { mode: 'byId', ids });
       }
+      toSave.imports = [imp];
       await repo().create({ uuid: toSave.uuid, type: 'profile', origin: 'user', artifact: toSave });
       navigate(`/profiles/${toSave.uuid}`);
     } finally {

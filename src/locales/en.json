@@ -16,6 +16,7 @@
   "landing_feature_assessment_results": "Assessment Results",
   "landing_feature_poams": "Plan of Action & Milestones",
   "landing_feature_assets": "Assets",
+  "landing_feature_profile_assistant": "Profile Creation Assistant",
   "landing_feature_bootstrap": "SSP Bootstrap Assistant",
   "landing_bootstrap_disabled_title": "Upload an asset list first (see Assets).",
 
@@ -181,8 +182,9 @@
   "profile_assistant_merge_note": "Merge strategy is fixed to \"as-is\" for now.",
   "profile_assistant_create_button": "Create profile",
 
-  "target_object_product_spec_only": "Product specification only",
+  "target_object_product_spec_only": "Product description only",
   "target_object_match_count": "{count} control(s) currently included",
+  "target_object_unmapped_root_warning": "No color mapping for these target-object categories: {titles}. They render in gray until the color palette is updated.",
 
   "ci_param_id_aria": "Parameter id",
   "ci_param_id_placeholder": "param id (pick from source catalog)",

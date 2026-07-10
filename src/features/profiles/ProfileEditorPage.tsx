@@ -7,7 +7,7 @@ import { BackMatterEditor } from '@/features/shared/BackMatterEditor';
 import { EntitySearchField } from '@/shared/EntitySearchField';
 import type { SearchItem } from '@/shared/useEntitySearch';
 import { ensureArtifactResource } from '@/models/backMatter';
-import { indexCatalogControls } from '@/data/catalogResolution';
+import { useCatalogControlsByUuid } from '@/features/shared/useCatalogControlsByUuid';
 import { useWorkspaceCatalogs } from '@/features/shared/useWorkspaceCatalogs';
 import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
 import {
@@ -20,15 +20,10 @@ import { ControlSelectionChecklist } from './ControlSelectionChecklist';
 import { createBlankProfile } from './blank';
 import { useI18n } from '@/shared/i18n';
 import type { Profile, ProfileImport, ProfileSetParameter } from '@/models/profile';
+import { applyInclusion, applyExclusion } from '@/models/profile';
+import { parseCommaList } from '@/data/commaList';
 
 const repo = () => ArtifactRepository.forType<Profile>('profile');
-
-function parseCommaList(text: string): string[] {
-  return text
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 /** Keeps the values text in local state so mid-word spaces/commas survive typing (same pattern as
  * ControlImplementationsEditor's SetParameterRow) — the parsed array is written to the model on
@@ -70,6 +65,7 @@ export function ProfileEditorPage() {
   const [spKeys, setSpKeys] = useState<string[]>([]);
   const workspaceCatalogs = useWorkspaceCatalogs();
   const workspaceProfiles = useWorkspaceProfiles();
+  const catalogControlsByUuid = useCatalogControlsByUuid(workspaceCatalogs);
 
   useEffect(() => {
     if (isNew || !uuid) return;
@@ -134,7 +130,9 @@ export function ProfileEditorPage() {
       if (!prev) return prev;
       const next = structuredClone(prev);
       const resourceUuid = ensureArtifactResource(next, target.uuid, target.artifact.metadata.title);
-      next.imports.push({ href: `#${resourceUuid}`, includeAll: {} });
+      const imp: ProfileImport = { href: `#${resourceUuid}` };
+      applyInclusion(imp, { mode: 'all' });
+      next.imports.push(imp);
       return next;
     });
     setImportPick('');
@@ -151,46 +149,27 @@ export function ProfileEditorPage() {
   }
 
   function setImportMode(idx: number, mode: 'all' | 'byId') {
-    patchImport(idx, (imp) => {
-      if (mode === 'all') {
-        imp.includeAll = {};
-        delete imp.includeControls;
-      } else {
-        delete imp.includeAll;
-        imp.includeControls = [{ withIds: [] }];
-      }
-    });
+    patchImport(idx, (imp) => applyInclusion(imp, mode === 'all' ? { mode: 'all' } : { mode: 'byId', ids: [] }));
   }
 
   function setIncludeIds(idx: number, ids: Set<string>) {
-    patchImport(idx, (imp) => {
-      imp.includeControls = [{ withIds: [...ids] }];
-    });
+    patchImport(idx, (imp) => applyInclusion(imp, { mode: 'byId', ids: [...ids] }));
   }
 
   function setIncludeIdsText(idx: number, text: string) {
-    patchImport(idx, (imp) => {
-      imp.includeControls = [{ withIds: parseCommaList(text) }];
-    });
+    patchImport(idx, (imp) => applyInclusion(imp, { mode: 'byId', ids: parseCommaList(text) }));
   }
 
   function toggleExclude(idx: number, on: boolean) {
-    patchImport(idx, (imp) => {
-      if (on) imp.excludeControls = [{ withIds: [] }];
-      else delete imp.excludeControls;
-    });
+    patchImport(idx, (imp) => applyExclusion(imp, on ? [] : undefined));
   }
 
   function setExcludeIds(idx: number, ids: Set<string>) {
-    patchImport(idx, (imp) => {
-      imp.excludeControls = [{ withIds: [...ids] }];
-    });
+    patchImport(idx, (imp) => applyExclusion(imp, [...ids]));
   }
 
   function setExcludeIdsText(idx: number, text: string) {
-    patchImport(idx, (imp) => {
-      imp.excludeControls = [{ withIds: parseCommaList(text) }];
-    });
+    patchImport(idx, (imp) => applyExclusion(imp, parseCommaList(text)));
   }
 
   function addSetParameter() {
@@ -277,7 +256,7 @@ export function ProfileEditorPage() {
           {imports.map((imp, i) => {
             const resolved = resolveProfileImportSource(imp, draft.backMatter, workspaceCatalogs, workspaceProfiles);
             const controlsById =
-              resolved?.type === 'catalog' ? indexCatalogControls(resolved.item.artifact) : undefined;
+              resolved?.type === 'catalog' ? catalogControlsByUuid.get(resolved.item.uuid) : undefined;
             const mode: 'all' | 'byId' = imp.includeAll ? 'all' : 'byId';
             return (
               <li key={`${imp.href}-${i}`} className="collapsible-section" data-testid="profile-import-item">

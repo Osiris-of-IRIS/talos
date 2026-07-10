@@ -10,13 +10,9 @@
 import type { BackMatter } from '@/models/oscalBase';
 import type { ComponentDefinition, ImportComponentDefinition } from '@/models/componentDefinition';
 import type { StoredArtifact } from './db';
+import { refOf, resolveBackMatterReference } from './backMatterReferenceResolution';
 
 type CompDef = StoredArtifact<ComponentDefinition>;
-
-/** Strip a leading `#`; an href without one has no OSCAL-legal local reference to resolve. */
-function refOf(href: string): string | undefined {
-  return href.startsWith('#') ? href.slice(1) || undefined : undefined;
-}
 
 /**
  * Resolve one import to the workspace component-definition it refers to, or `undefined` when
@@ -28,28 +24,12 @@ export function resolveImport(
   backMatter: BackMatter | undefined,
   workspace: CompDef[],
 ): CompDef | undefined {
-  const ref = refOf(imp.href);
-  if (!ref) return undefined;
-
-  const resource = backMatter?.resources?.find((r) => r.uuid === ref);
-  if (resource) {
-    const byDocId = resource.documentIds
-      ?.map((d) => workspace.find((w) => w.uuid === d.identifier))
-      .find((w): w is CompDef => w !== undefined);
-    if (byDocId) return byDocId;
-
-    const bySelfUuid = workspace.find((w) => w.uuid === resource.uuid);
-    if (bySelfUuid) return bySelfUuid;
-
-    const byTitle = resource.title
-      ? workspace.find((w) => w.artifact.metadata.title === resource.title)
-      : undefined;
-    if (byTitle) return byTitle;
-
-    return undefined; // a resource exists but doesn't identify any workspace definition
-  }
-
-  return workspace.find((w) => w.uuid === ref);
+  return resolveBackMatterReference<CompDef>(refOf(imp.href), backMatter, [
+    {
+      findByUuid: (uuid) => workspace.find((w) => w.uuid === uuid),
+      findByTitle: (title) => workspace.find((w) => w.artifact.metadata.title === title),
+    },
+  ]);
 }
 
 /**

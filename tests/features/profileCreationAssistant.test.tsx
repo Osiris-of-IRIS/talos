@@ -1,6 +1,6 @@
 /**
  * Profile Creation Assistant (ADR-0032 §4): metadata + source + inclusion-mode flow, the
- * target-object picker's ancestor-inclusive matching, the "product specification only" filter,
+ * target-object picker's ancestor-inclusive matching, the "product description only" filter,
  * and the by-id checklist path. Covers TEST-PROF-06.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -56,13 +56,21 @@ async function seedCatalog() {
         { id: 'C2', title: 'Child-tagged control', props: [{ name: 'target_object_categories', value: 'Gebäude' }] },
         {
           id: 'C3',
-          title: 'Child-tagged, product-spec control',
+          title: 'Child-tagged, product-description control',
           props: [
             { name: 'target_object_categories', value: 'Gebäude' },
-            { name: 'tags', value: 'Compliance Management, Produktspezifikation' },
+            { name: 'tags', value: 'Compliance Management, Produktbeschreibung' },
           ],
         },
         { id: 'C4', title: 'Untagged control' },
+        {
+          id: 'C5',
+          title: 'Root-tagged control with an alt-identifier',
+          props: [
+            { name: 'target_object_categories', value: 'Standorte' },
+            { name: 'alt-identifier', value: 'aaaaaaaa-5555-4555-8555-555555555555' },
+          ],
+        },
       ],
     } as Catalog,
   });
@@ -115,7 +123,7 @@ describe('by-id inclusion mode', () => {
 
     await user.click(screen.getByTestId('profile-assistant-mode-by-id'));
     const boxes = await screen.findAllByTestId('control-checklist-checkbox');
-    expect(boxes).toHaveLength(4);
+    expect(boxes).toHaveLength(5); // C1-C5, each exactly once despite C5's alt-identifier
     await user.click(boxes[0]!);
 
     await user.click(screen.getByTestId('profile-assistant-create'));
@@ -173,8 +181,8 @@ describe('target-object inclusion mode', () => {
     const childNode = screen.getByText('Gebäude');
     await user.click(childNode);
 
-    // C1 (Standorte), C2 + C3 (Gebäude) all match; C4 (untagged) never does.
-    expect(screen.getByTestId('target-object-match-count')).toHaveTextContent('3');
+    // C1 + C5 (Standorte), C2 + C3 (Gebäude) all match; C4 (untagged) never does.
+    expect(screen.getByTestId('target-object-match-count')).toHaveTextContent('4');
 
     const rootNode = screen.getByText('Standorte');
     expect(rootNode).toHaveAttribute('data-state', 'included'); // ancestor of the selection, not itself clicked
@@ -184,11 +192,14 @@ describe('target-object inclusion mode', () => {
     await waitFor(() => expect(screen.getByTestId('detail-landed')).toBeInTheDocument());
 
     const rec = (await repo().getAll())[0]!;
-    expect(rec.artifact.imports[0]!.includeControls?.[0]?.withIds).toEqual(expect.arrayContaining(['C1', 'C2', 'C3']));
-    expect(rec.artifact.imports[0]!.includeControls?.[0]?.withIds).toHaveLength(3);
+    const withIds = rec.artifact.imports[0]!.includeControls?.[0]?.withIds;
+    expect(withIds).toEqual(expect.arrayContaining(['C1', 'C2', 'C3', 'C5']));
+    // Exactly one entry per control — C5 has an alt-identifier (ADR-0021 dual-keying in
+    // indexCatalogControls) and must not appear twice (once per id form).
+    expect(withIds).toHaveLength(4);
   });
 
-  it('the "product specification only" filter narrows to tagged controls', async () => {
+  it('the "product description only" filter narrows to tagged controls', async () => {
     await seedCatalog();
     const user = userEvent.setup();
     renderAt('/profiles/assistant');
@@ -198,7 +209,7 @@ describe('target-object inclusion mode', () => {
     await user.click(screen.getByTestId('profile-assistant-mode-target-object'));
 
     await user.click(screen.getByText('Gebäude'));
-    expect(screen.getByTestId('target-object-match-count')).toHaveTextContent('3');
+    expect(screen.getByTestId('target-object-match-count')).toHaveTextContent('4');
 
     await user.click(screen.getByTestId('target-object-product-spec-only'));
     expect(screen.getByTestId('target-object-match-count')).toHaveTextContent('1');

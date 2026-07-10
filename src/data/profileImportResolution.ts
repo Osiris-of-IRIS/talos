@@ -2,41 +2,43 @@
  * `imports[].href` resolution for profiles (ADR-0032 §2): a profile's import source is either a
  * workspace catalog or another workspace profile, back-matter-mediated exactly like
  * `control-implementation.source` (T-142/`catalogResolution.ts`) and `import-component-definition`
- * (T-102/`componentImportResolution.ts`) — same three-tier fallback (document-id → resource's own
- * uuid → title), same "resource exists but matches nothing ⇒ unresolved" rule, same legacy
- * direct-uuid fallback when no back-matter resource is involved at all.
+ * (T-102/`componentImportResolution.ts`) — same shared resolver (`backMatterReferenceResolution.ts`),
+ * with a catalog pool and a profile pool tried in order at each tier.
  */
 import type { BackMatter } from '@/models/oscalBase';
 import type { Catalog } from '@/models/catalog';
 import type { Profile, ProfileImport } from '@/models/profile';
 import type { StoredArtifact } from './db';
+import { refOf, resolveBackMatterReference, type ReferencePool } from './backMatterReferenceResolution';
 
 export type ResolvedImportSource =
   | { type: 'catalog'; item: StoredArtifact<Catalog> }
   | { type: 'profile'; item: StoredArtifact<Profile> };
 
-/** Strip a leading `#`; an href without one has no OSCAL-legal local reference to resolve. */
-function refOf(href: string): string | undefined {
-  return href.startsWith('#') ? href.slice(1) || undefined : undefined;
+function catalogPool(catalogs: StoredArtifact<Catalog>[]): ReferencePool<ResolvedImportSource> {
+  return {
+    findByUuid: (uuid) => {
+      const c = catalogs.find((c) => c.uuid === uuid);
+      return c ? { type: 'catalog', item: c } : undefined;
+    },
+    findByTitle: (title) => {
+      const c = catalogs.find((c) => c.artifact.metadata.title === title);
+      return c ? { type: 'catalog', item: c } : undefined;
+    },
+  };
 }
 
-function findByUuidOrTitle(
-  uuid: string,
-  title: string | undefined,
-  catalogs: StoredArtifact<Catalog>[],
-  profiles: StoredArtifact<Profile>[],
-): ResolvedImportSource | undefined {
-  const catalog = catalogs.find((c) => c.uuid === uuid);
-  if (catalog) return { type: 'catalog', item: catalog };
-  const profile = profiles.find((p) => p.uuid === uuid);
-  if (profile) return { type: 'profile', item: profile };
-  if (title) {
-    const catalogByTitle = catalogs.find((c) => c.artifact.metadata.title === title);
-    if (catalogByTitle) return { type: 'catalog', item: catalogByTitle };
-    const profileByTitle = profiles.find((p) => p.artifact.metadata.title === title);
-    if (profileByTitle) return { type: 'profile', item: profileByTitle };
-  }
-  return undefined;
+function profilePool(profiles: StoredArtifact<Profile>[]): ReferencePool<ResolvedImportSource> {
+  return {
+    findByUuid: (uuid) => {
+      const p = profiles.find((p) => p.uuid === uuid);
+      return p ? { type: 'profile', item: p } : undefined;
+    },
+    findByTitle: (title) => {
+      const p = profiles.find((p) => p.artifact.metadata.title === title);
+      return p ? { type: 'profile', item: p } : undefined;
+    },
+  };
 }
 
 /**
@@ -50,25 +52,16 @@ export function resolveProfileImportSource(
   catalogs: StoredArtifact<Catalog>[],
   profiles: StoredArtifact<Profile>[],
 ): ResolvedImportSource | undefined {
-  const ref = refOf(imp.href);
-  if (!ref) return undefined;
-
-  const resource = backMatter?.resources?.find((r) => r.uuid === ref);
-  if (resource) {
-    for (const d of resource.documentIds ?? []) {
-      const found = findByUuidOrTitle(d.identifier, undefined, catalogs, profiles);
-      if (found) return found;
-    }
-    return findByUuidOrTitle(resource.uuid, resource.title, catalogs, profiles);
-  }
-
-  return findByUuidOrTitle(ref, undefined, catalogs, profiles);
+  return resolveBackMatterReference<ResolvedImportSource>(refOf(imp.href), backMatter, [
+    catalogPool(catalogs),
+    profilePool(profiles),
+  ]);
 }
 
 /**
  * True when adding an import of `targetUuid` into `importerUuid` would create a cycle (including a
  * plain self-import). Only profile→profile chains can cycle (a catalog has no `imports` of its
- * own), so this only walks resolved profile sources.
+ * own), so this only ever resolves against the profile pool.
  */
 export function wouldCreateProfileCycle(
   importerUuid: string,
@@ -78,6 +71,7 @@ export function wouldCreateProfileCycle(
   if (importerUuid === targetUuid) return true;
   const byUuid = new Map(profiles.map((p) => [p.uuid, p]));
   const visited = new Set<string>();
+  const pool = profilePool(profiles);
 
   function reaches(fromUuid: string): boolean {
     if (fromUuid === importerUuid) return true;
@@ -86,7 +80,7 @@ export function wouldCreateProfileCycle(
     const from = byUuid.get(fromUuid);
     const imports = from?.artifact.imports ?? [];
     return imports.some((imp) => {
-      const resolved = resolveProfileImportSource(imp, from!.artifact.backMatter, [], profiles);
+      const resolved = resolveBackMatterReference(refOf(imp.href), from!.artifact.backMatter, [pool]);
       return resolved?.type === 'profile' && reaches(resolved.item.uuid);
     });
   }

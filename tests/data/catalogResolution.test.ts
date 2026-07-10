@@ -21,6 +21,7 @@ import {
   controlIdOptionsForSource,
   allControlIdOptions,
   resolveControlForSource,
+  uniqueCatalogControlEntries,
 } from '@/data/catalogResolution';
 import { ensureArtifactResource } from '@/models/backMatter';
 import { parseOscalUpload } from '@/data/fileIo';
@@ -196,6 +197,19 @@ describe('alt-identifier resolution (ADR-0021, TEST-CTRLID-01)', () => {
       '_b3a2e5a0-380a-4770-86e6-ea1d8d586ad7',
     );
     expect(normalizeControlIdKey('ASST.1.1.2')).toBe('ASST.1.1.2');
+  });
+
+  it('uniqueCatalogControlEntries lists a control with an alt-identifier exactly once (not once per key form)', () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    const index = indexCatalogControls(record.artifact);
+    // The raw map has two entries for this one control — the point of uniqueCatalogControlEntries.
+    expect(index.has('ASST.1.1.2')).toBe(true);
+    expect(index.has('_b3a2e5a0-380a-4770-86e6-ea1d8d586ad7')).toBe(true);
+
+    const unique = uniqueCatalogControlEntries(index);
+    const matches = unique.filter(([, control]) => control.title === 'Zuweisung');
+    expect(matches).toHaveLength(1);
+    expect(matches[0]![0]).toBe('ASST.1.1.2'); // keyed by the literal id, not the alt-id form
   });
 });
 

@@ -5,7 +5,7 @@ import { ArtifactRepository } from '@/data/artifactRepository';
 import { downloadArtifact } from '@/data/fileIo';
 import { MarkupView } from '@/shared/MarkupView';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
-import { indexCatalogControls } from '@/data/catalogResolution';
+import { useCatalogControlsByUuid } from '@/features/shared/useCatalogControlsByUuid';
 import { useWorkspaceCatalogs } from '@/features/shared/useWorkspaceCatalogs';
 import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
 import { resolveProfileImportSource, unresolvedProfileImportHrefs } from '@/data/profileImportResolution';
@@ -21,6 +21,7 @@ export function ProfileDetailPage() {
   const [record, setRecord] = useState<StoredArtifact<Profile> | null | undefined>(undefined);
   const workspaceCatalogs = useWorkspaceCatalogs();
   const workspaceProfiles = useWorkspaceProfiles();
+  const catalogControlsByUuid = useCatalogControlsByUuid(workspaceCatalogs);
 
   function onDownload(r: StoredArtifact<Profile>) {
     try {
@@ -96,7 +97,7 @@ export function ProfileDetailPage() {
       <h2>{t('profile_imports_heading', { count: imports.length })}</h2>
       {imports.map((imp, i) => {
         const resolved = resolveProfileImportSource(imp, profile.backMatter, workspaceCatalogs, workspaceProfiles);
-        const controlsById = resolved?.type === 'catalog' ? indexCatalogControls(resolved.item.artifact) : undefined;
+        const controlsById = resolved?.type === 'catalog' ? catalogControlsByUuid.get(resolved.item.uuid) : undefined;
         const includeIds = imp.includeControls?.[0]?.withIds ?? [];
         const excludeIds = imp.excludeControls?.[0]?.withIds ?? [];
         return (

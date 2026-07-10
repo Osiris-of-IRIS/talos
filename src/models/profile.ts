@@ -26,6 +26,33 @@ export interface ProfileImport {
   excludeControls?: SelectControlById[];
 }
 
+export type InclusionSpec = { mode: 'all' } | { mode: 'byId'; ids: string[] };
+
+/**
+ * The only place allowed to set `includeAll`/`includeControls` on an import — `includeAll`'s
+ * presence and `includeControls`'s presence are OSCAL-mutually-exclusive (ADR-0032 §1), and
+ * nothing in the type above enforces that; every mutation site (the editor's mode toggle/id
+ * pickers, the Profile Creation Assistant's create step) funnels through this so a future call
+ * site can't produce an import with both set, or neither.
+ */
+export function applyInclusion(imp: ProfileImport, spec: InclusionSpec): void {
+  if (spec.mode === 'all') {
+    imp.includeAll = {};
+    delete imp.includeControls;
+  } else {
+    delete imp.includeAll;
+    imp.includeControls = [{ withIds: spec.ids }];
+  }
+}
+
+/** The only place allowed to set/clear `excludeControls` — `undefined` clears it (the "exclude
+ * specific controls" checkbox off), an array (possibly empty) sets it. Independent of
+ * `includeAll`/`includeControls` (OSCAL allows excluding from either inclusion mode). */
+export function applyExclusion(imp: ProfileImport, ids: string[] | undefined): void {
+  if (ids === undefined) delete imp.excludeControls;
+  else imp.excludeControls = [{ withIds: ids }];
+}
+
 export interface Merge {
   combine?: { method?: 'use-first' | 'merge' | 'keep' };
   /** Presence (an empty object) selects the flat strategy — not editor-supported (ADR-0032 §5). */

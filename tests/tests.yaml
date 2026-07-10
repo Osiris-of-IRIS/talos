@@ -280,6 +280,15 @@ suites:
     feature: CTRL-001
     adr_refs: [ADR-0001, ADR-0032]
 
+  - id: TEST-PROF-09
+    title: "<TargetObjectPicker> warns (toast) when a root category's title has no color mapping, instead of silently rendering gray (T-208e)"
+    file: tests/features/targetObjectPicker.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0010, ADR-0026, ADR-0032]
+
   - id: TEST-SELECT-01
     title: Shared bulk-selection zustand slice (toggle/select-all/clear), composed into every list store
     file: tests/features/selectionSlice.test.ts
