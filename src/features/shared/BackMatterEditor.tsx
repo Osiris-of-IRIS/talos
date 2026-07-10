@@ -8,6 +8,7 @@ import {
   DEFAULT_MAX_EMBEDDED_FILE_BYTES,
 } from '@/models/backMatter';
 import { useI18n } from '@/shared/i18n';
+import { useToast } from '@/shared/toast';
 import type { OscalArtifact } from '@/models/oscalBase';
 
 interface Props<T extends OscalArtifact> {
@@ -22,10 +23,9 @@ export function BackMatterEditor<T extends OscalArtifact>({
   maxEmbeddedFileBytes = DEFAULT_MAX_EMBEDDED_FILE_BYTES,
 }: Props<T>) {
   const { t } = useI18n();
+  const { showToast } = useToast();
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [warning, setWarning] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const resources = artifact.backMatter?.resources ?? [];
@@ -45,18 +45,17 @@ export function BackMatterEditor<T extends OscalArtifact>({
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    setError(null);
-    setWarning(null);
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       if (shouldWarnFileSize(bytes.length)) {
-        setWarning(
+        showToast(
           t('bm_file_size_warning', {
             name: file.name,
             mib: (bytes.length / (1024 * 1024)).toFixed(1),
           }),
+          'warning',
         );
       }
       patch((d) =>
@@ -67,7 +66,7 @@ export function BackMatterEditor<T extends OscalArtifact>({
         ),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      showToast(err instanceof Error ? err.message : String(err), 'error');
     } finally {
       e.target.value = '';
     }
@@ -118,16 +117,6 @@ export function BackMatterEditor<T extends OscalArtifact>({
         <small> {t('bm_max_size', { mib: (maxEmbeddedFileBytes / (1024 * 1024)).toFixed(0) })}</small>
       </div>
 
-      {warning && (
-        <p role="status" data-testid="bm-warning">
-          ⚠️ {warning}
-        </p>
-      )}
-      {error && (
-        <p role="alert" data-testid="bm-error">
-          ⚠️ {error}
-        </p>
-      )}
     </fieldset>
   );
 }

@@ -11,10 +11,33 @@ import { _resetDbForTests } from '@/data/db';
 import { useComponentDefinitionsStore } from '@/features/componentDefinitions/store';
 import { ComponentDefinitionsListPage } from '@/features/componentDefinitions/ComponentDefinitionsListPage';
 import { ComponentDefinitionDetailPage } from '@/features/componentDefinitions/ComponentDefinitionDetailPage';
+import { ToastProvider } from '@/shared/toast';
 import golden from '../data/component-definition-minimal.json';
 import offVersion from '../data/component-definition-v1_1.json';
 
 const goldenText = JSON.stringify(golden);
+
+function renderListPage() {
+  return render(
+    <ToastProvider>
+      <MemoryRouter>
+        <ComponentDefinitionsListPage />
+      </MemoryRouter>
+    </ToastProvider>,
+  );
+}
+
+function renderDetailAt(uuid: string) {
+  return render(
+    <ToastProvider>
+      <MemoryRouter initialEntries={[`/component-definitions/${uuid}`]}>
+        <Routes>
+          <Route path="/component-definitions/:uuid" element={<ComponentDefinitionDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>,
+  );
+}
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
@@ -73,11 +96,7 @@ describe('store', () => {
 
 describe('list page', () => {
   it('shows the empty state, then the imported item', async () => {
-    render(
-      <MemoryRouter>
-        <ComponentDefinitionsListPage />
-      </MemoryRouter>,
-    );
+    renderListPage();
     expect(await screen.findByTestId('compdef-empty')).toBeInTheDocument();
 
     await act(async () => {
@@ -87,18 +106,15 @@ describe('list page', () => {
   });
 
   it('surfaces a yellow warning when importing an off-version (1.x) OSCAL file (ADR-0007)', async () => {
-    render(
-      <MemoryRouter>
-        <ComponentDefinitionsListPage />
-      </MemoryRouter>,
-    );
+    renderListPage();
     await act(async () => {
       await useComponentDefinitionsStore.getState().importFromText(JSON.stringify(offVersion));
     });
     // stored despite the version, and the non-blocking warning is shown
     expect(useComponentDefinitionsStore.getState().warnings).toHaveLength(1);
-    const banner = await screen.findByTestId('compdef-upload-warning');
-    expect(banner).toHaveTextContent(/1\.1\.2.*1\.2\.2/);
+    const toast = await screen.findByTestId('toast');
+    expect(toast).toHaveAttribute('data-level', 'warning');
+    expect(toast).toHaveTextContent(/1\.1\.2.*1\.2\.2/);
     expect(screen.getByText('Legacy-Komponente (OSCAL 1.1.2)')).toBeInTheDocument();
   });
 });
@@ -109,11 +125,7 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await useComponentDefinitionsStore.getState().importFromText(goldenText);
     });
-    render(
-      <MemoryRouter>
-        <ComponentDefinitionsListPage />
-      </MemoryRouter>,
-    );
+    renderListPage();
     expect(screen.queryByTestId('compdef-bulk-actions')).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId('compdef-select-item'));
@@ -130,11 +142,7 @@ describe('bulk selection (ADR-0027)', () => {
       await useComponentDefinitionsStore.getState().importFromText(goldenText);
       await useComponentDefinitionsStore.getState().importFromText(goldenText); // import-as-copy
     });
-    render(
-      <MemoryRouter>
-        <ComponentDefinitionsListPage />
-      </MemoryRouter>,
-    );
+    renderListPage();
     await user.click(screen.getByTestId('compdef-select-all'));
     expect(screen.getByTestId('compdef-selected-count')).toHaveTextContent('2');
 
@@ -147,17 +155,14 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await useComponentDefinitionsStore.getState().importFromText(goldenText); // no creator by default
     });
-    render(
-      <MemoryRouter>
-        <ComponentDefinitionsListPage />
-      </MemoryRouter>,
-    );
+    renderListPage();
     await user.click(screen.getByTestId('compdef-select-item'));
     await user.click(screen.getByTestId('compdef-download-selected'));
 
-    const warning = await screen.findByTestId('compdef-download-warning');
-    expect(warning).toHaveTextContent('1');
-    expect(warning).toHaveTextContent('Passwortrichtlinie');
+    const toast = await screen.findByTestId('toast');
+    expect(toast).toHaveAttribute('data-level', 'warning');
+    expect(toast).toHaveTextContent('1');
+    expect(toast).toHaveTextContent('Passwortrichtlinie');
   });
 
   it('delete-selected asks for confirmation and removes the selected items on confirm', async () => {
@@ -165,11 +170,7 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await useComponentDefinitionsStore.getState().importFromText(goldenText);
     });
-    render(
-      <MemoryRouter>
-        <ComponentDefinitionsListPage />
-      </MemoryRouter>,
-    );
+    renderListPage();
     await user.click(screen.getByTestId('compdef-select-item'));
 
     globalThis.confirm = () => false;
@@ -187,13 +188,7 @@ describe('detail page', () => {
   it('renders metadata, components (collapsed by default), and control requirements once expanded', async () => {
     const user = userEvent.setup();
     const uuid = await useComponentDefinitionsStore.getState().importFromText(goldenText);
-    render(
-      <MemoryRouter initialEntries={[`/component-definitions/${uuid}`]}>
-        <Routes>
-          <Route path="/component-definitions/:uuid" element={<ComponentDefinitionDetailPage />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+    renderDetailAt(uuid);
     expect(await screen.findByTestId('compdef-detail')).toBeInTheDocument();
     const summary = screen.getByTestId('compdef-component-summary');
     expect(summary).toHaveTextContent('Password Policy');
@@ -222,15 +217,11 @@ describe('detail page', () => {
     const user = userEvent.setup();
     // minimal fixture: role "provider", no creator -> not exportable
     const uuid = await useComponentDefinitionsStore.getState().importFromText(goldenText);
-    render(
-      <MemoryRouter initialEntries={[`/component-definitions/${uuid}`]}>
-        <Routes>
-          <Route path="/component-definitions/:uuid" element={<ComponentDefinitionDetailPage />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+    renderDetailAt(uuid);
     await screen.findByTestId('compdef-detail');
     await user.click(screen.getByRole('button', { name: /Download OSCAL/ }));
-    expect(await screen.findByTestId('compdef-export-error')).toHaveTextContent(/Cannot export.*creator/i);
+    const toast = await screen.findByTestId('toast');
+    expect(toast).toHaveAttribute('data-level', 'error');
+    expect(toast).toHaveTextContent(/Cannot export.*creator/i);
   });
 });

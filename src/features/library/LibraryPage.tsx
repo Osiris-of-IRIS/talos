@@ -2,18 +2,30 @@
 // Decision IDs: ADR-0005, ADR-0006, ADR-0010, ADR-0012.
 import { Link } from 'react-router-dom';
 import { LIBRARY_LICENSE } from '@/config';
-import { getLibraryManifest } from '@/data/libraryLoader';
+import { getLibraryManifest, type LibraryManifestEntry } from '@/data/libraryLoader';
 import { useLibraryStore } from './store';
 import { useI18n } from '@/shared/i18n';
+import { useToast } from '@/shared/toast';
 
 const DEFAULT_CATEGORIES = new Set(['Anwenderkatalog', 'Komponente']);
 
 export function LibraryPage() {
   const { t } = useI18n();
-  const { items, showAdvanced, busyPath, warning, error, adoptedTitle, toggleAdvanced, adopt } =
-    useLibraryStore();
+  const { showToast } = useToast();
+  const { items, showAdvanced, busyPath, toggleAdvanced, adopt } = useLibraryStore();
   const manifest = getLibraryManifest();
   const visible = items.filter((e) => showAdvanced || DEFAULT_CATEGORIES.has(e.category));
+
+  async function onAdopt(entry: LibraryManifestEntry) {
+    await adopt(entry);
+    const { error, warning, adoptedTitle } = useLibraryStore.getState();
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
+    if (warning) showToast(warning, 'warning');
+    if (adoptedTitle) showToast(t('library_adopted_status', { title: adoptedTitle }), 'success');
+  }
 
   return (
     <main data-testid="library">
@@ -43,22 +55,6 @@ export function LibraryPage() {
         {t('library_show_advanced')}
       </label>
 
-      {error && (
-        <p role="alert" data-testid="library-error" style={{ color: 'var(--color-error, #cf222e)' }}>
-          ⚠️ {error}
-        </p>
-      )}
-      {warning && (
-        <p role="status" data-testid="library-warning" style={{ color: 'var(--color-warning, #a15c00)' }}>
-          ⚠️ {warning}
-        </p>
-      )}
-      {adoptedTitle && (
-        <p role="status" data-testid="library-adopted" style={{ color: 'var(--color-ok, #1a7f37)' }}>
-          ✓ {t('library_adopted_status', { title: adoptedTitle })}
-        </p>
-      )}
-
       <ul data-testid="library-list">
         {visible.map((e) => (
           <li key={e.path} data-testid="library-item">
@@ -75,7 +71,7 @@ export function LibraryPage() {
               type="button"
               aria-label={t('library_adopt_aria', { title: e.title })}
               disabled={busyPath === e.path}
-              onClick={() => void adopt(e)}
+              onClick={() => void onAdopt(e)}
             >
               {busyPath === e.path ? '…' : `⭳ ${t('library_adopt_button')}`}
             </button>

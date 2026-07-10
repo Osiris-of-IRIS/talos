@@ -10,6 +10,17 @@ import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests } from '@/data/db';
 import { useAssetsStore } from '@/features/assets/store';
 import { AssetsListPage } from '@/features/assets/AssetsListPage';
+import { ToastProvider } from '@/shared/toast';
+
+function renderPage(initialEntries: string[] = ['/assets']) {
+  return render(
+    <ToastProvider>
+      <MemoryRouter initialEntries={initialEntries}>
+        <AssetsListPage />
+      </MemoryRouter>
+    </ToastProvider>,
+  );
+}
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
@@ -40,11 +51,7 @@ describe('AssetsListPage', () => {
   // Playwright e2e spec (tests/e2e/bootstrap.spec.ts). This component test drives the store
   // directly, matching the convention used by the other list-page tests.
   it('shows the empty state, then a table once the asset list is loaded', async () => {
-    render(
-      <MemoryRouter>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     expect(await screen.findByTestId('assets-empty')).toBeInTheDocument();
 
     await act(async () => {
@@ -59,29 +66,21 @@ describe('AssetsListPage', () => {
 
     await waitFor(() => expect(screen.getByTestId('assets-count')).toBeInTheDocument());
     expect(screen.getByText('Finance Clients')).toBeInTheDocument();
-    expect(screen.queryByTestId('assets-upload-warnings')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 
-  it('shows a validation error when a file is missing', async () => {
+  it('shows an error toast when a file is missing', async () => {
     const user = userEvent.setup();
-    render(
-      <MemoryRouter>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     await user.click(screen.getByTestId('assets-upload-submit'));
-    expect(await screen.findByTestId('assets-upload-error')).toBeInTheDocument();
+    expect(await screen.findByTestId('toast')).toHaveAttribute('data-level', 'error');
   });
 
-  it('shows a validation error when the JSON upload has no file (ADR-0031)', async () => {
+  it('shows an error toast when the JSON upload has no file (ADR-0031)', async () => {
     const user = userEvent.setup();
-    render(
-      <MemoryRouter>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     await user.click(screen.getByTestId('assets-upload-json-submit'));
-    expect(await screen.findByTestId('assets-upload-error')).toBeInTheDocument();
+    expect(await screen.findByTestId('toast')).toHaveAttribute('data-level', 'error');
   });
 
   it('clears the asset list', async () => {
@@ -91,11 +90,7 @@ describe('AssetsListPage', () => {
       'asset-id,name,asset-type,description,security-sensitivity-level,information-types\nC001,Finance Clients,client-pc,,,\n',
       'asset_type_uuid,targetobj_class_uuid\nclient-pc,837781a4-7b47-4695-9545-a3310eac7a66\n',
     );
-    render(
-      <MemoryRouter>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     expect(await screen.findByTestId('assets-count')).toBeInTheDocument();
 
     globalThis.confirm = () => true;
@@ -110,11 +105,7 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await seedTwoAssets();
     });
-    render(
-      <MemoryRouter>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     expect(screen.queryByTestId('assets-bulk-actions')).not.toBeInTheDocument();
 
     const checkboxes = screen.getAllByTestId('assets-select-item');
@@ -127,11 +118,7 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await seedTwoAssets();
     });
-    render(
-      <MemoryRouter>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     await user.click(screen.getByTestId('assets-select-all'));
     expect(screen.getByTestId('assets-selected-count')).toHaveTextContent('2');
 
@@ -154,11 +141,7 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await seedTwoAssets();
     });
-    render(
-      <MemoryRouter>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     await user.click(screen.getAllByTestId('assets-select-item')[0]!);
     await user.click(screen.getByTestId('assets-download-selected'));
 
@@ -175,11 +158,7 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await seedTwoAssets();
     });
-    render(
-      <MemoryRouter>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     await user.click(screen.getAllByTestId('assets-select-item')[0]!);
 
     globalThis.confirm = () => false;
@@ -205,11 +184,7 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await seedTwoAssets();
     });
-    render(
-      <MemoryRouter>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     await user.click(screen.getByTestId('assets-download-json'));
 
     expect(createObjectURL).toHaveBeenCalledOnce();
@@ -226,11 +201,7 @@ describe('cross-page asset filter (ADR-0031)', () => {
     await act(async () => {
       await seedTwoAssets();
     });
-    render(
-      <MemoryRouter initialEntries={['/assets?asset=C001']}>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage(['/assets?asset=C001']);
 
     await waitFor(() => expect(screen.getByTestId('assets-filter-banner')).toBeInTheDocument());
     expect(screen.getAllByTestId('assets-row')).toHaveLength(1);
@@ -246,11 +217,7 @@ describe('cross-page asset filter (ADR-0031)', () => {
     await act(async () => {
       await seedTwoAssets();
     });
-    render(
-      <MemoryRouter initialEntries={['/assets']}>
-        <AssetsListPage />
-      </MemoryRouter>,
-    );
+    renderPage(['/assets']);
     await waitFor(() => expect(screen.getAllByTestId('assets-row')).toHaveLength(2));
     expect(screen.queryByTestId('assets-filter-banner')).not.toBeInTheDocument();
   });

@@ -1,0 +1,29 @@
+/* Shared entity-search widget styling (T-036, ADR-0013). Theme-aware via the shared tokens
+   (ADR-0010) — no separate dark-mode block needed, tokens.css owns that switch. */
+.entity-search {
+  position: relative;
+}
+
+.entity-search-results {
+  position: absolute;
+  z-index: 50;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  min-width: 100%;
+  max-height: 16rem;
+  overflow-y: auto;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px var(--color-shadow);
+}
+
+.entity-search-results li {
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.entity-search-result--highlighted {
+  background: var(--color-imported-fill);
+}

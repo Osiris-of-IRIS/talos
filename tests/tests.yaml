@@ -221,12 +221,40 @@ suites:
     adr_refs: [ADR-0001, ADR-0027]
 
   - id: TEST-SEARCH-01
-    title: Shared entity-search typeahead over IndexedDB with scoping
-    type: component
+    title: "useEntitySearch core hook (T-036, ADR-0013): types-mode (IndexedDB, ranked/debounced, origin badges, scope predicate, limit) and items-mode (fixed list, for nested data like controls/params)"
+    file: tests/shared/useEntitySearch.test.tsx
+    type: unit
     runner: vitest
-    status: planned
+    status: implemented
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0013]
+
+  - id: TEST-SEARCH-02
+    title: "EntitySearchField (T-036, ADR-0013): controlled value/onChange drop-in replacement for DatalistInput, backed by useEntitySearch; now wired into every top-level-artifact and nested-data picker across component-definitions and SSPs"
+    file: tests/shared/EntitySearchField.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0013, ADR-0024]
+
+  - id: TEST-SEARCH-03
+    title: "GlobalSearch sidebar widget: app-wide search-and-navigate across catalogs, component-definitions and SSPs; picking a result routes to its detail page (or the list page for catalogs, which have no per-item route)"
+    file: tests/app/globalSearch.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0013]
+
+  - id: TEST-TOAST-01
+    title: "Shared toast notification system (T-035): success/info auto-dismiss, warning/error persist until manually dismissed, safe no-op default context"
+    file: tests/shared/toast.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0002, ADR-0010, ADR-0012]
 
   - id: TEST-I18N-01
     title: "i18n: de/en key parity, interpolation, fallback chain, provider default + persistence"
@@ -443,7 +471,7 @@ suites:
     golden: [tests/data/component-definition-minimal.json, tests/data/component-definition-with-creator.json]
 
   - id: TEST-CDEF-EDIT-01
-    title: "Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance, component list collapse/expand, markup editor, back-matter source resolution, import-component-definition add/remove/cycle-rejection + unresolved-ref recording)"
+    title: "Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance, component list collapse/expand, markup editor, back-matter source resolution, import-component-definition add/remove/cycle-rejection + unresolved-ref recording, inline resolve-in-place for a dangling import + unresolved-count banner, T-105)"
     file: tests/features/componentDefinitionEditor.test.tsx
     type: component
     runner: vitest
@@ -479,7 +507,7 @@ suites:
     adr_refs: [ADR-0001, ADR-0014, ADR-0017, ADR-0024]
 
   - id: TEST-CDEF-IMP-02
-    title: "Component-def detail: read-only transitive Imported Definitions tree, resolved/unresolved nodes, cycle-flagged leaf (not re-expanded)"
+    title: "Component-def detail: read-only transitive Imported Definitions tree, resolved/unresolved nodes, cycle-flagged leaf (not re-expanded); unresolved-count summary banner with an edit link (user-origin only), T-105"
     file: tests/features/componentDefinitionImportedTree.test.tsx
     type: component
     runner: vitest

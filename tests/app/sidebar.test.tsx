@@ -38,6 +38,7 @@ describe('Sidebar', () => {
       </MemoryRouter>,
     );
     expect(screen.getByTestId('sidebar-nav')).toBeInTheDocument();
+    expect(screen.getByTestId('global-search-input')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'System Security Plans' })).toHaveAttribute('href', '/ssps');
 
     await user.click(screen.getByTestId('sidebar-toggle'));

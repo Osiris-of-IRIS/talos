@@ -199,7 +199,7 @@ describe('control implementation — requirements, by-components, status', () =>
     await user.click(screen.getByTestId('si-import'));
 
     await user.click(screen.getByTestId('ci-add-requirement'));
-    await user.type(screen.getByTestId('ir-control-id'), 'IA-5');
+    await user.type(screen.getByTestId('ir-control-id-input'), 'IA-5');
 
     await user.click(screen.getByTestId('ci-add-by-component'));
     await waitFor(() => expect(within(screen.getByTestId('bc-component-select')).getByText('nginx')).toBeInTheDocument());
@@ -231,7 +231,7 @@ describe('control implementation — requirements, by-components, status', () =>
     await user.click(screen.getByTestId('si-import'));
 
     await user.click(screen.getByTestId('ci-add-requirement'));
-    await user.type(screen.getByTestId('ir-control-id'), 'IA-5');
+    await user.type(screen.getByTestId('ir-control-id-input'), 'IA-5');
     await user.click(screen.getByTestId('ci-add-by-component'));
     await waitFor(() => expect(within(screen.getByTestId('bc-component-select')).getByText('nginx')).toBeInTheDocument());
     await user.selectOptions(screen.getByTestId('bc-component-select'), 'nginx');
@@ -253,7 +253,7 @@ describe('control implementation — requirements, by-components, status', () =>
     await user.click(screen.getByTestId('si-import'));
 
     await user.click(screen.getByTestId('ci-add-requirement'));
-    await user.type(screen.getByTestId('ir-control-id'), 'IA-5');
+    await user.type(screen.getByTestId('ir-control-id-input'), 'IA-5');
     await user.click(screen.getByTestId('ci-add-by-component'));
     await user.type(screen.getByTestId('bc-description-textarea'), 'My own custom description.');
     await user.selectOptions(screen.getByTestId('bc-component-select'), 'nginx');
@@ -261,16 +261,17 @@ describe('control implementation — requirements, by-components, status', () =>
     expect(screen.getByTestId('bc-description-textarea')).toHaveValue('My own custom description.');
   });
 
-  it('control-id datalist shows "{label|id} {title}" display text, unscoped across all workspace catalogs (item 7)', async () => {
+  it('control-id search shows "{label|id} {title}" display text, unscoped across all workspace catalogs (item 7)', async () => {
     const { record } = parseOscalUpload<Catalog>(JSON.stringify(catalogJson));
     await catalogRepo().create({ uuid: record.uuid, type: 'catalog', origin: 'imported', artifact: record.artifact });
 
     const user = userEvent.setup();
-    const { container } = renderAt('/ssps/new');
+    renderAt('/ssps/new');
     await user.click(screen.getByTestId('ci-add-requirement'));
-    await waitFor(() =>
-      expect(container.querySelector('option[value="ASST.1.1.2"]')?.textContent).toBe('ASST.1.1.2 Zuweisung'),
-    );
+    await user.type(screen.getByTestId('ir-control-id-input'), 'ASST.1.1.2');
+    // the control also carries an alt-identifier (ADR-0021), so it's offered twice (once per
+    // id form) — both showing the same "{id} {title}" headline text.
+    expect((await screen.findAllByText('ASST.1.1.2 Zuweisung')).length).toBeGreaterThan(0);
   });
 
   it('removing a system-implementation component cascades to remove its by-components entries', async () => {
@@ -356,8 +357,8 @@ describe('loaded (existing) SSP — sections and rows collapsed by default', () 
     await user.click(screen.getByTestId('ssp-section-control-impl-toggle'));
     expect(screen.getByTestId('ir-summary')).toHaveTextContent('IA-5');
     expect(screen.getByTestId('ir-row')).toHaveClass('collapsible-section'); // UI feedback items 1+4
-    expect(screen.queryByTestId('ir-control-id')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ir-control-id-input')).not.toBeInTheDocument();
     await user.click(screen.getByTestId('ir-summary'));
-    expect(screen.getByTestId('ir-control-id')).toHaveValue('IA-5');
+    expect(screen.getByTestId('ir-control-id-input')).toHaveValue('IA-5');
   });
 });

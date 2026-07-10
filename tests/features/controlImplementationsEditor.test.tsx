@@ -108,7 +108,7 @@ describe('choice-constrained set-parameters (UI feedback item 4)', () => {
     const user = userEvent.setup();
     render(<Harness controlId="TEST.1" />);
     await user.click(screen.getByTestId('add-set-parameter'));
-    await user.type(screen.getByTestId('sp-param-id'), 'plain-prm');
+    await user.type(screen.getByTestId('sp-param-id-input'), 'plain-prm');
     await user.type(screen.getByTestId('sp-values'), 'anything, goes');
     expect(dump().controlImplementations![0]!.implementedRequirements[0]!.setParameters![0]).toEqual({
       paramId: 'plain-prm',
@@ -120,7 +120,7 @@ describe('choice-constrained set-parameters (UI feedback item 4)', () => {
     const user = userEvent.setup();
     render(<Harness controlId="TEST.1" />);
     await user.click(screen.getByTestId('add-set-parameter'));
-    await user.type(screen.getByTestId('sp-param-id'), 'single-choice-prm');
+    await user.type(screen.getByTestId('sp-param-id-input'), 'single-choice-prm');
 
     const select = screen.getByTestId('sp-values-select');
     expect(within(select).getAllByRole('option').map((o) => (o as HTMLOptionElement).value)).toEqual(
@@ -137,7 +137,7 @@ describe('choice-constrained set-parameters (UI feedback item 4)', () => {
     const user = userEvent.setup();
     render(<Harness controlId="TEST.1" />);
     await user.click(screen.getByTestId('add-set-parameter'));
-    await user.type(screen.getByTestId('sp-param-id'), 'multi-choice-prm');
+    await user.type(screen.getByTestId('sp-param-id-input'), 'multi-choice-prm');
 
     await user.click(screen.getByRole('checkbox', { name: 'red' }));
     await user.click(screen.getByRole('checkbox', { name: 'blue' }));

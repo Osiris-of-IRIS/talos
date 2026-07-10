@@ -9,9 +9,10 @@ import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
 import { resolveControl } from '@/data/catalogResolution';
 import { viewerHref } from '@/config';
 import { useI18n } from '@/shared/i18n';
+import { useToast } from '@/shared/toast';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
-import { buildImportTree } from '@/data/componentImportResolution';
+import { buildImportTree, unresolvedImportHrefs } from '@/data/componentImportResolution';
 import { ImportTreeView } from './ImportTreeView';
 import type { StoredArtifact } from '@/data/db';
 import type { ComponentDefinition, DefinedComponent } from '@/models/componentDefinition';
@@ -23,19 +24,18 @@ function requirementCount(c: DefinedComponent): number {
 export function ComponentDefinitionDetailPage() {
   const { uuid = '' } = useParams();
   const { t } = useI18n();
+  const { showToast } = useToast();
   const catalogIndex = useCatalogIndex();
   const [record, setRecord] = useState<StoredArtifact<ComponentDefinition> | null | undefined>(undefined);
-  const [exportError, setExportError] = useState<string | null>(null);
   // Every component starts collapsed (item 3): a scannable list first, full detail on click.
   const expanded = useExpandedSet();
   const workspaceComponentDefs = useWorkspaceComponentDefinitions();
 
   function onDownload(r: StoredArtifact<ComponentDefinition>) {
     try {
-      setExportError(null);
       downloadArtifact(r);
     } catch (e) {
-      setExportError(e instanceof Error ? e.message : String(e));
+      showToast(e instanceof Error ? e.message : String(e), 'error');
     }
   }
 
@@ -65,6 +65,11 @@ export function ComponentDefinitionDetailPage() {
 
   const cd = record.artifact;
   const importTree = buildImportTree(record, workspaceComponentDefs);
+  const unresolvedCount = unresolvedImportHrefs(
+    cd.importComponentDefinitions,
+    cd.backMatter,
+    workspaceComponentDefs,
+  ).length;
   return (
     <main data-testid="compdef-detail">
       <p>
@@ -86,9 +91,15 @@ export function ComponentDefinitionDetailPage() {
       <button type="button" onClick={() => onDownload(record)}>
         ⭳ {t('common_download')}
       </button>
-      {exportError && (
-        <p role="alert" data-testid="compdef-export-error" style={{ color: 'var(--color-error, #cf222e)' }}>
-          ⚠️ {exportError}
+      {unresolvedCount > 0 && (
+        <p role="status" data-testid="cdef-detail-unresolved-banner" style={{ color: 'var(--color-warning, #a15c00)' }}>
+          ⚠️ {t('cdef_imports_unresolved_detail_banner', { count: unresolvedCount })}
+          {record.origin !== 'library' && (
+            <>
+              {' '}
+              <Link to={`/component-definitions/${record.uuid}/edit`}>✎ {t('common_edit')}</Link>
+            </>
+          )}
         </p>
       )}
 

@@ -1,43 +1,53 @@
 // Catalogs list + upload (read-only sources; viewed externally per ADR-0008). Feature: control layer.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useCatalogsStore } from './store';
 import { VIEWER_URL } from '@/config';
 import { useI18n } from '@/shared/i18n';
+import { useToast } from '@/shared/toast';
 import { downloadArtifactsAsZip } from '@/data/bulkExport';
 import { BulkActionsBar } from '@/features/shared/BulkActionsBar';
 
 export function CatalogsListPage() {
   const { t } = useI18n();
+  const { showToast } = useToast();
   const { items, loading, error, warnings, selected, load, importFromText, remove, toggleSelected, selectAll, removeMany } =
     useCatalogsStore();
   const fileInput = useRef<HTMLInputElement>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [downloadWarning, setDownloadWarning] = useState<string | null>(null);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  // Reacts to the store's own error/warnings state (not just this component's own upload calls)
+  // so a warning/error set by any caller — including a test driving the store directly — still
+  // surfaces. Both fields are freshly-created values whenever the store sets them (a new array,
+  // or reset to null/[] first), so this never misses a repeated identical result.
+  useEffect(() => {
+    if (error) showToast(error, 'error');
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (warnings.length > 0) showToast(warnings.join(' '), 'warning');
+  }, [warnings, showToast]);
+
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setUploadError(null);
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       await importFromText(await file.text());
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : String(err));
+      showToast(err instanceof Error ? err.message : String(err), 'error');
     } finally {
       e.target.value = '';
     }
   }
 
   function onDownloadSelected() {
-    setDownloadWarning(null);
     const records = items.filter((r) => selected.has(r.uuid));
     const skipped = downloadArtifactsAsZip(records, `catalogs-export-${Date.now()}.zip`);
     if (skipped.length > 0) {
-      setDownloadWarning(t('bulk_download_warning', { count: String(skipped.length), details: skipped.join('; ') }));
+      showToast(t('bulk_download_warning', { count: String(skipped.length), details: skipped.join('; ') }), 'warning');
     }
   }
 
@@ -72,17 +82,6 @@ export function CatalogsListPage() {
         />
       </div>
 
-      {uploadError && (
-        <p role="alert" data-testid="catalog-upload-error">
-          ⚠️ {uploadError}
-        </p>
-      )}
-      {error && <p role="alert">⚠️ {error}</p>}
-      {warnings.length > 0 && (
-        <p role="status" data-testid="catalog-upload-warning" style={{ color: 'var(--color-warning, #a15c00)' }}>
-          ⚠️ {warnings.join(' ')}
-        </p>
-      )}
       {loading && <p>{t('common_loading')}</p>}
       {!loading && items.length === 0 && (
         <p data-testid="catalog-empty">📂 {t('catalog_empty')}</p>
@@ -109,12 +108,6 @@ export function CatalogsListPage() {
         onDelete={() => void onDeleteSelected()}
         testIdPrefix="catalog"
       />
-
-      {downloadWarning && (
-        <p role="status" data-testid="catalog-download-warning" style={{ color: 'var(--color-warning, #a15c00)' }}>
-          ⚠️ {downloadWarning}
-        </p>
-      )}
 
       <ul>
         {items.map((r) => (

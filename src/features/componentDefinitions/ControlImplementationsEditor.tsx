@@ -1,15 +1,15 @@
 /**
  * Editor for a component's control-implementations → implemented-requirements → set-parameters.
  * Source-driven pickers (T-142): `source` picks a workspace catalog, `control-id` and
- * `set-parameter.param-id` are datalist-typeaheads seeded from the resolved catalog (manual entry
- * still allowed; origin-agnostic so T-034 library catalogs slot into the same lists). The full
- * ADR-0013 entity-search widget (T-036) can later replace the datalists. When the workspace has
- * zero catalogs, shows an info message linking to upload/library (T-161).
+ * `set-parameter.param-id` are entity-search typeaheads (ADR-0013, `EntitySearchField` in `items`
+ * mode) seeded from the resolved catalog (manual entry still allowed; origin-agnostic so T-034
+ * library catalogs slot into the same lists). When the workspace has zero catalogs, shows an info
+ * message linking to upload/library (T-161).
  *
  * Source resolution is back-matter-mediated (item 5, ADR-0024): picking a catalog creates/reuses
  * a back-matter resource identifying it (`onEnsureCatalogSource`) instead of writing the
  * catalog's own uuid directly into `source`. Control-id suggestions show the resolved control's
- * headline, not a raw id/uuid (item 7, ADR-0024). All datalist inputs use `<DatalistInput>` so
+ * headline, not a raw id/uuid (item 7, ADR-0024). All pickers use `<EntitySearchField>` so
  * focusing a pre-filled field offers every option, not just the current value (item 3, ADR-0024).
  * Decision IDs: ADR-0003, ADR-0013, ADR-0016, ADR-0012, ADR-0024 (feature IMPL-001, T-101/T-142/T-161).
  */
@@ -26,7 +26,8 @@ import {
 } from '@/data/catalogResolution';
 import { useI18n } from '@/shared/i18n';
 import { MarkupEditor } from '@/shared/MarkupEditor';
-import { DatalistInput } from '@/shared/DatalistInput';
+import { EntitySearchField } from '@/shared/EntitySearchField';
+import type { SearchItem } from '@/shared/useEntitySearch';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
 import { viewerHref } from '@/config';
 import type { Parameter } from '@/models/control';
@@ -70,13 +71,11 @@ function SetParameterRow({
   onChange,
   onRemove,
   paramOptions,
-  listId,
 }: {
   value: SetParameter;
   onChange: (next: SetParameter) => void;
   onRemove: () => void;
   paramOptions: Parameter[];
-  listId: string;
 }) {
   const { t } = useI18n();
   const [rawValues, setRawValues] = useState((value.values ?? []).join(', '));
@@ -84,6 +83,7 @@ function SetParameterRow({
   // defined choices — no free text — so a selection can never drift out of sync with the control.
   const selectedParam = paramOptions.find((p) => p.id === value.paramId);
   const choices = selectedParam?.select?.choice;
+  const paramSearchItems: SearchItem[] = paramOptions.map((p) => ({ id: p.id, title: p.label ?? p.id }));
 
   function toggleChoice(choice: string) {
     const set = new Set(value.values ?? []);
@@ -94,13 +94,12 @@ function SetParameterRow({
 
   return (
     <div data-testid="set-parameter">
-      <DatalistInput
+      <EntitySearchField
         ariaLabel={t('ci_param_id_aria')}
         dataTestId="sp-param-id"
-        listId={listId}
         placeholder={t('ci_param_id_placeholder')}
         value={value.paramId}
-        options={paramOptions.map((p) => ({ value: p.id, label: p.label ?? p.id }))}
+        items={paramSearchItems}
         onChange={(v) => onChange({ ...value, paramId: v })}
       />
       {choices ? (
@@ -155,7 +154,9 @@ function SetParameterRow({
 export function ControlImplementationsEditor({ value, onChange, catalogIndex, backMatter, onEnsureCatalogSource }: Props) {
   const { t } = useI18n();
   const cis = value.controlImplementations ?? [];
-  const sourceOptions = catalogIndex ? catalogSourceOptions(catalogIndex) : [];
+  const sourceSearchItems: SearchItem[] = catalogIndex
+    ? catalogSourceOptions(catalogIndex).map((o) => ({ id: o.ref, title: o.title }))
+    : [];
 
   function update(mutator: (c: DefinedComponent) => void) {
     const next = structuredClone(value);
@@ -203,12 +204,11 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
           <legend>{t('ci_legend')}</legend>
           <label>
             {t('ci_source_label')}
-            <DatalistInput
+            <EntitySearchField
               dataTestId="ci-source"
-              listId={`source-options-${ci.uuid}`}
               value={ci.source}
               placeholder={t('ci_source_placeholder')}
-              options={sourceOptions.map((o) => ({ value: o.ref, label: o.title }))}
+              items={sourceSearchItems}
               onChange={(v) => setSource(ciIdx, v)}
             />
             {catalogIndex &&
@@ -243,8 +243,11 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
               const paramOptions = catalogIndex
                 ? paramsForControl(catalogIndex, ci.source, ir.controlId, backMatter)
                 : [];
-              const controlIdOptions = catalogIndex
-                ? controlIdOptionsForSource(catalogIndex, ci.source, backMatter)
+              const controlIdSearchItems: SearchItem[] = catalogIndex
+                ? controlIdOptionsForSource(catalogIndex, ci.source, backMatter).map((o) => ({
+                    id: o.value,
+                    title: o.label,
+                  }))
                 : [];
               // Item 3 (UI feedback): show the actual control content next to the editable
               // fields, 40/60 like the read-only viewer (ADR-0028), so an author can see whether
@@ -256,12 +259,11 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
               <fieldset key={ir.uuid} data-testid="implemented-requirement">
                 <label>
                   {t('ci_control_id_label')}
-                  <DatalistInput
+                  <EntitySearchField
                     dataTestId="ir-control-id"
-                    listId={`controlids-${ir.uuid}`}
                     value={ir.controlId}
                     placeholder={t('ci_control_id_placeholder')}
-                    options={controlIdOptions}
+                    items={controlIdSearchItems}
                     onChange={(v) =>
                       update((c) => (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.controlId = v))
                     }
@@ -338,7 +340,6 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
                                 )
                               }
                               paramOptions={paramOptions}
-                              listId={`params-${ir.uuid}`}
                             />
                           ))}
                           <button

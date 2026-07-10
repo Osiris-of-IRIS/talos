@@ -89,13 +89,13 @@ describe('component body: type + control-implementations', () => {
     await user.type(typeInput, 'policy');
 
     await user.click(screen.getByTestId('add-control-implementation'));
-    await user.type(screen.getByTestId('ci-source'), '#cat-1');
+    await user.type(screen.getByTestId('ci-source-input'), '#cat-1');
     await user.click(screen.getByTestId('add-requirement'));
-    await user.type(screen.getByTestId('ir-control-id'), 'ASST.1.1.2');
+    await user.type(screen.getByTestId('ir-control-id-input'), 'ASST.1.1.2');
     await user.type(screen.getByTestId('ir-description-textarea'), 'nginx enforces the policy.');
     await user.type(screen.getByTestId('ir-remarks-textarea'), 'reviewed 2026');
     await user.click(screen.getByTestId('add-set-parameter'));
-    await user.type(screen.getByTestId('sp-param-id'), 'asst.1.1.2-prm1');
+    await user.type(screen.getByTestId('sp-param-id-input'), 'asst.1.1.2-prm1');
     await user.type(screen.getByTestId('sp-values'), 'den IT-Betrieb, die Rolle');
 
     await user.click(screen.getByTestId('save-compdef'));
@@ -115,7 +115,7 @@ describe('component body: type + control-implementations', () => {
 });
 
 describe('source→catalog + param pickers (T-142)', () => {
-  it('offers workspace catalogs, control-ids and params as datalist options', async () => {
+  it('offers workspace catalogs, control-ids and params as search results', async () => {
     const user = userEvent.setup();
     // Seed a workspace catalog so the pickers have something to resolve.
     const { record } = parseOscalUpload<Catalog>(JSON.stringify(catalogJson));
@@ -126,32 +126,31 @@ describe('source→catalog + param pickers (T-142)', () => {
       artifact: record.artifact,
     });
 
-    const { container } = renderAt('/component-definitions/new');
-    const optionValues = () =>
-      Array.from(container.querySelectorAll('datalist option')).map((o) => o.getAttribute('value'));
+    renderAt('/component-definitions/new');
 
     await user.type(screen.getByTestId('md-title'), 'Picker Test');
     await user.click(screen.getByTestId('add-component'));
     await user.click(screen.getByTestId('add-control-implementation'));
 
-    // source datalist offers the catalog (async index load) by title, value = #uuid
-    await waitFor(() => expect(screen.getByText('BSI Kernel (excerpt)')).toBeInTheDocument());
-    expect(optionValues()).toContain(`#${record.uuid}`);
+    // source search offers the catalog (async index load) by title
+    await user.type(screen.getByTestId('ci-source-input'), 'BSI Kernel');
+    expect(await screen.findByText('BSI Kernel (excerpt)')).toBeInTheDocument();
 
     // pick the catalog as source → resolves
-    await user.type(screen.getByTestId('ci-source'), `#${record.uuid}`);
+    await user.clear(screen.getByTestId('ci-source-input'));
+    await user.type(screen.getByTestId('ci-source-input'), `#${record.uuid}`);
     expect(await screen.findByTestId('ci-source-resolved')).toHaveTextContent('BSI Kernel (excerpt)');
 
-    // add a requirement → its control-id datalist offers the catalog's control ids, with a
+    // add a requirement → its control-id search offers the catalog's control ids, with a
     // readable "{label|id} {title}" display text, not just the raw id (item 7)
     await user.click(screen.getByTestId('add-requirement'));
-    await waitFor(() => expect(optionValues()).toContain('ASST.1.1.2'));
-    expect(container.querySelector('option[value="ASST.1.1.2"]')?.textContent).toBe('ASST.1.1.2 Zuweisung');
+    await user.type(screen.getByTestId('ir-control-id-input'), 'ASST.1.1.2');
+    expect(await screen.findByText('ASST.1.1.2 Zuweisung')).toBeInTheDocument();
 
     // once a control is chosen, its params are offered as set-parameter options
-    await user.type(screen.getByTestId('ir-control-id'), 'ASST.1.1.2');
     await user.click(screen.getByTestId('add-set-parameter'));
-    await waitFor(() => expect(optionValues()).toContain('asst.1.1.2-prm1'));
+    await user.type(screen.getByTestId('sp-param-id-input'), 'zuständigen');
+    expect(await screen.findByText('zuständigen Personen oder Rollen')).toBeInTheDocument();
   });
 
   it('picking a catalog creates a back-matter resource and stores a resource-mediated source, not the raw catalog uuid (item 5)', async () => {
@@ -168,9 +167,8 @@ describe('source→catalog + param pickers (T-142)', () => {
     await user.type(screen.getByTestId('md-title'), 'Source Resolution Test');
     await user.click(screen.getByTestId('add-component'));
     await user.click(screen.getByTestId('add-control-implementation'));
-    await waitFor(() => expect(screen.getByText('BSI Kernel (excerpt)')).toBeInTheDocument());
 
-    await user.type(screen.getByTestId('ci-source'), `#${record.uuid}`);
+    await user.type(screen.getByTestId('ci-source-input'), `#${record.uuid}`);
     await screen.findByTestId('ci-source-resolved');
 
     await user.click(screen.getByTestId('save-compdef'));
@@ -213,7 +211,10 @@ describe('no workspace catalogs — guidance message (T-161)', () => {
     await user.click(screen.getByTestId('add-component'));
     await user.click(screen.getByTestId('add-control-implementation'));
 
-    await waitFor(() => expect(screen.getByText('BSI Kernel (excerpt)')).toBeInTheDocument());
+    // async catalog-index load: confirm it's actually loaded (not just still null) by typing into
+    // the source search and seeing the catalog offered, then assert the hint stays gone.
+    await user.type(screen.getByTestId('ci-source-input'), 'BSI Kernel');
+    expect(await screen.findByText('BSI Kernel (excerpt)')).toBeInTheDocument();
     expect(screen.queryByTestId('no-catalogs-hint')).not.toBeInTheDocument();
   });
 });
@@ -263,14 +264,14 @@ describe('imports (ADR-0014)', () => {
 
   it('does not offer the definition itself as an import option', async () => {
     await seedEditorAndOther();
+    const user = userEvent.setup();
     renderAt(`/component-definitions/${editorUuid}/edit`);
     await waitFor(() => expect(screen.getByTestId('md-title')).toHaveValue('Editor Def'));
 
-    const options = [...document.getElementById('cdef-import-options')!.querySelectorAll('option')].map(
-      (o) => o.value,
-    );
-    expect(options).toContain(otherUuid);
-    expect(options).not.toContain(editorUuid);
+    // "Def" matches both "Editor Def" (self) and "Other Def" by title.
+    await user.type(screen.getByTestId('cdef-import-picker-input'), 'Def');
+    expect(await screen.findByText('Other Def')).toBeInTheDocument();
+    expect(screen.queryByText('Editor Def')).not.toBeInTheDocument();
   });
 
   it('adds an import, referencing the target via a back-matter resource (not its uuid directly)', async () => {
@@ -279,7 +280,8 @@ describe('imports (ADR-0014)', () => {
     renderAt(`/component-definitions/${editorUuid}/edit`);
     await waitFor(() => expect(screen.getByTestId('md-title')).toHaveValue('Editor Def'));
 
-    await user.type(screen.getByTestId('cdef-import-picker'), otherUuid);
+    await user.type(screen.getByTestId('cdef-import-picker-input'), 'Other Def');
+    await user.click(await screen.findByText('Other Def'));
     await user.click(screen.getByTestId('cdef-import-add'));
 
     expect(await screen.findByRole('link', { name: 'Other Def' })).toBeInTheDocument();
@@ -358,6 +360,90 @@ describe('imports (ADR-0014)', () => {
     expect(await screen.findByTestId('cdef-import-unresolved')).toBeInTheDocument();
   });
 
+  it('shows a summary banner counting unresolved imports (T-105)', async () => {
+    await repo().create({
+      uuid: editorUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: editorUuid,
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: '#nonexistent-1' }, { href: '#nonexistent-2' }],
+      },
+    });
+    renderAt(`/component-definitions/${editorUuid}/edit`);
+    expect(await screen.findByTestId('cdef-imports-unresolved-banner')).toHaveTextContent('2');
+  });
+
+  it('resolves a dangling import in place, clearing the banner and marker (T-105)', async () => {
+    await repo().create({
+      uuid: editorUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: editorUuid,
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: '#nonexistent', remarks: 'keep me' }],
+      },
+    });
+    await repo().create({
+      uuid: otherUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: { uuid: otherUuid, metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2' } },
+    });
+
+    const user = userEvent.setup();
+    renderAt(`/component-definitions/${editorUuid}/edit`);
+    expect(await screen.findByTestId('cdef-import-unresolved')).toBeInTheDocument();
+
+    await user.type(screen.getByTestId('cdef-import-resolve-picker-input'), otherUuid);
+    await user.click(screen.getByTestId('cdef-import-resolve'));
+
+    expect(await screen.findByRole('link', { name: 'Other Def' })).toBeInTheDocument();
+    expect(screen.queryByTestId('cdef-import-unresolved')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cdef-imports-unresolved-banner')).not.toBeInTheDocument();
+    // remarks are preserved across the resolve, not reset
+    expect(screen.getByTestId('cdef-import-remarks')).toHaveValue('keep me');
+
+    await user.click(screen.getByTestId('save-compdef'));
+    expect(await getUnresolvedReferencesFor(editorUuid)).toHaveLength(0);
+  });
+
+  it('rejects an inline resolve that would create a cycle', async () => {
+    await repo().create({
+      uuid: editorUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: editorUuid,
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: '#nonexistent' }],
+      },
+    });
+    // otherDef already imports editorDef — resolving editorDef's dangling import to otherDef
+    // would close the loop.
+    await repo().create({
+      uuid: otherUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: otherUuid,
+        metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: `#${editorUuid}` }],
+      },
+    });
+
+    const user = userEvent.setup();
+    renderAt(`/component-definitions/${editorUuid}/edit`);
+    await screen.findByTestId('cdef-import-unresolved');
+
+    // The cycle-inducing definition isn't even offered as a resolve option (same proactive filter
+    // as the add-import picker).
+    await user.type(screen.getByTestId('cdef-import-resolve-picker-input'), 'Def');
+    expect(screen.queryByText('Other Def')).not.toBeInTheDocument();
+  });
+
   it('rejects an import that would create a cycle', async () => {
     await repo().create({
       uuid: editorUuid,
@@ -380,14 +466,13 @@ describe('imports (ADR-0014)', () => {
       },
     });
 
+    const user = userEvent.setup();
     renderAt(`/component-definitions/${editorUuid}/edit`);
     await waitFor(() => expect(screen.getByTestId('md-title')).toHaveValue('Editor Def'));
 
     // The cycle-inducing definition isn't even offered as an option (proactive UX filter).
-    const options = [...document.getElementById('cdef-import-options')!.querySelectorAll('option')].map(
-      (o) => o.value,
-    );
-    expect(options).not.toContain(otherUuid);
+    await user.type(screen.getByTestId('cdef-import-picker-input'), 'Def');
+    expect(screen.queryByText('Other Def')).not.toBeInTheDocument();
   });
 });
 

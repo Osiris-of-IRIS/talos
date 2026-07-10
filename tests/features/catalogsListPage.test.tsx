@@ -10,9 +10,20 @@ import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests } from '@/data/db';
 import { useCatalogsStore } from '@/features/catalogs/store';
 import { CatalogsListPage } from '@/features/catalogs/CatalogsListPage';
+import { ToastProvider } from '@/shared/toast';
 import golden from '../data/catalog-minimal.json';
 
 const goldenText = JSON.stringify(golden);
+
+function renderPage() {
+  return render(
+    <ToastProvider>
+      <MemoryRouter>
+        <CatalogsListPage />
+      </MemoryRouter>
+    </ToastProvider>,
+  );
+}
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
@@ -22,11 +33,7 @@ beforeEach(() => {
 
 describe('list page', () => {
   it('shows the empty state, then the imported catalog', async () => {
-    render(
-      <MemoryRouter>
-        <CatalogsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     expect(await screen.findByTestId('catalog-empty')).toBeInTheDocument();
     await act(async () => {
       await useCatalogsStore.getState().importFromText(goldenText);
@@ -41,31 +48,24 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await useCatalogsStore.getState().importFromText(goldenText);
     });
-    render(
-      <MemoryRouter>
-        <CatalogsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     expect(screen.queryByTestId('catalog-bulk-actions')).not.toBeInTheDocument();
     await user.click(screen.getByTestId('catalog-select-item'));
     expect(screen.getByTestId('catalog-selected-count')).toHaveTextContent('1');
   });
 
-  it('download-selected surfaces a skip warning for a catalog with no valid creator (ADR-0019)', async () => {
+  it('download-selected surfaces a skip warning toast for a catalog with no valid creator (ADR-0019)', async () => {
     const user = userEvent.setup();
     await act(async () => {
       await useCatalogsStore.getState().importFromText(goldenText);
     });
-    render(
-      <MemoryRouter>
-        <CatalogsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     await user.click(screen.getByTestId('catalog-select-item'));
     await user.click(screen.getByTestId('catalog-download-selected'));
-    const warning = await screen.findByTestId('catalog-download-warning');
-    expect(warning).toHaveTextContent('1');
-    expect(warning).toHaveTextContent('BSI Kernel (excerpt)');
+    const toast = await screen.findByTestId('toast');
+    expect(toast).toHaveAttribute('data-level', 'warning');
+    expect(toast).toHaveTextContent('1');
+    expect(toast).toHaveTextContent('BSI Kernel (excerpt)');
   });
 
   it('delete-selected removes the selected items only after confirmation', async () => {
@@ -73,11 +73,7 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await useCatalogsStore.getState().importFromText(goldenText);
     });
-    render(
-      <MemoryRouter>
-        <CatalogsListPage />
-      </MemoryRouter>,
-    );
+    renderPage();
     await user.click(screen.getByTestId('catalog-select-item'));
 
     globalThis.confirm = () => false;

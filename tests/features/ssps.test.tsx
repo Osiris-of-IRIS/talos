@@ -12,6 +12,7 @@ import { ArtifactRepository } from '@/data/artifactRepository';
 import { useSspsStore } from '@/features/ssps/store';
 import { SspListPage } from '@/features/ssps/SspListPage';
 import { SspDetailPage } from '@/features/ssps/SspDetailPage';
+import { ToastProvider } from '@/shared/toast';
 import golden from '../data/ssp-minimal.json';
 import type { ComponentDefinition } from '@/models/componentDefinition';
 
@@ -19,11 +20,23 @@ const goldenText = JSON.stringify(golden);
 
 function renderDetailAt(uuid: string) {
   return render(
-    <MemoryRouter initialEntries={[`/ssps/${uuid}`]}>
-      <Routes>
-        <Route path="/ssps/:uuid" element={<SspDetailPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <ToastProvider>
+      <MemoryRouter initialEntries={[`/ssps/${uuid}`]}>
+        <Routes>
+          <Route path="/ssps/:uuid" element={<SspDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>,
+  );
+}
+
+function renderListPage() {
+  return render(
+    <ToastProvider>
+      <MemoryRouter>
+        <SspListPage />
+      </MemoryRouter>
+    </ToastProvider>,
   );
 }
 
@@ -50,11 +63,7 @@ describe('store', () => {
 
 describe('list page', () => {
   it('shows the empty state, then the imported SSP', async () => {
-    render(
-      <MemoryRouter>
-        <SspListPage />
-      </MemoryRouter>,
-    );
+    renderListPage();
     expect(await screen.findByTestId('ssp-empty')).toBeInTheDocument();
     await act(async () => {
       await useSspsStore.getState().importFromText(goldenText);
@@ -69,11 +78,7 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await useSspsStore.getState().importFromText(goldenText);
     });
-    render(
-      <MemoryRouter>
-        <SspListPage />
-      </MemoryRouter>,
-    );
+    renderListPage();
     expect(screen.queryByTestId('ssp-bulk-actions')).not.toBeInTheDocument();
     await user.click(screen.getByTestId('ssp-select-item'));
     expect(screen.getByTestId('ssp-selected-count')).toHaveTextContent('1');
@@ -84,16 +89,13 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await useSspsStore.getState().importFromText(goldenText);
     });
-    render(
-      <MemoryRouter>
-        <SspListPage />
-      </MemoryRouter>,
-    );
+    renderListPage();
     await user.click(screen.getByTestId('ssp-select-item'));
     await user.click(screen.getByTestId('ssp-download-selected'));
-    const warning = await screen.findByTestId('ssp-download-warning');
-    expect(warning).toHaveTextContent('1');
-    expect(warning).toHaveTextContent('Beispiel-SSP Webserver');
+    const toast = await screen.findByTestId('toast');
+    expect(toast).toHaveAttribute('data-level', 'warning');
+    expect(toast).toHaveTextContent('1');
+    expect(toast).toHaveTextContent('Beispiel-SSP Webserver');
   });
 
   it('delete-selected removes the selected items only after confirmation', async () => {
@@ -101,11 +103,7 @@ describe('bulk selection (ADR-0027)', () => {
     await act(async () => {
       await useSspsStore.getState().importFromText(goldenText);
     });
-    render(
-      <MemoryRouter>
-        <SspListPage />
-      </MemoryRouter>,
-    );
+    renderListPage();
     await user.click(screen.getByTestId('ssp-select-item'));
 
     globalThis.confirm = () => false;

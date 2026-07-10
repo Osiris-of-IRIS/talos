@@ -7,6 +7,7 @@ import { MarkupView } from '@/shared/MarkupView';
 import { CollapsibleSection } from '@/shared/CollapsibleSection';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { useI18n } from '@/shared/i18n';
+import { useToast } from '@/shared/toast';
 import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
 import { componentStaleness, getImplementationStatus } from './componentImport';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
@@ -19,9 +20,9 @@ import type { SystemSecurityPlan } from '@/models/ssp';
 export function SspDetailPage() {
   const { uuid = '' } = useParams();
   const { t } = useI18n();
+  const { showToast } = useToast();
   const catalogIndex = useCatalogIndex();
   const [record, setRecord] = useState<StoredArtifact<SystemSecurityPlan> | null | undefined>(undefined);
-  const [exportError, setExportError] = useState<string | null>(null);
   const workspaceComponentDefs = useWorkspaceComponentDefinitions();
   // Every section and component starts collapsed (supervisor note: SSPs can be large) — a
   // scannable outline first, full detail on click. Requirements are not individually collapsible
@@ -32,10 +33,9 @@ export function SspDetailPage() {
 
   function onDownload(r: StoredArtifact<SystemSecurityPlan>) {
     try {
-      setExportError(null);
       downloadArtifact(r);
     } catch (e) {
-      setExportError(e instanceof Error ? e.message : String(e));
+      showToast(e instanceof Error ? e.message : String(e), 'error');
     }
   }
 
@@ -89,11 +89,6 @@ export function SspDetailPage() {
       <button type="button" onClick={() => onDownload(record)}>
         ⭳ {t('common_download')}
       </button>
-      {exportError && (
-        <p role="alert" data-testid="ssp-export-error" style={{ color: 'var(--color-error, #cf222e)' }}>
-          ⚠️ {exportError}
-        </p>
-      )}
 
       <CollapsibleSection
         testId="ssp-section-characteristics"

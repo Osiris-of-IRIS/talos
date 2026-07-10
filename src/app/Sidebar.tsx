@@ -5,6 +5,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useI18n } from '@/shared/i18n';
 import { useAssetsStore } from '@/features/assets/store';
 import { navigationGroups, LAYER_TITLE_KEY } from './navigation';
+import { GlobalSearch } from './GlobalSearch';
 import logo from '@/assets/logo.png';
 
 export function Sidebar() {
@@ -38,6 +39,7 @@ export function Sidebar() {
       </div>
       {!collapsed && (
         <div className="app-sidebar-body" data-testid="sidebar-nav">
+          <GlobalSearch />
           {navigationGroups(hasAssets).map((group) => (
             <div key={group.layer} className="app-sidebar-group">
               <h3>{t(LAYER_TITLE_KEY[group.layer])}</h3>

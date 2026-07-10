@@ -3,7 +3,7 @@
  * Covers TEST-CDEF-IMP-02.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests } from '@/data/db';
@@ -128,5 +128,65 @@ describe('Imported Definitions — detail page (ADR-0014)', () => {
 
     renderDetail(rootUuid);
     expect(await screen.findByTestId('cdef-import-cycle')).toBeInTheDocument();
+  });
+});
+
+describe('Unresolved-reference summary banner — detail page (T-105)', () => {
+  it('shows no banner when every import resolves', async () => {
+    await repo().create({
+      uuid: childUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: { uuid: childUuid, metadata: { title: 'Child Def', version: '1.0.0', oscalVersion: '1.2.2' } },
+    });
+    await repo().create({
+      uuid: rootUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: rootUuid,
+        metadata: { title: 'Root', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: `#${childUuid}` }],
+      },
+    });
+    renderDetail(rootUuid);
+    expect(await screen.findByTestId('compdef-detail')).toBeInTheDocument();
+    expect(screen.queryByTestId('cdef-detail-unresolved-banner')).not.toBeInTheDocument();
+  });
+
+  it('shows a banner with an edit link for a user-origin definition with dangling imports', async () => {
+    await repo().create({
+      uuid: rootUuid,
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: rootUuid,
+        metadata: { title: 'Root', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: '#nonexistent' }],
+      },
+    });
+    renderDetail(rootUuid);
+    const banner = await screen.findByTestId('cdef-detail-unresolved-banner');
+    expect(banner).toHaveTextContent('1');
+    expect(within(banner).getByRole('link', { name: /Edit/ })).toHaveAttribute(
+      'href',
+      `/component-definitions/${rootUuid}/edit`,
+    );
+  });
+
+  it('omits the edit link for a read-only library-origin definition', async () => {
+    await repo().create({
+      uuid: rootUuid,
+      type: 'componentDefinition',
+      origin: 'library',
+      artifact: {
+        uuid: rootUuid,
+        metadata: { title: 'Root', version: '1.0.0', oscalVersion: '1.2.2' },
+        importComponentDefinitions: [{ href: '#nonexistent' }],
+      },
+    });
+    renderDetail(rootUuid);
+    const banner = await screen.findByTestId('cdef-detail-unresolved-banner');
+    expect(within(banner).queryByRole('link')).not.toBeInTheDocument();
   });
 });

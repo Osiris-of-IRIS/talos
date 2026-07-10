@@ -1,13 +1,15 @@
 // Asset-list upload + overview — the SSP-bootstrap assistant's input data. Decision IDs: ADR-0026, ADR-0027, ADR-0031.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAssetsStore } from './store';
 import { useI18n } from '@/shared/i18n';
+import { useToast } from '@/shared/toast';
 import { downloadAssetsAsCsv, downloadAssetWorkspaceJson } from '@/data/bulkExport';
 import { BulkActionsBar } from '@/features/shared/BulkActionsBar';
 
 export function AssetsListPage() {
   const { t } = useI18n();
+  const { showToast } = useToast();
   const {
     assets,
     assetTypes,
@@ -27,7 +29,6 @@ export function AssetsListPage() {
   const assetsInput = useRef<HTMLInputElement>(null);
   const mappingsInput = useRef<HTMLInputElement>(null);
   const jsonInput = useRef<HTMLInputElement>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   // Cross-page deep link (ADR-0031): an SSP detail page's inventory-item links here with
   // ?asset=<id> to jump straight to that one asset instead of re-searching the whole list.
@@ -37,13 +38,24 @@ export function AssetsListPage() {
     void load();
   }, [load]);
 
+  // Reacts to the store's own error/warnings state (not just this component's own upload calls)
+  // so a warning/error set by any caller — including a test driving the store directly — still
+  // surfaces. Both fields are freshly-created values whenever the store sets them (a new array,
+  // or reset to null/[] first), so this never misses a repeated identical result.
+  useEffect(() => {
+    if (error) showToast(error, 'error');
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (warnings.length > 0) showToast(warnings.join(' '), 'warning');
+  }, [warnings, showToast]);
+
   async function onUpload() {
-    setUploadError(null);
     const typesFile = typesInput.current?.files?.[0];
     const assetsFile = assetsInput.current?.files?.[0];
     const mappingsFile = mappingsInput.current?.files?.[0];
     if (!typesFile || !assetsFile || !mappingsFile) {
-      setUploadError(t('assets_upload_missing_files'));
+      showToast(t('assets_upload_missing_files'), 'error');
       return;
     }
     try {
@@ -54,7 +66,7 @@ export function AssetsListPage() {
       ]);
       await importCsvTrio(typesText, assetsText, mappingsText);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : String(err));
+      showToast(err instanceof Error ? err.message : String(err), 'error');
     } finally {
       if (typesInput.current) typesInput.current.value = '';
       if (assetsInput.current) assetsInput.current.value = '';
@@ -63,16 +75,15 @@ export function AssetsListPage() {
   }
 
   async function onUploadJson() {
-    setUploadError(null);
     const file = jsonInput.current?.files?.[0];
     if (!file) {
-      setUploadError(t('assets_upload_missing_files'));
+      showToast(t('assets_upload_missing_files'), 'error');
       return;
     }
     try {
       await importJson(await file.text());
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : String(err));
+      showToast(err instanceof Error ? err.message : String(err), 'error');
     } finally {
       if (jsonInput.current) jsonInput.current.value = '';
     }
@@ -163,19 +174,6 @@ export function AssetsListPage() {
         </button>
       </fieldset>
 
-      {uploadError && (
-        <p role="alert" data-testid="assets-upload-error">
-          ⚠️ {uploadError}
-        </p>
-      )}
-      {error && <p role="alert">⚠️ {error}</p>}
-      {warnings.length > 0 && (
-        <ul role="status" data-testid="assets-upload-warnings" style={{ color: 'var(--color-warning, #a15c00)' }}>
-          {warnings.map((w) => (
-            <li key={w}>⚠️ {w}</li>
-          ))}
-        </ul>
-      )}
       {loading && <p>{t('common_loading')}</p>}
 
       {!loading && assets.length === 0 && <p data-testid="assets-empty">📂 {t('assets_empty')}</p>}

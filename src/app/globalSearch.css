@@ -1,0 +1,14 @@
+.global-search {
+  margin: 0 0 1rem;
+}
+
+.global-search input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.global-search-empty {
+  padding: 0.35rem 0.75rem;
+  color: var(--color-text-muted);
+  cursor: default;
+}

@@ -31,6 +31,7 @@
   "common_remove": "Remove",
   "common_add": "Add",
   "common_download": "Download OSCAL",
+  "toast_dismiss_aria": "Dismiss notification",
 
   "compdef_components_count": "Components ({count})",
 
@@ -135,6 +136,11 @@
   "cdef_imports_unresolved": "Unresolved reference",
   "cdef_imported_definitions_heading": "Imported definitions ({count})",
   "cdef_imports_cycle_detected": "cycle — not expanded further",
+  "cdef_imports_unresolved_banner": "{count} unresolved reference(s) below — pick a replacement or remove them.",
+  "cdef_imports_resolve_label": "Resolve to",
+  "cdef_imports_resolve_aria": "Resolve {href} to a workspace component-definition",
+  "cdef_imports_resolve_button": "Resolve",
+  "cdef_imports_unresolved_detail_banner": "{count} unresolved reference(s) in this definition.",
 
   "ci_param_id_aria": "Parameter id",
   "ci_param_id_placeholder": "param id (pick from source catalog)",
@@ -302,5 +308,9 @@
   "sidebar_nav_label": "Main navigation",
   "sidebar_logo_home_aria": "TALOS home",
   "sidebar_collapse_aria": "Collapse sidebar",
-  "sidebar_expand_aria": "Expand sidebar"
+  "sidebar_expand_aria": "Expand sidebar",
+
+  "global_search_aria": "Search all artifacts",
+  "global_search_placeholder": "Search…",
+  "global_search_no_results": "No matches"
 }

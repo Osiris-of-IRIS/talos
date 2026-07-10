@@ -12,6 +12,8 @@ import { useI18n } from '@/shared/i18n';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { MarkupEditor } from '@/shared/MarkupEditor';
 import { DatalistInput } from '@/shared/DatalistInput';
+import { EntitySearchField } from '@/shared/EntitySearchField';
+import type { SearchItem } from '@/shared/useEntitySearch';
 import { ensureArtifactResource } from '@/models/backMatter';
 import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
 import { resolveImport, wouldCreateCycle, unresolvedImportHrefs } from '@/data/componentImportResolution';
@@ -37,6 +39,9 @@ export function ComponentDefinitionEditorPage() {
   const workspaceComponentDefs = useWorkspaceComponentDefinitions();
   const [importPick, setImportPick] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
+  // Per-row pending pick for the inline "resolve a dangling import" picker (T-105), keyed by
+  // import index — independent of importPick, which is only for the add-new-import picker.
+  const [resolvePicks, setResolvePicks] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (isNew || !uuid) return;
@@ -151,6 +156,34 @@ export function ComponentDefinitionEditorPage() {
     setImportError(null);
   }
 
+  /** Resolve a dangling import in place (T-105): rewrite its href to point at the picked
+   * workspace target via a back-matter resource, preserving remarks — same cycle guard as adding
+   * a fresh import. Once resolved, the next save() clears it from the unresolvedReferences store
+   * (unresolvedImportHrefs no longer lists it). */
+  function resolveDanglingImport(idx: number) {
+    const targetUuid = resolvePicks[idx]?.trim();
+    if (!targetUuid) return;
+    if (wouldCreateCycle(draft!.uuid, targetUuid, workspaceComponentDefs)) {
+      setImportError(t('cdef_imports_cycle_error'));
+      return;
+    }
+    const target = workspaceComponentDefs.find((w) => w.uuid === targetUuid);
+    if (!target) return;
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      const resourceUuid = ensureArtifactResource(next, target.uuid, target.artifact.metadata.title);
+      next.importComponentDefinitions![idx]!.href = `#${resourceUuid}`;
+      return next;
+    });
+    setResolvePicks((prev) => {
+      const next = { ...prev };
+      delete next[idx];
+      return next;
+    });
+    setImportError(null);
+  }
+
   function removeImport(idx: number) {
     setDraft((prev) => {
       if (!prev) return prev;
@@ -201,9 +234,10 @@ export function ComponentDefinitionEditorPage() {
 
   const components = draft.components ?? [];
   const imports = draft.importComponentDefinitions ?? [];
-  const importOptions = workspaceComponentDefs
+  const importSearchItems: SearchItem[] = workspaceComponentDefs
     .filter((w) => w.uuid !== draft.uuid && !wouldCreateCycle(draft.uuid, w.uuid, workspaceComponentDefs))
-    .map((w) => ({ value: w.uuid, label: w.artifact.metadata.title }));
+    .map((w) => ({ id: w.uuid, title: w.artifact.metadata.title, badge: w.origin }));
+  const unresolvedCount = unresolvedImportHrefs(imports, draft.backMatter, workspaceComponentDefs).length;
 
   return (
     <main data-testid="compdef-editor">
@@ -216,6 +250,11 @@ export function ComponentDefinitionEditorPage() {
 
       <fieldset>
         <legend>{t('cdef_imports_heading', { count: imports.length })}</legend>
+        {unresolvedCount > 0 && (
+          <p role="status" data-testid="cdef-imports-unresolved-banner" style={{ color: 'var(--color-warning, #a15c00)' }}>
+            ⚠️ {t('cdef_imports_unresolved_banner', { count: unresolvedCount })}
+          </p>
+        )}
         <ul data-testid="cdef-imports-list">
           {imports.map((imp, i) => {
             const resolved = resolveImport(imp, draft.backMatter, workspaceComponentDefs);
@@ -235,6 +274,23 @@ export function ComponentDefinitionEditorPage() {
                   value={imp.remarks ?? ''}
                   onChange={(e) => patchImportRemarks(i, e.target.value)}
                 />{' '}
+                {!resolved && (
+                  <>
+                    <label>
+                      {t('cdef_imports_resolve_label')}
+                      <EntitySearchField
+                        ariaLabel={t('cdef_imports_resolve_aria', { href: imp.href })}
+                        dataTestId="cdef-import-resolve-picker"
+                        items={importSearchItems}
+                        value={resolvePicks[i] ?? ''}
+                        onChange={(v) => setResolvePicks((prev) => ({ ...prev, [i]: v }))}
+                      />
+                    </label>{' '}
+                    <button type="button" data-testid="cdef-import-resolve" onClick={() => resolveDanglingImport(i)}>
+                      ✓ {t('cdef_imports_resolve_button')}
+                    </button>{' '}
+                  </>
+                )}
                 <button
                   type="button"
                   aria-label={t('cdef_imports_remove_aria', { title: resolved?.artifact.metadata.title ?? imp.href })}
@@ -249,11 +305,10 @@ export function ComponentDefinitionEditorPage() {
         </ul>
         <label>
           {t('cdef_imports_add_label')}
-          <DatalistInput
+          <EntitySearchField
             ariaLabel={t('cdef_imports_add_aria')}
             dataTestId="cdef-import-picker"
-            listId="cdef-import-options"
-            options={importOptions}
+            items={importSearchItems}
             value={importPick}
             onChange={setImportPick}
           />

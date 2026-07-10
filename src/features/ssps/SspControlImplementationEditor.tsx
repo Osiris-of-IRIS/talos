@@ -11,7 +11,8 @@
 import { useI18n } from '@/shared/i18n';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { MarkupEditor } from '@/shared/MarkupEditor';
-import { DatalistInput } from '@/shared/DatalistInput';
+import { EntitySearchField } from '@/shared/EntitySearchField';
+import type { SearchItem } from '@/shared/useEntitySearch';
 import {
   getImplementationStatus,
   setImplementationStatus,
@@ -84,7 +85,9 @@ export function SspControlImplementationEditor({
     });
   }
 
-  const controlIdOptions = catalogIndex ? allControlIdOptions(catalogIndex) : [];
+  const controlIdSearchItems: SearchItem[] = catalogIndex
+    ? allControlIdOptions(catalogIndex).map((o) => ({ id: o.value, title: o.label }))
+    : [];
 
   return (
     <div data-testid="ssp-control-implementation-editor">
@@ -118,11 +121,10 @@ export function SspControlImplementationEditor({
                 <div className="collapsible-body" data-testid="ir-body">
                   <label>
                     {t('ci_control_id_label')}
-                    <DatalistInput
+                    <EntitySearchField
                       dataTestId="ir-control-id"
-                      listId={`ssp-control-id-options-${ir.uuid}`}
                       value={ir.controlId}
-                      options={controlIdOptions}
+                      items={controlIdSearchItems}
                       onChange={(v) => patchRequirement(irIdx, (d) => (d.controlId = v))}
                     />
                   </label>

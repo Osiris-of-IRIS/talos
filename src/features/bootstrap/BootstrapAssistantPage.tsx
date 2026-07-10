@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '@/shared/i18n';
+import { useToast } from '@/shared/toast';
 import { useAssetsStore } from '@/features/assets/store';
 import { useCatalogsStore } from '@/features/catalogs/store';
 import { loadTargetObjectCategories } from '@/data/targetObjectCategoryLoader';
@@ -16,17 +17,15 @@ type Methodology = 'nist' | 'bsi';
 
 export function BootstrapAssistantPage() {
   const { t } = useI18n();
+  const { showToast } = useToast();
   const { assets, assetTypes, loading: assetsLoading, load: loadAssets } = useAssetsStore();
   const { items: catalogs, loading: catalogsLoading, load: loadCatalogs } = useCatalogsStore();
   const [categoryRows, setCategoryRows] = useState<TargetObjectCategory[]>([]);
-  const [categoryWarning, setCategoryWarning] = useState<string | null>(null);
-  const [categoryError, setCategoryError] = useState<string | null>(null);
   const [catalogUuid, setCatalogUuid] = useState('');
   const [methodology, setMethodology] = useState<Methodology>('nist');
   const [generating, setGenerating] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [result, setResult] = useState<ApplyResult | null>(null);
-  const [runError, setRunError] = useState<string | null>(null);
 
   useEffect(() => {
     void loadAssets();
@@ -34,13 +33,12 @@ export function BootstrapAssistantPage() {
     void loadTargetObjectCategories()
       .then((loaded) => {
         setCategoryRows(loaded.rows);
-        if (loaded.warning) setCategoryWarning(loaded.warning);
+        if (loaded.warning) showToast(loaded.warning, 'warning');
       })
-      .catch((e) => setCategoryError(e instanceof Error ? e.message : String(e)));
-  }, [loadAssets, loadCatalogs]);
+      .catch((e) => showToast(e instanceof Error ? e.message : String(e), 'error'));
+  }, [loadAssets, loadCatalogs, showToast]);
 
   async function onGenerate() {
-    setRunError(null);
     setResult(null);
     const catalogRecord = catalogs.find((c) => c.uuid === catalogUuid);
     if (!catalogRecord) return;
@@ -61,7 +59,7 @@ export function BootstrapAssistantPage() {
       const applied = await applyBootstrapPlans(plans);
       setResult(applied);
     } catch (e) {
-      setRunError(e instanceof Error ? e.message : String(e));
+      showToast(e instanceof Error ? e.message : String(e), 'error');
     } finally {
       setGenerating(false);
     }
@@ -94,17 +92,6 @@ export function BootstrapAssistantPage() {
         <p data-testid="bootstrap-no-catalogs" role="alert">
           ⚠️ {t('bootstrap_no_catalogs_hint_pre')} <Link to="/catalogs">{t('landing_feature_catalogs')}</Link>
           {t('bootstrap_no_catalogs_hint_mid')} <Link to="/library">{t('landing_feature_library')}</Link>.
-        </p>
-      )}
-
-      {categoryError && (
-        <p role="alert" data-testid="bootstrap-category-error">
-          ⚠️ {categoryError}
-        </p>
-      )}
-      {categoryWarning && (
-        <p role="status" data-testid="bootstrap-category-warning" style={{ color: 'var(--color-warning, #a15c00)' }}>
-          ⚠️ {categoryWarning}
         </p>
       )}
 
@@ -172,12 +159,6 @@ export function BootstrapAssistantPage() {
           >
             {generating ? t('bootstrap_generating') : t('bootstrap_generate_button')}
           </button>
-
-          {runError && (
-            <p role="alert" data-testid="bootstrap-run-error">
-              ⚠️ {runError}
-            </p>
-          )}
 
           {warnings.length > 0 && (
             <div data-testid="bootstrap-warnings">
