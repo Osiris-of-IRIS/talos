@@ -7,6 +7,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests } from '@/data/db';
 import { ArtifactRepository } from '@/data/artifactRepository';
+import { saveSettings } from '@/data/settingsRepository';
+import { CREATOR_ROLE_ID } from '@/models/creator';
 import type { SystemSecurityPlan } from '@/models/ssp';
 import { applyBootstrapPlans } from '@/features/bootstrap/applyPlans';
 import {
@@ -60,6 +62,33 @@ describe('applyBootstrapPlans', () => {
     expect(all[0]!.artifact.systemImplementation.inventoryItems![0]!.props).toEqual(
       expect.arrayContaining([{ name: 'asset-id', value: 'C001' }]),
     );
+  });
+
+  it('seeds the global default creator (ADR-0033) on create, but never re-applies it on a later update', async () => {
+    await saveSettings({ creatorName: 'Jane Doe', creatorEmail: 'jane@example.com', creatorUuid: 'fixed-uuid-1' });
+    const key = assetCorrelationKey(ASSET.assetId);
+    const plan = {
+      correlationKey: key,
+      systemCharacteristics: buildAssetSystemCharacteristics(ASSET, key),
+      controlImplementation: buildControlImplementation('note', [control('A.1')]),
+    };
+    await applyBootstrapPlans([plan]);
+
+    const repo = ArtifactRepository.forType<SystemSecurityPlan>('systemSecurityPlan');
+    const [created] = await repo.getAll();
+    const rp = created!.artifact.metadata.responsibleParties?.find((r) => r.roleId === CREATOR_ROLE_ID);
+    expect(rp?.partyUuids).toEqual(['fixed-uuid-1']);
+    expect(created!.artifact.metadata.parties?.[0]?.name).toBe('Jane Doe');
+
+    // Simulate the analyst removing/changing the creator by hand after creation.
+    await repo.update(created!.uuid, {
+      ...created!.artifact,
+      metadata: { ...created!.artifact.metadata, parties: [], responsibleParties: [] },
+    });
+
+    await applyBootstrapPlans([plan]); // re-run (update branch) — must not resurrect the default creator
+    const [updated] = await repo.getAll();
+    expect(updated!.artifact.metadata.responsibleParties ?? []).toEqual([]);
   });
 
   it('updates the same SSP in place on re-run (no duplicate), preserving hand-edited fields', async () => {

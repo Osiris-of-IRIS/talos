@@ -14,6 +14,7 @@ import { EntitySearchField } from '@/shared/EntitySearchField';
 import type { SearchItem } from '@/shared/useEntitySearch';
 import { ensureArtifactResource } from '@/models/backMatter';
 import { resolveProfileImportSource, resolveProfileControlIds } from '@/data/profileImportResolution';
+import { useSeedDefaultCreator } from '@/features/shared/useSeedDefaultCreator';
 import { SystemCharacteristicsEditor } from './SystemCharacteristicsEditor';
 import { SystemImplementationEditor } from './SystemImplementationEditor';
 import { SspControlImplementationEditor } from './SspControlImplementationEditor';
@@ -42,6 +43,7 @@ export function SspEditorPage() {
   // SSPs can be large (supervisor note): sections default-collapsed for an existing/loaded SSP,
   // but auto-expanded for a brand-new one so authoring can start immediately.
   const sections = useExpandedSet(isNew ? SECTION_IDS : []);
+  useSeedDefaultCreator(isNew, setDraft);
 
   useEffect(() => {
     if (isNew || !uuid) return;

@@ -37,6 +37,7 @@ the order decisions were made.
 | [ADR-0030](adr/ADR-0030-expanded-markup-rendering.md) | Expanded OSCAL Markup Rendering — Full Metaschema Subset | Approved | ADR-0030 |
 | [ADR-0031](adr/ADR-0031-asset-inventory-oscal-alignment.md) | Asset Inventory Data Structure — OSCAL Alignment & Inventory-Item Generation | Approved | ADR-0031 |
 | [ADR-0032](adr/ADR-0032-profile-tailoring.md) | OSCAL Profile CRUD, Tailoring Model & the Profile Creation Assistant | Approved | ADR-0032 |
+| [ADR-0033](adr/ADR-0033-global-default-creator-settings.md) | Global Default Creator Identity & Settings Page | Approved | ADR-0033 |
 
 ## Notes
 

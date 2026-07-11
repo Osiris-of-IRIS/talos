@@ -2,7 +2,9 @@
 
 - **Status:** Approved
 - **Date:** 2026-07-10 (revised 2026-07-10: §4's product-tag correction and dedup fix, §6a nav
-  listing; revised 2026-07-11: §7, SSP `import-profile` picker, below)
+  listing; revised 2026-07-11: §7, SSP `import-profile` picker; revised 2026-07-11: §5, recursive
+  profile-of-profile control resolution (T-206); revised 2026-07-11: §8,
+  `control-implementation.source` accepts a profile (T-205), below)
 - **Deciders:** Human supervisor, engineering
 - **Decision IDs:** ADR-0032 (references ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0013,
   ADR-0014, ADR-0016, ADR-0017, ADR-0021, ADR-0026)
@@ -131,19 +133,48 @@ individually-pickable options (their own doc comment: "value is the literal id o
 form actually written to `control-id`"), which is a different, correct use of the same dual-keyed
 map.
 
-### 5. `imports[].href` control-checklist only resolves controls when the source is a catalog
+### 5. `imports[].href` control-checklist — recursive profile-of-profile resolution (T-206, 2026-07-11)
 
-A profile's import source is either a catalog (direct `controls`) or another profile
-(§2) — but *that* profile's own effective control set depends on resolving **its** `imports`
-through **its** `merge`/`modify`, recursively. No ticket asks for that recursive resolution yet,
-and building it as a side-effect of the by-id checklist would be exactly the kind of unscoped
-expansion ADR-0017 was written to avoid. So: the `<ControlSelectionChecklist>` (with-ids picker,
-reused by both the editor's by-id/exclude mode and the Assistant's step 3b) only renders when the
-resolved source is a **catalog**; a profile-sourced import keeps `include-controls`/
-`exclude-controls` editable as a plain comma-separated control-id list (same "raw-text row"
-convention `ControlImplementationsEditor`'s set-parameters already uses for values that resist a
-structured picker). `include-all` is unaffected either way — it needs no control list. Recursive
-profile-of-profile control resolution is tracked as a follow-up ticket, not silently degraded.
+A profile's import source is either a catalog (direct `controls`) or another profile (§2) — but
+*that* profile's own effective control set depends on resolving **its** `imports` recursively.
+Originally deferred (below, superseded): the `<ControlSelectionChecklist>` (with-ids picker,
+reused by both the editor's by-id/exclude mode and the Assistant's step 3b) only rendered when the
+resolved source was a **catalog**; a profile-sourced import fell back to a plain comma-separated
+control-id text field.
+
+**Built:** `resolveProfileEffectiveControls` (`src/data/profileImportResolution.ts`) computes a
+profile's own effective control set as `id -> Control` (not just ids) — a catalog-sourced import
+contributes its `indexCatalogControls` map directly; a profile-sourced import recurses into *that*
+profile's own imports via the same function, honoring each level's own `includeAll`/
+`includeControls`/`excludeControls` (`merge`/`modify` don't affect *which* controls make it
+through — merge is fixed `as-is`, §6 — so only inclusion/exclusion matters at each level). A
+`visited` set of profile uuids walked so far guards against an **already-stored** cycle (not just
+an add-time one — `wouldCreateProfileCycle`, used when a *new* import is picked, only ever checks
+the edge being added, not data that could already be cyclic from an import/upload): hitting a
+uuid already in the chain stops the walk and reports `hasUnresolved: true` instead of recursing
+forever. A dangling/external href anywhere in the chain does the same — flagged, not guessed at,
+matching every other resolver in this codebase's convention.
+
+Both consumers of the by-id checklist (`ProfileEditorPage`, `ProfileCreationAssistantPage`) now
+compute their `controlsById` universe the same way regardless of source type — a catalog via the
+existing per-catalog index, a profile via `resolveProfileEffectiveControls` — so the checklist (and
+the Assistant's `<TargetObjectPicker>`, which needs the same `Map<string, Control>` shape to
+tag-match against) renders identically either way; the plain-text fallback is gone entirely. When
+`hasUnresolved` is true (a dangling ref or cycle somewhere inside the picked profile's own chain),
+both pages show a small hint next to the mode radios — the controls that *did* resolve are still
+shown and pickable, not discarded.
+
+`resolveProfileControlIds` (§7, the SSP `import-profile` "add all controls" offer, and the
+Single-System bootstrap variant, ADR-0026 §9) is now a thin wrapper over
+`resolveProfileEffectiveControls` — the artificial "profile-sourced `includeAll` is always
+unresolved" restriction those two call sites carried is gone along with it; they only see
+`hasUnresolvedAll: true` now for a genuine dangling reference or cycle, same as the checklist.
+
+**Original decision (2026-07-10), superseded above:** no ticket asked for recursive resolution
+yet, and building it as a side-effect of the by-id checklist would have been exactly the kind of
+unscoped expansion ADR-0017 was written to avoid — so the checklist rendered catalog-sourced
+imports only, profile-sourced ones got a plain-text id list, and recursive resolution was tracked
+as a follow-up ticket (T-206) rather than silently degraded or half-built.
 
 ### 6. Merge strategy is fixed at `as-is` for v1
 
@@ -177,19 +208,44 @@ for this one field.
 blank implemented-requirement (`{ controlId, byComponents: [] }`), via a `globalThis.confirm(...)`
 dialog (same convention as bulk-delete) naming the control count and profile title. New pure helper
 `resolveProfileControlIds` (`profileImportResolution.ts`): `includeControls`' explicit ids are used
-as-is (no resolution needed, works for both catalog- and profile-sourced imports); `includeAll` is
-only expandable when the import resolves to a **catalog** (via `indexCatalogControls` +
-`uniqueCatalogControlEntries`, ADR-0021's dual-key dedup fix from §4 applies here too) — a
-profile-sourced `includeAll` can't be expanded without recursing into *that* profile's own
-imports first (§5's recursive-resolution gap, tracked as T-206) and instead sets a
-`hasUnresolvedAll` flag rather than guessing. Already-present control-ids (matched by
-`controlId`) are skipped, so re-picking the same profile later only tops up what's missing — the
-same picker doubles as a manual "sync new controls" action, deliberately not guarded against
-firing again on an unchanged pick.
+as-is (no resolution needed, works for both catalog- and profile-sourced imports); `includeAll`
+expands against the import's resolved source — originally catalog-only, now (§5, T-206) recursing
+into a profile-sourced import's own imports too, via `resolveProfileEffectiveControls`.
+Already-present control-ids (matched by `controlId`) are skipped, so re-picking the same profile
+later only tops up what's missing — the same picker doubles as a manual "sync new controls"
+action, deliberately not guarded against firing again on an unchanged pick.
 
-**Out of scope, unchanged:** `control-implementation.source → profile` (T-205) and recursive
-profile-of-profile resolution (T-206) — this closes only the `import-profile` half of the
-deferral ADR-0017 named.
+**Out of scope at the time (2026-07-10), since closed:** `control-implementation.source → profile`
+(T-205, closed by §8 below) and recursive profile-of-profile resolution (T-206, closed by §5
+above) — this section only ever closed the `import-profile` half of the deferral ADR-0017 named.
+
+### 8. `control-implementation.source` accepts a profile too (T-205, 2026-07-11)
+
+The last piece of ADR-0017's original deferral: a component-definition's
+`control-implementation.source` (T-142) only ever resolved a workspace **catalog**. Closed by
+generalizing `src/data/catalogResolution.ts`'s `CatalogIndex` to also carry `profiles:
+ProfileSourceEntry[]` alongside its existing `catalogs: CatalogEntry[]` — a `ProfileSourceEntry` is
+just `{ uuid, title, controlsById }`, the same shape a catalog entry already had, so every
+source-scoped helper (`findSourceEntry`, `sourceOptions`, `controlIdOptionsForSource`,
+`paramsForControl`, `resolveControlForSource` — renamed from their catalog-only-named predecessors,
+`findCatalogEntry`/`catalogSourceOptions`/`sourceToCatalogUuid`) now searches across both lists
+uniformly, with zero special-casing for which kind resolved.
+
+A profile source entry's `controlsById` is its **effective, recursively-resolved** control set
+(§5/T-206's `resolveProfileEffectiveControls`) — computed in `useCatalogIndex.ts`, not
+`catalogResolution.ts` itself: `profileImportResolution.ts` already imports `catalogResolution.ts`
+(`indexCatalogControls`/`uniqueCatalogControlEntries`), so the reverse dependency would be a cycle.
+`catalogResolution.ts` stays free of any `Profile`-model awareness — it just accepts already-built
+`ProfileSourceEntry[]` data; the hook is where catalogs, profiles, and `resolveProfileEffectiveControls`
+actually meet.
+
+`ControlImplementationsEditor.tsx`'s source picker now badges each option by kind (`Catalog`/
+`Profile`) and shows 📘/📑 next to a resolved source, mirroring the profile editor's own
+import-source icon convention (§2). Back-matter-mediation (item 5, ADR-0024) needed no change —
+`ensureArtifactResource` was already generic over any `OscalArtifact` target uuid/title, so a
+profile pick gets the exact same "upgrade a raw uuid into a back-matter resource reference"
+treatment a catalog pick always had (the owning page's `ensureSource`/`onEnsureSource`, renamed
+from `ensureCatalogSource`/`onEnsureCatalogSource` for accuracy, is unchanged in behavior).
 
 ## Alternatives considered
 
@@ -235,7 +291,19 @@ reproduction of all 41 nodes — accepted given the alternative breaks under a l
   `src/data/profileImportResolution.ts`, `src/features/profiles/` (`store.ts`, `blank.ts`,
   `ProfilesListPage.tsx`, `ProfileDetailPage.tsx`, `ProfileEditorPage.tsx`,
   `ControlSelectionChecklist.tsx`, `TargetObjectPicker.tsx`, `targetObjectColors.ts`,
-  `ProfileCreationAssistantPage.tsx`); §7: `src/features/ssps/SspEditorPage.tsx`.
+  `ProfileCreationAssistantPage.tsx`); §7: `src/features/ssps/SspEditorPage.tsx`; §5 (T-206):
+  `resolveProfileEffectiveControls` in `src/data/profileImportResolution.ts`, consumed by
+  `ProfileEditorPage.tsx`/`ProfileCreationAssistantPage.tsx`; also referenced from ADR-0026 §9's
+  Single-System generator via `resolveProfileControlIds`. §8 (T-205): `src/data/catalogResolution.ts`
+  (`CatalogIndex.profiles`, `ProfileSourceEntry`, `SourceEntry`, `findSourceEntry`/`sourceOptions`/
+  `findSourceEntryByUuid`/`sourceToRefUuid`), `src/features/shared/useCatalogIndex.ts` (the
+  catalog+profile orchestration), `src/features/componentDefinitions/ControlImplementationsEditor.tsx`,
+  `src/features/componentDefinitions/ComponentDefinitionEditorPage.tsx` (`ensureSource`).
 - Tests: `tests/models/profile.test.ts`, `tests/features/profiles*.test.tsx`,
   `tests/app/targetObjectColors.test.ts`, `tests/features/profileCreationAssistant.test.tsx`;
-  §7: `tests/data/profileImportResolution.test.ts`, `tests/features/sspEditor.test.tsx`.
+  §7: `tests/data/profileImportResolution.test.ts`, `tests/features/sspEditor.test.tsx`; §5
+  (T-206): `resolveProfileEffectiveControls` tests in `tests/data/profileImportResolution.test.ts`
+  (TEST-PROF-10), plus new cases in `tests/features/profileEditor.test.tsx` and
+  `tests/features/profileCreationAssistant.test.tsx`; §8 (T-205):
+  `tests/data/catalogResolution.test.ts` (new `describe('control-implementation.source over a
+  profile...')`, TEST-CATRES-03), plus a new case in `tests/features/componentDefinitionEditor.test.tsx`.

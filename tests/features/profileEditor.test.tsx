@@ -9,6 +9,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests } from '@/data/db';
 import { ArtifactRepository } from '@/data/artifactRepository';
+import { saveSettings } from '@/data/settingsRepository';
 import { ProfileEditorPage } from '@/features/profiles/ProfileEditorPage';
 import type { Profile } from '@/models/profile';
 import type { Catalog } from '@/models/catalog';
@@ -57,6 +58,20 @@ describe('create', () => {
     renderAt('/profiles/new');
     await user.click(screen.getByTestId('save-profile'));
     expect(screen.queryByTestId('detail-landed')).not.toBeInTheDocument();
+  });
+
+  it('seeds the default creator from global settings when configured, with no manual entry needed (ADR-0033)', async () => {
+    await saveSettings({ creatorName: 'Jane Doe', creatorEmail: 'jane@example.com' });
+    renderAt('/profiles/new');
+    await waitFor(() => expect(screen.getByTestId('md-creator-status')).toHaveTextContent('✓'));
+    expect(screen.getByTestId('md-party')).toHaveTextContent('Jane Doe');
+  });
+
+  it('leaves the creator unset (as before) when no global default is configured', async () => {
+    renderAt('/profiles/new');
+    await waitFor(() => expect(screen.getByTestId('md-title')).toBeInTheDocument());
+    expect(screen.getByTestId('md-creator-status')).not.toHaveTextContent('✓');
+    expect(screen.queryByTestId('md-party')).not.toBeInTheDocument();
   });
 
   it('creates a profile with the as-is merge strategy pre-set (ADR-0032 §6)', async () => {
@@ -152,6 +167,61 @@ describe('imports', () => {
     const rec = (await repo().getAll())[0]!;
     expect(rec.artifact.imports[0]!.includeAll).toEqual({});
     expect(rec.artifact.imports[0]!.excludeControls?.[0]?.withIds).toEqual(['APP.1.1.2']);
+  });
+
+  it('a profile-sourced import gets the real checklist, not the plain-text fallback (T-206, ADR-0032 §5)', async () => {
+    await seedCatalog();
+    const baselineUuid = 'pppppppp-0000-4000-8000-000000000003';
+    await repo().create({
+      uuid: baselineUuid,
+      type: 'profile',
+      origin: 'user',
+      artifact: {
+        uuid: baselineUuid,
+        metadata: { title: 'Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        imports: [{ href: `#${catalogUuid}`, includeAll: {} }],
+      },
+    });
+    const user = userEvent.setup();
+    renderAt('/profiles/new');
+    await user.type(screen.getByTestId('md-title'), 'My Profile');
+    await user.type(screen.getByTestId('profile-import-picker-input'), 'Baseline');
+    await user.click(await screen.findByText('Baseline Profile'));
+    await user.click(screen.getByTestId('profile-import-add'));
+    await screen.findByTestId('profile-import-source');
+
+    await user.click(screen.getByTestId('profile-import-mode-by-id'));
+    expect(screen.queryByTestId('profile-import-include-text')).not.toBeInTheDocument();
+    const checkboxes = await screen.findAllByTestId('control-checklist-checkbox');
+    expect(checkboxes).toHaveLength(2); // the baseline profile's own resolved controls (recursed through its catalog import)
+
+    await user.click(checkboxes[0]!);
+    await user.click(screen.getByTestId('save-profile'));
+    const rec = (await repo().getAll())[0]!;
+    expect(rec.artifact.imports[0]!.includeControls?.[0]?.withIds).toEqual(['APP.1.1.1']);
+  });
+
+  it("shows a hint (doesn't crash) when a profile-sourced import's own chain has a dangling reference", async () => {
+    const brokenUuid = 'pppppppp-0000-4000-8000-000000000004';
+    await repo().create({
+      uuid: brokenUuid,
+      type: 'profile',
+      origin: 'user',
+      artifact: {
+        uuid: brokenUuid,
+        metadata: { title: 'Broken Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        imports: [{ href: '#does-not-exist', includeAll: {} }],
+      },
+    });
+    const user = userEvent.setup();
+    renderAt('/profiles/new');
+    await user.type(screen.getByTestId('md-title'), 'My Profile');
+    await user.type(screen.getByTestId('profile-import-picker-input'), 'Broken');
+    await user.click(await screen.findByText('Broken Profile'));
+    await user.click(screen.getByTestId('profile-import-add'));
+    await screen.findByTestId('profile-import-source');
+
+    expect(await screen.findByTestId('profile-import-nested-unresolved-hint')).toBeInTheDocument();
   });
 
   it('proactively excludes a profile import that would create a cycle (mirrors T-102/ADR-0014)', async () => {

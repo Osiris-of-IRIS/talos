@@ -1,27 +1,30 @@
 /**
  * Editor for a component's control-implementations → implemented-requirements → set-parameters.
- * Source-driven pickers (T-142): `source` picks a workspace catalog, `control-id` and
- * `set-parameter.param-id` are entity-search typeaheads (ADR-0013, `EntitySearchField` in `items`
- * mode) seeded from the resolved catalog (manual entry still allowed; origin-agnostic so T-034
- * library catalogs slot into the same lists). When the workspace has zero catalogs, shows an info
- * message linking to upload/library (T-161).
+ * Source-driven pickers (T-142, extended to profiles by T-205): `source` picks a workspace
+ * catalog *or* profile, `control-id` and `set-parameter.param-id` are entity-search typeaheads
+ * (ADR-0013, `EntitySearchField` in `items` mode) seeded from the resolved source's own control set
+ * — a profile's is its effective, recursively-resolved set (ADR-0032 §5/§7, T-206), same shape a
+ * catalog's already was (manual entry still allowed; origin-agnostic so T-034 library catalogs
+ * slot into the same lists). When the workspace has zero catalogs, shows an info message linking
+ * to upload/library (T-161).
  *
- * Source resolution is back-matter-mediated (item 5, ADR-0024): picking a catalog creates/reuses
- * a back-matter resource identifying it (`onEnsureCatalogSource`) instead of writing the
- * catalog's own uuid directly into `source`. Control-id suggestions show the resolved control's
- * headline, not a raw id/uuid (item 7, ADR-0024). All pickers use `<EntitySearchField>` so
- * focusing a pre-filled field offers every option, not just the current value (item 3, ADR-0024).
- * Decision IDs: ADR-0003, ADR-0013, ADR-0016, ADR-0012, ADR-0024 (feature IMPL-001, T-101/T-142/T-161).
+ * Source resolution is back-matter-mediated (item 5, ADR-0024): picking a catalog or profile
+ * creates/reuses a back-matter resource identifying it (`onEnsureSource`) instead of writing its
+ * uuid directly into `source`. Control-id suggestions show the resolved control's headline, not a
+ * raw id/uuid (item 7, ADR-0024). All pickers use `<EntitySearchField>` so focusing a pre-filled
+ * field offers every option, not just the current value (item 3, ADR-0024).
+ * Decision IDs: ADR-0003, ADR-0013, ADR-0016, ADR-0012, ADR-0024, ADR-0032 (feature IMPL-001, T-101/T-142/T-161/T-205).
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  catalogSourceOptions,
+  sourceOptions,
   controlIdOptionsForSource,
-  findCatalogEntry,
+  findSourceEntry,
+  findSourceEntryByUuid,
   paramsForControl,
   resolveControlForSource,
-  sourceToCatalogUuid,
+  sourceToRefUuid,
   type CatalogIndex,
 } from '@/data/catalogResolution';
 import { useI18n } from '@/shared/i18n';
@@ -47,8 +50,8 @@ interface Props {
   catalogIndex?: CatalogIndex | null;
   /** The owning artifact's back-matter, for source resolution (item 5, ADR-0024). */
   backMatter?: BackMatter;
-  /** Ensures a back-matter resource exists for a picked catalog and returns `#<resourceUuid>`. */
-  onEnsureCatalogSource?: (catalogUuid: string, catalogTitle: string) => string;
+  /** Ensures a back-matter resource exists for a picked catalog or profile and returns `#<resourceUuid>`. */
+  onEnsureSource?: (uuid: string, title: string) => string;
 }
 
 function uuid(): string {
@@ -149,11 +152,15 @@ function SetParameterRow({
   );
 }
 
-export function ControlImplementationsEditor({ value, onChange, catalogIndex, backMatter, onEnsureCatalogSource }: Props) {
+export function ControlImplementationsEditor({ value, onChange, catalogIndex, backMatter, onEnsureSource }: Props) {
   const { t } = useI18n();
   const cis = value.controlImplementations ?? [];
   const sourceSearchItems: SearchItem[] = catalogIndex
-    ? catalogSourceOptions(catalogIndex).map((o) => ({ id: o.ref, title: o.title }))
+    ? sourceOptions(catalogIndex).map((o) => ({
+        id: o.ref,
+        title: o.title,
+        badge: t(o.kind === 'catalog' ? 'ci_source_kind_catalog' : 'ci_source_kind_profile'),
+      }))
     : [];
 
   function update(mutator: (c: DefinedComponent) => void) {
@@ -183,12 +190,12 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
   }
 
   function setSource(ciIdx: number, typed: string) {
-    // If the typed/picked value directly names a workspace catalog's own uuid, transparently
-    // "upgrade" it to a proper back-matter-mediated reference (item 5) instead of storing the
-    // catalog uuid directly; free text and already-resolved refs pass through unchanged.
-    const catalogUuid = sourceToCatalogUuid(typed);
-    const matched = catalogIndex?.catalogs.find((c) => c.uuid === catalogUuid);
-    const resolved = matched && onEnsureCatalogSource ? onEnsureCatalogSource(matched.uuid, matched.title) : typed;
+    // If the typed/picked value directly names a workspace catalog's or profile's own uuid (T-205),
+    // transparently "upgrade" it to a proper back-matter-mediated reference (item 5) instead of
+    // storing the uuid directly; free text and already-resolved refs pass through unchanged.
+    const refUuid = sourceToRefUuid(typed);
+    const matched = catalogIndex && refUuid ? findSourceEntryByUuid(catalogIndex, refUuid) : undefined;
+    const resolved = matched && onEnsureSource ? onEnsureSource(matched.uuid, matched.title) : typed;
     update((c) => (c.controlImplementations![ciIdx]!.source = resolved));
   }
 
@@ -196,7 +203,7 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
     <div data-testid="control-implementations">
       <strong>{t('ci_heading', { count: cis.length })}</strong>
       {cis.map((ci, ciIdx) => {
-        const resolvedSource = catalogIndex ? findCatalogEntry(catalogIndex, ci.source, backMatter) : undefined;
+        const resolvedSource = catalogIndex ? findSourceEntry(catalogIndex, ci.source, backMatter) : undefined;
         return (
         <fieldset key={ci.uuid} data-testid="control-implementation">
           <legend>{t('ci_legend')}</legend>
@@ -211,7 +218,10 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
             />
             {catalogIndex &&
               (resolvedSource ? (
-                <small data-testid="ci-source-resolved"> ✓ {resolvedSource.title}</small>
+                <small data-testid="ci-source-resolved">
+                  {' '}
+                  {resolvedSource.kind === 'catalog' ? '📘' : '📑'} ✓ {resolvedSource.title}
+                </small>
               ) : (
                 ci.source && <small> {t('ci_source_unresolved')}</small>
               ))}

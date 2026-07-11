@@ -12,6 +12,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests } from '@/data/db';
 import { ArtifactRepository } from '@/data/artifactRepository';
+import { saveSettings } from '@/data/settingsRepository';
 import { SspEditorPage } from '@/features/ssps/SspEditorPage';
 import { parseOscalUpload } from '@/data/fileIo';
 import type { SystemSecurityPlan } from '@/models/ssp';
@@ -123,6 +124,13 @@ describe('create', () => {
     await waitFor(() => expect(screen.getByTestId('si-no-component-defs-hint')).toBeInTheDocument());
     await user.click(screen.getByTestId('save-ssp'));
     expect(await sspRepo().count()).toBe(0);
+  });
+
+  it('seeds the default creator from global settings when configured (ADR-0033)', async () => {
+    await saveSettings({ creatorName: 'Jane Doe', creatorEmail: 'jane@example.com' });
+    renderAt('/ssps/new');
+    await waitFor(() => expect(screen.getByTestId('md-creator-status')).toHaveTextContent('✓'));
+    expect(screen.getByTestId('md-party')).toHaveTextContent('Jane Doe');
   });
 });
 

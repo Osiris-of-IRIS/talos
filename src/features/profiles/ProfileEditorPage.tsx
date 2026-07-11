@@ -12,10 +12,12 @@ import { useWorkspaceCatalogs } from '@/features/shared/useWorkspaceCatalogs';
 import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
 import {
   resolveProfileImportSource,
+  resolveProfileEffectiveControls,
   unresolvedProfileImportHrefs,
   wouldCreateProfileCycle,
 } from '@/data/profileImportResolution';
 import { syncUnresolvedReferences } from '@/data/unresolvedReferences';
+import { useSeedDefaultCreator } from '@/features/shared/useSeedDefaultCreator';
 import { ControlSelectionChecklist } from './ControlSelectionChecklist';
 import { createBlankProfile } from './blank';
 import { useI18n } from '@/shared/i18n';
@@ -66,6 +68,7 @@ export function ProfileEditorPage() {
   const workspaceCatalogs = useWorkspaceCatalogs();
   const workspaceProfiles = useWorkspaceProfiles();
   const catalogControlsByUuid = useCatalogControlsByUuid(workspaceCatalogs);
+  useSeedDefaultCreator(isNew, setDraft);
 
   useEffect(() => {
     if (isNew || !uuid) return;
@@ -255,8 +258,17 @@ export function ProfileEditorPage() {
         <ul data-testid="profile-imports-list">
           {imports.map((imp, i) => {
             const resolved = resolveProfileImportSource(imp, draft.backMatter, workspaceCatalogs, workspaceProfiles);
+            // A profile-sourced import's checklist universe is *that* profile's own effective
+            // control set, recursively resolved through its own imports (T-206, ADR-0032 §5) —
+            // same shape a catalog-sourced universe already has, so the same
+            // <ControlSelectionChecklist> renders either way instead of falling back to a plain
+            // comma-separated text field.
+            const nestedResolution =
+              resolved?.type === 'profile'
+                ? resolveProfileEffectiveControls(resolved.item.artifact, workspaceCatalogs, workspaceProfiles)
+                : undefined;
             const controlsById =
-              resolved?.type === 'catalog' ? catalogControlsByUuid.get(resolved.item.uuid) : undefined;
+              resolved?.type === 'catalog' ? catalogControlsByUuid.get(resolved.item.uuid) : nestedResolution?.controlsById;
             const mode: 'all' | 'byId' = imp.includeAll ? 'all' : 'byId';
             return (
               <li key={`${imp.href}-${i}`} className="collapsible-section" data-testid="profile-import-item">
@@ -301,6 +313,11 @@ export function ProfileEditorPage() {
                     />{' '}
                     {t('profile_imports_mode_by_id')}
                   </label>
+                  {nestedResolution?.hasUnresolved && (
+                    <p data-testid="profile-import-nested-unresolved-hint">
+                      <small>⚠️ {t('profile_imports_nested_unresolved_hint')}</small>
+                    </p>
+                  )}
                   {mode === 'byId' &&
                     (controlsById ? (
                       <ControlSelectionChecklist

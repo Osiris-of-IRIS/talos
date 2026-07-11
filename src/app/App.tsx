@@ -1,11 +1,13 @@
-// App shell: HashRouter + sidebar + routes. Decision IDs: ADR-0002, ADR-0006, ADR-0020, ADR-0012, ADR-0029.
+// App shell: HashRouter + sidebar + routes. Decision IDs: ADR-0002, ADR-0006, ADR-0020, ADR-0012, ADR-0029, ADR-0033.
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { ThemeToggle } from '@/shared/ThemeToggle';
 import { LanguageSwitcher } from '@/shared/LanguageSwitcher';
 import { I18nProvider } from '@/shared/i18n';
 import { ToastProvider } from '@/shared/toast';
 import { Sidebar } from './Sidebar';
+import { SettingsLink } from './SettingsLink';
 import { LandingPage } from './LandingPage';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 import { ComponentDefinitionsListPage } from '@/features/componentDefinitions/ComponentDefinitionsListPage';
 import { ComponentDefinitionDetailPage } from '@/features/componentDefinitions/ComponentDefinitionDetailPage';
 import { ComponentDefinitionEditorPage } from '@/features/componentDefinitions/ComponentDefinitionEditorPage';
@@ -31,6 +33,7 @@ export function App() {
             <Sidebar />
             <div className="app-content">
               <div className="app-topbar">
+                <SettingsLink />
                 <LanguageSwitcher />
                 <ThemeToggle />
               </div>
@@ -53,6 +56,7 @@ export function App() {
                 <Route path="/library" element={<LibraryPage />} />
                 <Route path="/assets" element={<AssetsListPage />} />
                 <Route path="/bootstrap" element={<BootstrapAssistantPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </div>
           </div>

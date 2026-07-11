@@ -6,7 +6,9 @@
  * added by hand (system-implementation components, back-matter, metadata) is preserved.
  */
 import { ArtifactRepository } from '@/data/artifactRepository';
-import type { StoredArtifact } from '@/data/db';
+import type { StoredArtifact, TalosSettings } from '@/data/db';
+import { getSettings } from '@/data/settingsRepository';
+import { applyDefaultCreator } from '@/data/defaultCreator';
 import type { SystemSecurityPlan } from '@/models/ssp';
 import { createBlankSsp } from '@/features/ssps/blank';
 import { findSspByCorrelationKey } from './bootstrapProvenance';
@@ -24,6 +26,7 @@ async function applyOnePlan(
   repo: ArtifactRepository<SystemSecurityPlan>,
   existing: StoredArtifact<SystemSecurityPlan>[],
   plan: BootstrapSspPlan,
+  settings: TalosSettings,
 ): Promise<'created' | 'updated'> {
   // metadata.title is the document title shown everywhere (list pages, filenames) — distinct
   // from system-characteristics.system-name, but there's no user typing a separate one in for a
@@ -44,7 +47,11 @@ async function applyOnePlan(
     });
     return 'updated';
   }
-  const blank = createBlankSsp();
+  // Global default creator (Settings page, ADR-0033) applies here — the one spot every
+  // bootstrap-generated SSP (all three methodology variants) is actually constructed from a
+  // blank artifact; re-running only ever hits the `update` branch above, which preserves
+  // whatever creator a prior run (or a manual edit) already set.
+  const blank = applyDefaultCreator(createBlankSsp(), settings);
   const artifact: SystemSecurityPlan = {
     ...blank,
     metadata: { ...blank.metadata, title },
@@ -58,9 +65,9 @@ async function applyOnePlan(
 
 export async function applyBootstrapPlans(plans: BootstrapSspPlan[]): Promise<ApplyResult> {
   const repo = ArtifactRepository.forType<SystemSecurityPlan>('systemSecurityPlan');
-  const existing = await repo.getAll();
+  const [existing, settings] = await Promise.all([repo.getAll(), getSettings()]);
 
-  const outcomes = await Promise.all(plans.map((plan) => applyOnePlan(repo, existing, plan)));
+  const outcomes = await Promise.all(plans.map((plan) => applyOnePlan(repo, existing, plan, settings)));
 
   return {
     created: outcomes.filter((o) => o === 'created').length,

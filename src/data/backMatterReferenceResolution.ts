@@ -27,7 +27,7 @@ export interface ReferencePool<T> {
 /** Strip a leading `#`; an href without one has no OSCAL-legal local reference to resolve. Kept
  * here for callers that require the strict `#`-prefixed form (component-definition/profile
  * imports) — `control-implementation.source` accepts a bare uuid too and does its own stripping
- * (`catalogResolution.ts`'s `sourceToCatalogUuid`), so it doesn't use this. */
+ * (`catalogResolution.ts`'s `sourceToRefUuid`), so it doesn't use this. */
 export function refOf(href: string | undefined): string | undefined {
   if (!href) return undefined;
   return href.startsWith('#') ? href.slice(1) || undefined : undefined;

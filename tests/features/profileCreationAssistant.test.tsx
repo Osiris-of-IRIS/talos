@@ -10,6 +10,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests } from '@/data/db';
 import { ArtifactRepository } from '@/data/artifactRepository';
+import { saveSettings } from '@/data/settingsRepository';
 import { ProfileCreationAssistantPage } from '@/features/profiles/ProfileCreationAssistantPage';
 import type { Profile } from '@/models/profile';
 import type { Catalog } from '@/models/catalog';
@@ -97,6 +98,13 @@ beforeEach(() => {
 });
 
 describe('metadata + source gating', () => {
+  it('seeds the default creator from global settings when configured (ADR-0033)', async () => {
+    await saveSettings({ creatorName: 'Jane Doe', creatorEmail: 'jane@example.com' });
+    renderAt('/profiles/assistant');
+    await waitFor(() => expect(screen.getByTestId('md-creator-status')).toHaveTextContent('✓'));
+    expect(screen.getByTestId('md-party')).toHaveTextContent('Jane Doe');
+  });
+
   it('disables create until a title and source are set', async () => {
     await seedCatalog();
     renderAt('/profiles/assistant');
@@ -163,6 +171,47 @@ describe('by-id inclusion mode', () => {
 
     const rec = (await repo().getAll())[0]!;
     expect(rec.artifact.imports[0]!.includeControls?.[0]?.withIds).toEqual([]);
+  });
+});
+
+describe('profile source (recursive resolution, T-206, ADR-0032 §5)', () => {
+  const baselineUuid = 'aaaaaaaa-0000-4000-8000-000000000099';
+
+  async function seedBaselineProfile() {
+    await repo().create({
+      uuid: baselineUuid,
+      type: 'profile',
+      origin: 'user',
+      artifact: {
+        uuid: baselineUuid,
+        metadata: { title: 'Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        imports: [{ href: `#${catalogUuid}`, includeAll: {} }],
+      },
+    });
+  }
+
+  it('by-id and target-object modes are enabled for a profile source, resolved recursively through its own catalog import', async () => {
+    await seedCatalog();
+    await seedBaselineProfile();
+    const user = userEvent.setup();
+    renderAt('/profiles/assistant');
+    await user.type(screen.getByTestId('md-title'), 'Assistant Profile');
+    await user.type(screen.getByTestId('profile-assistant-source-picker-input'), 'Baseline');
+    await user.click(await screen.findByText('Baseline Profile'));
+
+    expect(screen.getByTestId('profile-assistant-mode-by-id')).not.toBeDisabled();
+    expect(screen.getByTestId('profile-assistant-mode-target-object')).not.toBeDisabled();
+
+    await user.click(screen.getByTestId('profile-assistant-mode-by-id'));
+    const boxes = await screen.findAllByTestId('control-checklist-checkbox');
+    expect(boxes).toHaveLength(5); // the baseline profile's own resolved set (C1-C5 via its catalog import)
+
+    await user.click(boxes[0]!);
+    await user.click(screen.getByTestId('profile-assistant-create'));
+    await waitFor(() => expect(screen.getByTestId('detail-landed')).toBeInTheDocument());
+
+    const rec = (await repo().getAll()).find((r) => r.artifact.metadata.title === 'Assistant Profile')!;
+    expect(rec.artifact.imports[0]!.includeControls?.[0]?.withIds).toEqual(['C1']);
   });
 });
 

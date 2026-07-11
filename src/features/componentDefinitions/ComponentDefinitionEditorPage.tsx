@@ -18,6 +18,7 @@ import { ensureArtifactResource } from '@/models/backMatter';
 import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
 import { resolveImport, wouldCreateCycle, unresolvedImportHrefs } from '@/data/componentImportResolution';
 import { syncUnresolvedReferences } from '@/data/unresolvedReferences';
+import { useSeedDefaultCreator } from '@/features/shared/useSeedDefaultCreator';
 import type { ComponentDefinition, DefinedComponent } from '@/models/componentDefinition';
 
 const COMPONENT_TYPE_OPTIONS = COMPONENT_TYPES.map((ct) => ({ value: ct.value, label: ct.description }));
@@ -42,6 +43,7 @@ export function ComponentDefinitionEditorPage() {
   // Per-row pending pick for the inline "resolve a dangling import" picker (T-105), keyed by
   // import index — independent of importPick, which is only for the add-new-import picker.
   const [resolvePicks, setResolvePicks] = useState<Record<number, string>>({});
+  useSeedDefaultCreator(isNew, setDraft);
 
   useEffect(() => {
     if (isNew || !uuid) return;
@@ -118,16 +120,17 @@ export function ComponentDefinitionEditorPage() {
     return (c.controlImplementations ?? []).reduce((sum, ci) => sum + ci.implementedRequirements.length, 0);
   }
 
-  /** Ensures a back-matter resource identifying `catalogUuid` and returns `#<resourceUuid>` (item 5). */
-  function ensureCatalogSource(catalogUuid: string, catalogTitle: string): string {
+  /** Ensures a back-matter resource identifying a picked catalog or profile (T-205) and returns
+   * `#<resourceUuid>` (item 5). */
+  function ensureSource(sourceUuid: string, sourceTitle: string): string {
     const existing = draft!.backMatter?.resources?.find((r) =>
-      r.documentIds?.some((d) => d.identifier === catalogUuid),
+      r.documentIds?.some((d) => d.identifier === sourceUuid),
     );
     const resourceUuid = existing?.uuid ?? globalThis.crypto.randomUUID();
     setDraft((prev) => {
       if (!prev) return prev;
       const next = structuredClone(prev);
-      ensureArtifactResource(next, catalogUuid, catalogTitle, resourceUuid);
+      ensureArtifactResource(next, sourceUuid, sourceTitle, resourceUuid);
       return next;
     });
     return `#${resourceUuid}`;
@@ -380,7 +383,7 @@ export function ComponentDefinitionEditorPage() {
                   onChange={(next) => patchComponent(i, (cc) => Object.assign(cc, next))}
                   catalogIndex={catalogIndex}
                   backMatter={draft.backMatter}
-                  onEnsureCatalogSource={ensureCatalogSource}
+                  onEnsureSource={ensureSource}
                 />
                 <button
                   type="button"

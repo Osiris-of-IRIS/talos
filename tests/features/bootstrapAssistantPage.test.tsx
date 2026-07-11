@@ -1,7 +1,7 @@
 /**
  * SSP Bootstrap Assistant wizard page (ADR-0026): prerequisite gating, catalog + methodology
  * selection, generation, idempotent re-run.
- * Covers TEST-ASST-02, TEST-BOOTSTRAP-02.
+ * Covers TEST-ASST-02, TEST-BOOTSTRAP-02, TEST-BOOTSTRAP-03 (Single System variant).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
@@ -13,6 +13,7 @@ import { useAssetsStore } from '@/features/assets/store';
 import { useCatalogsStore } from '@/features/catalogs/store';
 import { ArtifactRepository } from '@/data/artifactRepository';
 import type { SystemSecurityPlan } from '@/models/ssp';
+import type { Profile } from '@/models/profile';
 import { BootstrapAssistantPage } from '@/features/bootstrap/BootstrapAssistantPage';
 import catalogDoc from '../data/catalog-target-object-categories.json';
 
@@ -151,5 +152,65 @@ describe('BootstrapAssistantPage', () => {
 
     const all = await ArtifactRepository.forType<SystemSecurityPlan>('systemSecurityPlan').getAll();
     expect(all).toHaveLength(1); // NIST-style: 1 system asset -> 1 SSP, still 1 after re-run
+  });
+
+  it('Single System variant: generates exactly one SSP for the picked asset + catalog', async () => {
+    await act(async () => {
+      await seedAsset();
+      await seedCatalog();
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BootstrapAssistantPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('bootstrap-methodology-single-system')).toBeInTheDocument());
+    await user.click(screen.getByTestId('bootstrap-methodology-single-system'));
+    await user.selectOptions(screen.getByTestId('bootstrap-single-asset-select'), 'C001');
+    await user.selectOptions(screen.getByTestId('bootstrap-single-source-select'), catalogDoc.catalog.uuid);
+    await user.click(screen.getByTestId('bootstrap-generate'));
+
+    await waitFor(() => expect(screen.getByTestId('bootstrap-result')).toBeInTheDocument());
+    expect(screen.getByTestId('bootstrap-result')).toHaveTextContent('1 SSP(s) created');
+
+    const all = await ArtifactRepository.forType<SystemSecurityPlan>('systemSecurityPlan').getAll();
+    expect(all).toHaveLength(1);
+  });
+
+  it('Single System variant: also accepts a workspace profile as the baseline', async () => {
+    await act(async () => {
+      await seedAsset();
+      await seedCatalog();
+      await ArtifactRepository.forType<Profile>('profile').create({
+        uuid: 'profile-1',
+        type: 'profile',
+        origin: 'user',
+        artifact: {
+          uuid: 'profile-1',
+          metadata: { title: 'Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+          imports: [{ href: `#${catalogDoc.catalog.uuid}`, includeAll: {} }],
+        } as Profile,
+      });
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BootstrapAssistantPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('bootstrap-methodology-single-system')).toBeInTheDocument());
+    await user.click(screen.getByTestId('bootstrap-methodology-single-system'));
+    await user.selectOptions(screen.getByTestId('bootstrap-single-asset-select'), 'C001');
+    await waitFor(() =>
+      expect(screen.getByTestId('bootstrap-single-source-select')).toHaveTextContent('Baseline Profile'),
+    );
+    await user.selectOptions(screen.getByTestId('bootstrap-single-source-select'), 'profile-1');
+    await user.click(screen.getByTestId('bootstrap-generate'));
+
+    await waitFor(() => expect(screen.getByTestId('bootstrap-result')).toBeInTheDocument());
+    expect(screen.getByTestId('bootstrap-result')).toHaveTextContent('1 SSP(s) created');
   });
 });

@@ -5,24 +5,29 @@ import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/toast';
 import { useAssetsStore } from '@/features/assets/store';
 import { useCatalogsStore } from '@/features/catalogs/store';
+import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
 import { loadTargetObjectCategories } from '@/data/targetObjectCategoryLoader';
 import type { TargetObjectCategory } from '@/models/targetObjectCategory';
 import { generateNist } from './generateNist';
 import { generateBsi } from './generateBsi';
+import { generateSingleSystem, type SingleSystemSource } from './generateSingleSystem';
 import { applyBootstrapPlans, type ApplyResult } from './applyPlans';
 
 const ISMS_SYSTEM_NAME = 'ISMS';
 
-type Methodology = 'nist' | 'bsi';
+type Methodology = 'nist' | 'bsi' | 'single-system';
 
 export function BootstrapAssistantPage() {
   const { t } = useI18n();
   const { showToast } = useToast();
   const { assets, assetTypes, loading: assetsLoading, load: loadAssets } = useAssetsStore();
   const { items: catalogs, loading: catalogsLoading, load: loadCatalogs } = useCatalogsStore();
+  const profiles = useWorkspaceProfiles();
   const [categoryRows, setCategoryRows] = useState<TargetObjectCategory[]>([]);
   const [catalogUuid, setCatalogUuid] = useState('');
   const [methodology, setMethodology] = useState<Methodology>('nist');
+  const [singleAssetId, setSingleAssetId] = useState('');
+  const [singleSourceUuid, setSingleSourceUuid] = useState('');
   const [generating, setGenerating] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [result, setResult] = useState<ApplyResult | null>(null);
@@ -38,8 +43,41 @@ export function BootstrapAssistantPage() {
       .catch((e) => showToast(e instanceof Error ? e.message : String(e), 'error'));
   }, [loadAssets, loadCatalogs, showToast]);
 
+  function resolveSingleSystemSource(): SingleSystemSource | undefined {
+    const catalogRecord = catalogs.find((c) => c.uuid === singleSourceUuid);
+    if (catalogRecord) return { type: 'catalog', catalog: catalogRecord.artifact };
+    const profileRecord = profiles.find((p) => p.uuid === singleSourceUuid);
+    if (profileRecord) return { type: 'profile', profile: profileRecord.artifact };
+    return undefined;
+  }
+
   async function onGenerate() {
     setResult(null);
+
+    if (methodology === 'single-system') {
+      const asset = assets.find((a) => a.assetId === singleAssetId);
+      const source = resolveSingleSystemSource();
+      if (!asset || !source) return;
+
+      setGenerating(true);
+      try {
+        const { plans, warnings: genWarnings } = generateSingleSystem({
+          asset,
+          assetType: assetTypes.find((t) => t.uuid === asset.assetType),
+          source,
+          catalogs,
+          profiles,
+        });
+        setWarnings(genWarnings);
+        setResult(await applyBootstrapPlans(plans));
+      } catch (e) {
+        showToast(e instanceof Error ? e.message : String(e), 'error');
+      } finally {
+        setGenerating(false);
+      }
+      return;
+    }
+
     const catalogRecord = catalogs.find((c) => c.uuid === catalogUuid);
     if (!catalogRecord) return;
 
@@ -68,6 +106,8 @@ export function BootstrapAssistantPage() {
   const loading = assetsLoading || catalogsLoading;
   const hasAssets = assets.length > 0;
   const hasCatalogs = catalogs.length > 0;
+  const canGenerate =
+    methodology === 'single-system' ? Boolean(singleAssetId && singleSourceUuid) : Boolean(catalogUuid);
 
   return (
     <main data-testid="bootstrap-page">
@@ -98,28 +138,6 @@ export function BootstrapAssistantPage() {
       {!loading && hasAssets && hasCatalogs && (
         <>
           <fieldset>
-            <legend>{t('bootstrap_step_catalog_heading')}</legend>
-            <label>
-              {t('bootstrap_catalog_label')}
-              <select
-                data-testid="bootstrap-catalog-select"
-                value={catalogUuid}
-                onChange={(e) => setCatalogUuid(e.target.value)}
-              >
-                <option value="">{t('bootstrap_catalog_placeholder')}</option>
-                {catalogs.map((c) => (
-                  <option key={c.uuid} value={c.uuid}>
-                    {c.artifact.metadata.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p>
-              <small>{t('bootstrap_profile_note')}</small>
-            </p>
-          </fieldset>
-
-          <fieldset>
             <legend>{t('bootstrap_step_methodology_heading')}</legend>
             <label>
               <input
@@ -149,11 +167,92 @@ export function BootstrapAssistantPage() {
             <p>
               <small>{t('bootstrap_methodology_bsi_hint')}</small>
             </p>
+            <label>
+              <input
+                type="radio"
+                name="methodology"
+                value="single-system"
+                checked={methodology === 'single-system'}
+                onChange={() => setMethodology('single-system')}
+                data-testid="bootstrap-methodology-single-system"
+              />{' '}
+              {t('bootstrap_methodology_single_label')}
+            </label>
+            <p>
+              <small>{t('bootstrap_methodology_single_hint')}</small>
+            </p>
           </fieldset>
+
+          {methodology === 'single-system' ? (
+            <fieldset>
+              <legend>{t('bootstrap_step_single_heading')}</legend>
+              <label>
+                {t('bootstrap_single_asset_label')}
+                <select
+                  data-testid="bootstrap-single-asset-select"
+                  value={singleAssetId}
+                  onChange={(e) => setSingleAssetId(e.target.value)}
+                >
+                  <option value="">{t('bootstrap_single_asset_placeholder')}</option>
+                  {assets.map((a) => (
+                    <option key={a.assetId} value={a.assetId}>
+                      {a.name} ({a.assetId})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t('bootstrap_single_source_label')}
+                <select
+                  data-testid="bootstrap-single-source-select"
+                  value={singleSourceUuid}
+                  onChange={(e) => setSingleSourceUuid(e.target.value)}
+                >
+                  <option value="">{t('bootstrap_single_source_placeholder')}</option>
+                  <optgroup label={t('bootstrap_single_source_group_catalogs')}>
+                    {catalogs.map((c) => (
+                      <option key={c.uuid} value={c.uuid}>
+                        {c.artifact.metadata.title}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label={t('bootstrap_single_source_group_profiles')}>
+                    {profiles.map((p) => (
+                      <option key={p.uuid} value={p.uuid}>
+                        {p.artifact.metadata.title}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </label>
+            </fieldset>
+          ) : (
+            <fieldset>
+              <legend>{t('bootstrap_step_catalog_heading')}</legend>
+              <label>
+                {t('bootstrap_catalog_label')}
+                <select
+                  data-testid="bootstrap-catalog-select"
+                  value={catalogUuid}
+                  onChange={(e) => setCatalogUuid(e.target.value)}
+                >
+                  <option value="">{t('bootstrap_catalog_placeholder')}</option>
+                  {catalogs.map((c) => (
+                    <option key={c.uuid} value={c.uuid}>
+                      {c.artifact.metadata.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p>
+                <small>{t('bootstrap_profile_note')}</small>
+              </p>
+            </fieldset>
+          )}
 
           <button
             type="button"
-            disabled={!catalogUuid || generating}
+            disabled={!canGenerate || generating}
             onClick={() => void onGenerate()}
             data-testid="bootstrap-generate"
           >

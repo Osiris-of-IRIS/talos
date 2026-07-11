@@ -1,7 +1,7 @@
 /**
- * Catalog control resolution. Decision IDs: ADR-0001, ADR-0016, ADR-0021 (T-120).
- * Catalog fixture derived from BSI Stand-der-Technik-Bibliothek (CC-BY-SA-4.0). Covers
- * TEST-CATRES-01 and TEST-CTRLID-01.
+ * Catalog (+ profile, T-205) control resolution. Decision IDs: ADR-0001, ADR-0016, ADR-0021,
+ * ADR-0032 (T-120, T-205). Catalog fixture derived from BSI Stand-der-Technik-Bibliothek
+ * (CC-BY-SA-4.0). Covers TEST-CATRES-01, TEST-CTRLID-01, TEST-CATRES-03.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
@@ -12,16 +12,18 @@ import {
   buildCatalogIndex,
   loadCatalogIndex,
   resolveControl,
-  sourceToCatalogUuid,
-  catalogSourceOptions,
+  sourceToRefUuid,
+  sourceOptions,
   controlIdsForSource,
   paramsForControl,
   normalizeControlIdKey,
-  findCatalogEntry,
+  findSourceEntry,
+  findSourceEntryByUuid,
   controlIdOptionsForSource,
   allControlIdOptions,
   resolveControlForSource,
   uniqueCatalogControlEntries,
+  type ProfileSourceEntry,
 } from '@/data/catalogResolution';
 import { ensureArtifactResource } from '@/models/backMatter';
 import { parseOscalUpload } from '@/data/fileIo';
@@ -67,17 +69,17 @@ describe('source→catalog + param pickers (T-142)', () => {
     return { idx: buildCatalogIndex([record] as never), catalogUuid: record.uuid };
   };
 
-  it('parses a source href into a catalog uuid', () => {
-    expect(sourceToCatalogUuid('#abc')).toBe('abc');
-    expect(sourceToCatalogUuid('abc')).toBe('abc');
-    expect(sourceToCatalogUuid(undefined)).toBeUndefined();
-    expect(sourceToCatalogUuid('')).toBeUndefined();
+  it('parses a source href into a catalog/profile uuid', () => {
+    expect(sourceToRefUuid('#abc')).toBe('abc');
+    expect(sourceToRefUuid('abc')).toBe('abc');
+    expect(sourceToRefUuid(undefined)).toBeUndefined();
+    expect(sourceToRefUuid('')).toBeUndefined();
   });
 
   it('offers workspace catalogs as source options (ref = #uuid)', () => {
     const { idx, catalogUuid } = build();
-    expect(catalogSourceOptions(idx)).toEqual([
-      { ref: `#${catalogUuid}`, uuid: catalogUuid, title: 'BSI Kernel (excerpt)' },
+    expect(sourceOptions(idx)).toEqual([
+      { ref: `#${catalogUuid}`, uuid: catalogUuid, title: 'BSI Kernel (excerpt)', kind: 'catalog' },
     ]);
   });
 
@@ -130,7 +132,7 @@ describe('back-matter-mediated source resolution (item 5, ADR-0024)', () => {
     const holder: OscalArtifact = { uuid: 'x', metadata: { title: 't', version: '1', oscalVersion: '1.2.2' } };
     const resourceUuid = ensureArtifactResource(holder, catalogUuid, 'BSI Kernel (excerpt)');
 
-    const entry = findCatalogEntry(idx, `#${resourceUuid}`, holder.backMatter);
+    const entry = findSourceEntry(idx, `#${resourceUuid}`, holder.backMatter);
     expect(entry?.uuid).toBe(catalogUuid);
   });
 
@@ -139,21 +141,21 @@ describe('back-matter-mediated source resolution (item 5, ADR-0024)', () => {
     const backMatter: BackMatter = {
       resources: [{ uuid: 'res-1', title: 'BSI Kernel (excerpt)' }], // no documentIds
     };
-    const entry = findCatalogEntry(idx, '#res-1', backMatter);
+    const entry = findSourceEntry(idx, '#res-1', backMatter);
     expect(entry?.title).toBe('BSI Kernel (excerpt)');
   });
 
   it('falls back to the legacy direct-uuid match when no back-matter resource exists for the ref', () => {
     const { idx, catalogUuid } = build();
     // no backMatter passed at all — matches existing T-142 behavior unchanged
-    const entry = findCatalogEntry(idx, `#${catalogUuid}`);
+    const entry = findSourceEntry(idx, `#${catalogUuid}`);
     expect(entry?.uuid).toBe(catalogUuid);
   });
 
   it('returns undefined when a resource exists but identifies nothing in the workspace', () => {
     const { idx } = build();
     const backMatter: BackMatter = { resources: [{ uuid: 'res-1', title: 'Some Unrelated Catalog' }] };
-    expect(findCatalogEntry(idx, '#res-1', backMatter)).toBeUndefined();
+    expect(findSourceEntry(idx, '#res-1', backMatter)).toBeUndefined();
   });
 });
 
@@ -231,6 +233,63 @@ describe('control-id typeahead richness (item 7, ADR-0024)', () => {
     const options = allControlIdOptions(idx);
     expect(options.map((o) => o.value)).toContain('ASST.1.1.2');
     expect(options.find((o) => o.value === 'ASST.1.1.2')?.label).toBe('ASST.1.1.2 Zuweisung');
+  });
+});
+
+describe('control-implementation.source over a profile (T-205, ADR-0032)', () => {
+  const profileUuid = 'ppppppp1-0000-4000-8000-000000000001';
+
+  const build = () => {
+    const { record } = parseOscalUpload<Catalog>(catalogText);
+    // Profile source entries are pre-resolved by the caller (useCatalogIndex.ts) precisely to
+    // avoid catalogResolution.ts depending on profileImportResolution.ts (a cycle) — here we hand
+    // buildCatalogIndex an already-resolved entry, matching how the hook actually builds one.
+    const profileEntries: ProfileSourceEntry[] = [
+      {
+        uuid: profileUuid,
+        title: 'BSI Profile (excerpt)',
+        controlsById: indexCatalogControls(record.artifact),
+      },
+    ];
+    return { idx: buildCatalogIndex([record], profileEntries), catalogUuid: record.uuid, profileUuid };
+  };
+
+  it('lists both the catalog and the profile as source options, tagged by kind', () => {
+    const { idx, catalogUuid, profileUuid: pUuid } = build();
+    expect(sourceOptions(idx)).toEqual([
+      { ref: `#${catalogUuid}`, uuid: catalogUuid, title: 'BSI Kernel (excerpt)', kind: 'catalog' },
+      { ref: `#${pUuid}`, uuid: pUuid, title: 'BSI Profile (excerpt)', kind: 'profile' },
+    ]);
+  });
+
+  it('resolves control-ids and params from a profile source exactly like a catalog source', () => {
+    const { idx, profileUuid: pUuid } = build();
+    const ids = controlIdsForSource(idx, `#${pUuid}`);
+    expect(ids).toContain('ASST.1.1.2');
+    expect(paramsForControl(idx, `#${pUuid}`, 'ASST.1.1.2').map((p) => p.id)).toEqual(['asst.1.1.2-prm1']);
+  });
+
+  it('resolveControlForSource resolves a control within a profile source', () => {
+    const { idx, profileUuid: pUuid } = build();
+    const resolved = resolveControlForSource(idx, `#${pUuid}`, 'ASST.1.1.2');
+    expect(resolved?.control.title).toBe('Zuweisung');
+    expect(resolved?.catalogTitle).toBe('BSI Profile (excerpt)');
+    expect(resolved?.catalogLibraryPath).toBeUndefined(); // profiles have no library path
+  });
+
+  it('findSourceEntry / findSourceEntryByUuid resolve a profile the same way as a catalog', () => {
+    const { idx, profileUuid: pUuid } = build();
+    expect(findSourceEntry(idx, `#${pUuid}`)?.kind).toBe('profile');
+    expect(findSourceEntryByUuid(idx, pUuid)?.kind).toBe('profile');
+  });
+
+  it('back-matter-mediated resolution works for a profile source exactly like a catalog', () => {
+    const { idx, profileUuid: pUuid } = build();
+    const holder: OscalArtifact = { uuid: 'x', metadata: { title: 't', version: '1', oscalVersion: '1.2.2' } };
+    const resourceUuid = ensureArtifactResource(holder, pUuid, 'BSI Profile (excerpt)');
+    const entry = findSourceEntry(idx, `#${resourceUuid}`, holder.backMatter);
+    expect(entry?.uuid).toBe(pUuid);
+    expect(entry?.kind).toBe('profile');
   });
 });
 

@@ -197,6 +197,16 @@ suites:
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0008, ADR-0016]
 
+  - id: TEST-CATRES-03
+    title: "control-implementation.source over a profile (T-205, ADR-0032 §8): CatalogIndex.profiles, findSourceEntry/sourceOptions/findSourceEntryByUuid resolve a profile exactly like a catalog (incl. back-matter-mediation), control-id/param resolution from a profile's own (pre-resolved) effective control set"
+    file: tests/data/catalogResolution.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0016, ADR-0024, ADR-0032]
+    golden: [tests/data/catalog-minimal.json]
+
   - id: TEST-CAT-01
     title: "Catalogs list page: upload/list; bulk selection (checkboxes, download-zip skip-warning, delete-with-confirm)"
     file: tests/features/catalogsListPage.test.tsx
@@ -208,7 +218,7 @@ suites:
     golden: [tests/data/catalog-minimal.json]
 
   - id: TEST-PROF-01
-    title: "Profile imports[].href resolution: catalog/profile back-matter-mediated lookup, cycle detection, unresolved-href collection; resolveProfileControlIds effective control-id set (include-all/by-id, excludes, profile-sourced hasUnresolvedAll)"
+    title: "Profile imports[].href resolution: catalog/profile back-matter-mediated lookup, cycle detection, unresolved-href collection; resolveProfileControlIds effective control-id set (include-all/by-id, excludes, recursive profile-of-profile via T-206)"
     file: tests/data/profileImportResolution.test.ts
     type: unit
     runner: vitest
@@ -227,13 +237,13 @@ suites:
     golden: [tests/data/profile-minimal.json]
 
   - id: TEST-PROF-03
-    title: "Profile editor: create, import source picker (catalog/profile), include-all/by-id/exclude modes, control checklist filtering, set-parameters, cycle rejection"
+    title: "Profile editor: create, import source picker (catalog/profile), include-all/by-id/exclude modes, control checklist filtering, set-parameters, cycle rejection, global default-creator auto-seed"
     file: tests/features/profileEditor.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: CTRL-001
-    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0016, ADR-0032]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0016, ADR-0032, ADR-0033]
 
   - id: TEST-PROF-04
     title: "Profile detail page: resolved import source, included/excluded control display, set-parameters"
@@ -263,13 +273,13 @@ suites:
     adr_refs: [ADR-0001, ADR-0010, ADR-0026, ADR-0032]
 
   - id: TEST-PROF-06
-    title: "Profile Creation Assistant: metadata/source gating, by-id mode, target-object mode (ancestor-inclusive matching, product-spec filter, deselect)"
+    title: "Profile Creation Assistant: metadata/source gating, by-id mode, target-object mode (ancestor-inclusive matching, product-spec filter, deselect), global default-creator auto-seed"
     file: tests/features/profileCreationAssistant.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: CTRL-001
-    adr_refs: [ADR-0001, ADR-0013, ADR-0016, ADR-0026, ADR-0032]
+    adr_refs: [ADR-0001, ADR-0013, ADR-0016, ADR-0026, ADR-0032, ADR-0033]
 
   - id: TEST-PROF-08
     title: "E2E profile major flows: upload -> list -> detail; create via editor (catalog import, by-id mode); Profile Creation Assistant target-object picker; landing link"
@@ -288,6 +298,15 @@ suites:
     status: implemented
     feature: CTRL-001
     adr_refs: [ADR-0001, ADR-0010, ADR-0026, ADR-0032]
+
+  - id: TEST-PROF-10
+    title: "Recursive profile-of-profile control resolution (T-206, ADR-0032 §5): resolveProfileEffectiveControls returns id->Control two levels deep with per-level include/exclude applied, cycle-guarded (visited set) without infinite-looping; ProfileEditorPage/ProfileCreationAssistantPage render the real checklist/target-object picker for a profile source instead of the plain-text fallback, with a hint when a nested reference is unresolved"
+    file: tests/data/profileImportResolution.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: CTRL-001
+    adr_refs: [ADR-0001, ADR-0016, ADR-0032]
 
   - id: TEST-SELECT-01
     title: Shared bulk-selection zustand slice (toggle/select-all/clear), composed into every list store
@@ -416,6 +435,25 @@ suites:
     status: implemented
     feature: PLAT-005
     adr_refs: [ADR-0001, ADR-0002]
+
+  # ---- Global app settings / default creator (PLAT-006, ADR-0033) -----------------
+  - id: TEST-SETTINGS-01
+    title: "applyDefaultCreator: seeds a person party + creator responsible-party only when both name and email are configured, uses a configured uuid or mints a real one, never overwrites an already-assigned creator"
+    file: tests/data/defaultCreator.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-006
+    adr_refs: [ADR-0001, ADR-0019, ADR-0033]
+
+  - id: TEST-SETTINGS-02
+    title: "Settings page: loads/saves the default creator identity, auto-generates + persists a stable uuid on first save (reused, not re-minted, on later saves), respects a user-supplied uuid, clear button"
+    file: tests/features/settingsPage.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-006
+    adr_refs: [ADR-0001, ADR-0004, ADR-0033]
 
   # ---- Persistence & file I/O (PLAT-003) ------------------------------------------
   - id: TEST-PERS-01
@@ -558,13 +596,13 @@ suites:
     golden: [tests/data/component-definition-minimal.json, tests/data/component-definition-with-creator.json]
 
   - id: TEST-CDEF-EDIT-01
-    title: "Component-definition editor (create/edit, type picker, control-implementations, source/param pickers, no-catalogs guidance, component list collapse/expand, markup editor, back-matter source resolution, import-component-definition add/remove/cycle-rejection + unresolved-ref recording, inline resolve-in-place for a dangling import + unresolved-count banner, T-105)"
+    title: "Component-definition editor (create/edit, type picker, control-implementations, source/param pickers incl. a profile source (T-205), no-catalogs guidance, component list collapse/expand, markup editor, back-matter source resolution, import-component-definition add/remove/cycle-rejection + unresolved-ref recording, inline resolve-in-place for a dangling import + unresolved-count banner, T-105; global default-creator auto-seed)"
     file: tests/features/componentDefinitionEditor.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: IMPL-001
-    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0024, ADR-0025, ADR-0028]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0024, ADR-0025, ADR-0028, ADR-0032, ADR-0033]
 
   - id: TEST-CDEF-EDIT-02
     title: E2E create a component-definition end to end (full body flow)
@@ -641,13 +679,13 @@ suites:
     adr_refs: [ADR-0001, ADR-0004]
 
   - id: TEST-SSP-03
-    title: "SSP editor core authoring, system-implementation import, control-implementation + by-components + status, markup editor, control-id typeahead richness; by-component description prefill from the source component's matching requirement; import-profile picker resolution + apply-time add-all-controls offer (accept/decline/no-op/dedupe-against-existing)"
+    title: "SSP editor core authoring, system-implementation import, control-implementation + by-components + status, markup editor, control-id typeahead richness; by-component description prefill from the source component's matching requirement; import-profile picker resolution + apply-time add-all-controls offer (accept/decline/no-op/dedupe-against-existing); global default-creator auto-seed"
     file: tests/features/sspEditor.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: IMPL-002
-    adr_refs: [ADR-0001, ADR-0003, ADR-0017, ADR-0023, ADR-0024, ADR-0025, ADR-0028, ADR-0032]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0017, ADR-0023, ADR-0024, ADR-0025, ADR-0028, ADR-0032, ADR-0033]
 
   - id: TEST-SSP-IMPORT-01
     title: "Component import + staleness (hash snapshot) + refresh + implementation-status props; findMatchingRequirementDescription prefill lookup"
@@ -712,7 +750,7 @@ suites:
     adr_refs: [ADR-0001, ADR-0006]
 
   - id: TEST-ASST-02
-    title: Bootstrap-assistant wizard — prerequisite gating, catalog+methodology selection, generation, idempotent re-run
+    title: Bootstrap-assistant wizard — prerequisite gating, catalog+methodology selection (incl. Single System), generation, idempotent re-run
     file: tests/features/bootstrapAssistantPage.test.tsx
     type: component
     runner: vitest
@@ -796,13 +834,22 @@ suites:
     golden: [tests/data/catalog-target-object-categories.json]
 
   - id: TEST-BOOTSTRAP-02
-    title: "Applying bootstrap plans — create-then-update idempotency, preserves hand-edited fields; inventory-items written/regenerated (ADR-0031)"
+    title: "Applying bootstrap plans — create-then-update idempotency, preserves hand-edited fields; inventory-items written/regenerated (ADR-0031); global default-creator seeded on create only, never resurrected on update (ADR-0033)"
     file: tests/features/bootstrapApplyPlans.test.ts
     type: integration
     runner: vitest
     status: implemented
     feature: ASST-002
-    adr_refs: [ADR-0001, ADR-0004, ADR-0023, ADR-0026, ADR-0031]
+    adr_refs: [ADR-0001, ADR-0004, ADR-0023, ADR-0026, ADR-0031, ADR-0033]
+
+  - id: TEST-BOOTSTRAP-03
+    title: "Single-System-style SSP generation (pure) — one picked asset + one catalog-or-profile baseline, all its controls, no target-object-category filtering; profile-of-profile include-all reports a warning instead of guessing (T-206)"
+    file: tests/features/bootstrapGenerateSingleSystem.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0003, ADR-0026, ADR-0031, ADR-0032]
 
   - id: TEST-ASST-03
     title: "E2E: landing gating, asset+catalog upload, generate SSPs, idempotent re-run"

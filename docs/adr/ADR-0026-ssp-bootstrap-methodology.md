@@ -1,9 +1,9 @@
 # ADR-0026: SSP Bootstrap Assistant — Asset Model, Target-Object-Category Hierarchy & Generation Methodology
 
 - **Status:** Approved
-- **Date:** 2026-07-08
+- **Date:** 2026-07-08 (revised 2026-07-11: §9, Single-System variant, below)
 - **Deciders:** Human supervisor, engineering
-- **Decision IDs:** ADR-0026 (references ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0012, ADR-0017, ADR-0023)
+- **Decision IDs:** ADR-0026 (references ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0012, ADR-0017, ADR-0023, ADR-0032)
 
 ## Context
 
@@ -22,6 +22,10 @@ The ticket allowed "a catalog or profile" as the baseline; Profiles (`T-200`) do
 were explicitly deferred by ADR-0017. This phase supports **catalog only** — the picker shows
 workspace catalogs; a note explains profile support is pending `T-200`. No model or picker changes
 are needed once profiles land; the assistant's catalog param generalizes to "catalog or profile."
+**Superseded in part by §9 (2026-07-11):** now that Profiles exist (ADR-0032), the new
+Single-System variant accepts a catalog *or* profile baseline. NIST-style and BSI-style remain
+catalog-only unchanged — expanding those two to accept a profile too is unscoped future work, not
+part of this revision.
 
 ### 2. Asset list is a three-file CSV trio, matching the golden data exactly
 `asset_types.csv` (`uuid,title`), `assets.csv` (`uuid,name,asset_type,description,
@@ -108,6 +112,41 @@ disabled card renders as inert text with a `title` tooltip instead of a link. A 
 landing-page layer group holds the bootstrap card (mission §B lists assistants as a category
 distinct from the OSCAL layers); "Assets" joins the Data layer next to the BSI Library.
 
+### 9. Single-System variant (2026-07-11): one asset, one catalog-or-profile baseline, no category filtering
+`todo.md`'s MVP Feedback list asked for a third variant, alongside NIST-style and BSI-style: the
+user picks **one** asset from the inventory and **one** baseline (a workspace catalog *or*, unlike
+the other two variants, a profile), and gets back a single SSP for that asset prefilled with the
+baseline's controls. Implemented as `generateSingleSystem`
+(`src/features/bootstrap/generateSingleSystem.ts`), a third pure generator alongside
+`generateNist`/`generateBsi`, sharing their `BootstrapSspPlan` shape, `buildAssetSystemCharacteristics`/
+`buildAssetInventoryItem` seeding, and the same `assetCorrelationKey`-based idempotent re-run
+(§7) — re-running *any* variant against the same asset updates the one SSP already correlated to
+it, deliberately not partitioned by which variant created it.
+
+**No target-object-category resolution at all** (unlike both NIST-style, which needs it only to
+decide *whether* an asset is "system"-typed, and BSI-style, which needs it to *filter* controls):
+Single-System always takes every control the chosen baseline resolves to, which is also why it
+needs no `categoryRows`/`assetTypes` category lookup in its params beyond the one asset's own
+`AssetType` (for the inventory-item's `asset-type` prop).
+
+**Catalog baseline:** every distinct control in the catalog (`uniqueCatalogControls`, the same
+ADR-0021-dedup-aware helper the other two generators use). **Profile baseline:** the profile's own
+effective control-id set via `resolveProfileControlIds` (`src/data/profileImportResolution.ts`,
+built for the SSP editor's `import-profile` picker, ADR-0032 §7) — reused as-is, not
+reimplemented. As of ADR-0032 §5 (T-206), that resolver recurses through profile-of-profile
+imports too, not just catalog-sourced ones; it now only sets `hasUnresolvedAll` for a genuine
+dangling reference or an already-stored profile-of-profile cycle, which Single-System surfaces as
+a generation warning rather than silently under- or over-generating.
+
+**UI:** the assistant's methodology radio group gained a third option; the baseline `<fieldset>`
+now renders conditionally — the existing catalog `<select>` for NIST/BSI, or a new asset `<select>`
++ catalog-or-profile `<select>` (grouped via `<optgroup>`, matching this page's existing
+plain-`<select>` convention rather than the `<EntitySearchField>` typeahead other pickers use
+elsewhere — the asset/catalog/profile lists here are workspace-scoped and small, so a plain select
+stays consistent with the page's own established pattern) for Single-System. Reordered the wizard
+so methodology is step 1 and the baseline picker is step 2 (previously catalog-then-methodology),
+since which baseline fields render now depends on the methodology choice.
+
 ## Consequences
 
 **Positive:** the generation algorithms are pure and independently tested against real BSI
@@ -136,10 +175,13 @@ changed.
 - ADR-0003 (OSCAL model), ADR-0004 (IndexedDB stores), ADR-0005 (live-fetch + offline-fallback
   pattern reused here), ADR-0006 (landing page / assistants), ADR-0012 (i18n — UI copy vs.
   untranslated document content), ADR-0017 (profiles deferred), ADR-0023 (props-based provenance
-  convention). Implementation: `src/data/{csvParse,targetObjectCategoryLoader,
-  targetObjectHierarchy}.ts`, `src/models/{asset,targetObjectCategory}.ts`, `src/features/assets/`,
-  `src/features/bootstrap/`. Tests: `tests/data/{csvParse,targetObjectCategoryLoader,
-  targetObjectHierarchy}.test.ts`, `tests/models/{asset,targetObjectCategory}.test.ts`,
+  convention), ADR-0032 (Profiles — §9's `resolveProfileControlIds` reuse). Implementation:
+  `src/data/{csvParse,targetObjectCategoryLoader,targetObjectHierarchy}.ts`,
+  `src/models/{asset,targetObjectCategory}.ts`, `src/features/assets/`,
+  `src/features/bootstrap/` (incl. §9: `generateSingleSystem.ts`). Tests:
+  `tests/data/{csvParse,targetObjectCategoryLoader,targetObjectHierarchy}.test.ts`,
+  `tests/models/{asset,targetObjectCategory}.test.ts`,
   `tests/features/{assetsStore,assetsListPage,bootstrapGenerate,bootstrapApplyPlans,
   bootstrapAssistantPage}.test.ts(x)`, `tests/app/landingPage.test.tsx`
-  (TEST-ASST-02, `feature_registry.yaml` `ASST-002`).
+  (TEST-ASST-02, `feature_registry.yaml` `ASST-002`); §9:
+  `tests/features/bootstrapGenerateSingleSystem.test.ts` (TEST-BOOTSTRAP-03).

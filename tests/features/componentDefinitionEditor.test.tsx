@@ -9,6 +9,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests } from '@/data/db';
 import { ArtifactRepository } from '@/data/artifactRepository';
+import { saveSettings } from '@/data/settingsRepository';
 import { ComponentDefinitionEditorPage } from '@/features/componentDefinitions/ComponentDefinitionEditorPage';
 import { parseOscalUpload } from '@/data/fileIo';
 import { getUnresolvedReferencesFor } from '@/data/unresolvedReferences';
@@ -72,6 +73,13 @@ describe('create', () => {
     renderAt('/component-definitions/new');
     await user.click(screen.getByTestId('save-compdef'));
     expect(await repo().count()).toBe(0);
+  });
+
+  it('seeds the default creator from global settings when configured (ADR-0033)', async () => {
+    await saveSettings({ creatorName: 'Jane Doe', creatorEmail: 'jane@example.com' });
+    renderAt('/component-definitions/new');
+    await waitFor(() => expect(screen.getByTestId('md-creator-status')).toHaveTextContent('✓'));
+    expect(screen.getByTestId('md-party')).toHaveTextContent('Jane Doe');
   });
 });
 
@@ -180,6 +188,61 @@ describe('source→catalog + param pickers (T-142)', () => {
     const resourceUuid = source.slice(1);
     const resource = cd.backMatter?.resources?.find((r) => r.uuid === resourceUuid);
     expect(resource?.documentIds?.[0]?.identifier).toBe(record.uuid);
+  });
+
+  it('also accepts a workspace profile as source, resolved to its own effective control set (T-205, ADR-0032)', async () => {
+    const user = userEvent.setup();
+    const { record: catalogRecord } = parseOscalUpload<Catalog>(JSON.stringify(catalogJson));
+    await ArtifactRepository.forType<Catalog>('catalog').create({
+      uuid: catalogRecord.uuid,
+      type: 'catalog',
+      origin: 'imported',
+      artifact: catalogRecord.artifact,
+    });
+    const profileUuid = 'ffffffff-0000-4000-8000-000000000001';
+    await ArtifactRepository.forType('profile').create({
+      uuid: profileUuid,
+      type: 'profile',
+      origin: 'user',
+      artifact: {
+        uuid: profileUuid,
+        metadata: { title: 'BSI Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        imports: [{ href: `#${catalogRecord.uuid}`, includeAll: {} }],
+      },
+    });
+
+    renderAt('/component-definitions/new');
+    await user.type(screen.getByTestId('md-title'), 'Profile Source Test');
+    await user.click(screen.getByTestId('add-component'));
+    await user.click(screen.getByTestId('add-control-implementation'));
+
+    // source search offers the profile too (badged, distinct from a catalog)
+    await user.type(screen.getByTestId('ci-source-input'), 'BSI Baseline');
+    expect(await screen.findByText('BSI Baseline Profile')).toBeInTheDocument();
+
+    await user.clear(screen.getByTestId('ci-source-input'));
+    await user.type(screen.getByTestId('ci-source-input'), `#${profileUuid}`);
+    expect(await screen.findByTestId('ci-source-resolved')).toHaveTextContent('BSI Baseline Profile');
+    expect(screen.getByTestId('ci-source-resolved')).toHaveTextContent('📑');
+
+    // control-id/param pickers are seeded from the profile's own effective (recursively-resolved,
+    // T-206) control set, exactly like a catalog source
+    await user.click(screen.getByTestId('add-requirement'));
+    await user.type(screen.getByTestId('ir-control-id-input'), 'ASST.1.1.2');
+    expect(await screen.findByText('ASST.1.1.2 Zuweisung')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('add-set-parameter'));
+    await user.type(screen.getByTestId('sp-param-id-input'), 'zuständigen');
+    expect(await screen.findByText('zuständigen Personen oder Rollen')).toBeInTheDocument();
+
+    // picking a profile also gets the same back-matter-mediation as a catalog (item 5)
+    await user.click(screen.getByTestId('save-compdef'));
+    await waitFor(() => expect(screen.getByTestId('detail-landed')).toBeInTheDocument());
+    const cd = (await repo().getAll())[0]!.artifact;
+    const source = cd.components![0]!.controlImplementations![0]!.source;
+    expect(source).not.toBe(`#${profileUuid}`);
+    const resource = cd.backMatter?.resources?.find((r) => r.uuid === source.slice(1));
+    expect(resource?.documentIds?.[0]?.identifier).toBe(profileUuid);
   });
 });
 

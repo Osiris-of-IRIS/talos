@@ -131,3 +131,17 @@ export function buildControlImplementation(description: string, controls: Contro
     })),
   };
 }
+
+/** Same as `buildControlImplementation`, from already-resolved control ids rather than `Control`
+ * objects — the Single-System generator's profile-sourced path only has ids (`resolveProfileControlIds`
+ * resolves against a profile's own imports, which doesn't hand back full `Control` objects when
+ * those ids were named explicitly rather than expanded from a catalog). */
+export function buildControlImplementationFromIds(description: string, controlIds: string[]): SspControlImplementation {
+  return {
+    description,
+    implementedRequirements: controlIds.map((controlId) => ({
+      uuid: globalThis.crypto.randomUUID(),
+      controlId,
+    })),
+  };
+}

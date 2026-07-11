@@ -16,6 +16,9 @@ import { ensureArtifactResource } from '@/models/backMatter';
 import { useCatalogControlsByUuid } from '@/features/shared/useCatalogControlsByUuid';
 import { useWorkspaceCatalogs } from '@/features/shared/useWorkspaceCatalogs';
 import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
+import { resolveProfileEffectiveControls } from '@/data/profileImportResolution';
+import { getSettings } from '@/data/settingsRepository';
+import { applyDefaultCreator } from '@/data/defaultCreator';
 import { loadTargetObjectCategories } from '@/data/targetObjectCategoryLoader';
 import { categoryTitlesInChain } from '@/data/targetObjectHierarchy';
 import { ControlSelectionChecklist } from './ControlSelectionChecklist';
@@ -57,11 +60,23 @@ export function ProfileCreationAssistantPage() {
       .catch((e) => showToast(e instanceof Error ? e.message : String(e), 'error'));
   }, [showToast]);
 
+  // The assistant's draft is always a brand-new document (no edit mode) — seed the global
+  // default creator (Settings page, ADR-0033) once on mount, same as the plain editor.
+  useEffect(() => {
+    void getSettings().then((settings) => setDraft((prev) => applyDefaultCreator(prev, settings)));
+  }, []);
+
   const sourceCatalog = workspaceCatalogs.find((c) => c.uuid === sourcePick);
   const sourceProfile = workspaceProfiles.find((p) => p.uuid === sourcePick);
+  // A profile source's checklist/target-object universe is its own effective control set,
+  // recursively resolved through its own imports (T-206, ADR-0032 §5) — same shape a catalog
+  // source already has, so byId/targetObject modes are no longer catalog-only.
+  const sourceProfileResolution = sourceProfile
+    ? resolveProfileEffectiveControls(sourceProfile.artifact, workspaceCatalogs, workspaceProfiles)
+    : undefined;
   const controlsById: Map<string, Control> | undefined = sourceCatalog
     ? catalogControlsByUuid.get(sourceCatalog.uuid)
-    : undefined;
+    : sourceProfileResolution?.controlsById;
   const byUuid = new Map(categoryRows.map((r) => [r.uuid, r]));
   const eligibleTitles = new Set<string>();
   for (const uuid of targetObjectUuids) {
@@ -73,12 +88,12 @@ export function ProfileCreationAssistantPage() {
     ...workspaceProfiles.map((p): SearchItem => ({ id: p.uuid, title: p.artifact.metadata.title, badge: p.origin })),
   ];
 
-  // A catalog-only inclusion mode (byId/targetObject) needs a resolved catalog to pick controls
-  // from; a profile source keeps the assistant to "all" (ADR-0032 §5 — same scope boundary as
-  // the editor's plain-text fallback for a profile-sourced import).
+  // byId/targetObject need a resolved control universe to pick from (a catalog directly, or a
+  // profile's own effective set via T-206's recursive resolution); fall back to "all" once the
+  // source no longer resolves to either.
   useEffect(() => {
-    if (!sourceCatalog && mode !== 'all') setMode('all');
-  }, [sourceCatalog, mode]);
+    if (!controlsById && mode !== 'all') setMode('all');
+  }, [controlsById, mode]);
 
   // Both selection sets are scoped to whichever source is currently picked (includeIds are
   // control-ids from that source's own catalog; a stale set from a previously-picked catalog
@@ -182,6 +197,12 @@ export function ProfileCreationAssistantPage() {
             />{' '}
             {t('profile_assistant_mode_target_object')}
           </label>
+
+          {sourceProfileResolution?.hasUnresolved && (
+            <p data-testid="profile-assistant-nested-unresolved-hint">
+              <small>⚠️ {t('profile_imports_nested_unresolved_hint')}</small>
+            </p>
+          )}
 
           {mode === 'byId' && controlsById && (
             <ControlSelectionChecklist

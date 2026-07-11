@@ -66,6 +66,14 @@ export interface TalosSettings {
   language: 'de' | 'en';
   theme: 'light' | 'dark';
   lastLibrarySync?: string;
+  /** Global default creator identity (ADR-0033): applied to every newly-created artifact's
+   * `metadata.parties`/`responsibleParties` (the `creator` role, ADR-0019) so the user doesn't
+   * have to re-enter it per document. `creatorUuid`, once picked (user-supplied or
+   * auto-generated on first save), is persisted and reused for every subsequent document — the
+   * same real-world person keeps the same OSCAL party uuid everywhere TALOS generates it. */
+  creatorName?: string;
+  creatorEmail?: string;
+  creatorUuid?: string;
 }
 
 /** Cached copy of the BSI target-object-category namespace CSV (ADR-0026). Not sha-pinned like
