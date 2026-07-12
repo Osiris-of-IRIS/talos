@@ -45,6 +45,7 @@ adr_coverage_required:
   - ADR-0031 # asset inventory OSCAL alignment: asset-id/uuid split, NIST asset-type alignment, inventory-item generation
   - ADR-0032 # profile CRUD, tailoring model (imports/merge/modify), Profile Creation Assistant
   - ADR-0034 # management dashboard page shell, Recharts, control coverage per-control aggregation
+  - ADR-0035 # risk coverage: threat catalog loader, per-SSP bucket reduction, workspace averages
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -874,12 +875,31 @@ suites:
 
   # ---- Dashboard (DASH-00x) -------------------------------------------------------
   - id: TEST-DASH-01
-    title: Dashboard Risk Coverage (threats vs implemented controls)
+    title: "Dashboard Risk Coverage: threat->control reverse index, per-SSP bucket reduction (unmapped/uncovered/partial/baseline/full), workspace averages"
+    file: tests/features/riskCoverage.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: DASH-001
+    adr_refs: [ADR-0001, ADR-0006, ADR-0011, ADR-0021, ADR-0034, ADR-0035]
+
+  - id: TEST-DASH-05
+    title: Threat catalog (basethreats.csv) namespace loader — live fetch, cache, offline fallback
+    file: tests/data/threatCatalogLoader.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: DASH-001
+    adr_refs: [ADR-0001, ADR-0005, ADR-0035]
+
+  - id: TEST-DASH-06
+    title: Dashboard page — Risk Coverage tile renders averaged pie chart + collapsed By-SSP bucket table
+    file: tests/features/dashboardPage.test.tsx
     type: component
     runner: vitest
-    status: planned
+    status: implemented
     feature: DASH-001
-    adr_refs: [ADR-0001, ADR-0006, ADR-0011]
+    adr_refs: [ADR-0001, ADR-0006, ADR-0011, ADR-0035]
 
   - id: TEST-DASH-02
     title: Dashboard Control Coverage (per-control worst-status-wins reduction, workspace + per-SSP totals)

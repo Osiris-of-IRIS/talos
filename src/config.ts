@@ -24,6 +24,10 @@ export const LIBRARY_LICENSE = 'CC-BY-SA-4.0';
 export const TARGET_OBJECT_CATEGORIES_URL =
   'https://raw.githubusercontent.com/BSI-Bund/Stand-der-Technik-Bibliothek/refs/heads/main/Dokumentation/namespaces/target_object_categories.csv';
 
+/** BSI elementary-threats (`basethreats.csv`) namespace CSV, live-fetched (ADR-0035). */
+export const THREATS_CATALOG_URL =
+  'https://raw.githubusercontent.com/BSI-Bund/Stand-der-Technik-Bibliothek/refs/heads/main/Dokumentation/namespaces/basethreats.csv';
+
 /** Absolute raw URL for a library file path from the manifest (ADR-0005). */
 export function libraryRawUrl(path: string): string {
   return LIBRARY_RAW_BASE + path.replace(/^\/+/, '');

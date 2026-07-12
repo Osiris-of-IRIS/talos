@@ -202,10 +202,14 @@
   user_story: "As a manager, I want to see how many risks are covered by implemented controls in SSPs."
   acceptance_criteria:
     - "Derives risks from control threat props and their coverage by implemented controls."
-    - "Threat field (controls>props>name:'threats' / basethreats.csv) confirmed at implementation."
-  status: "Draft"
-  linked_adr_ids: ["ADR-0006", "ADR-0010", "ADR-0011"]
-  linked_test_ids: ["TEST-DASH-01"]
+    - "Threat field (controls>props>name:'threats' / basethreats.csv) confirmed live: 899/998 Grundschutz++ controls carry it."
+    - "Coverage is computed independently per SSP, not a global 'covered anywhere' number — the same threat can be Full on one SSP and Uncovered on another."
+    - "Five buckets per threat per SSP: Unmapped (no catalog control tags it at all), Uncovered, Partially covered, Baseline covered (every normal-SdT-level tagged control is OK), Full (every tagged control is OK)."
+    - "Workspace headline is a pie chart of sum-across-SSPs / SSP-count per bucket — an average risk posture per SSP, not a raw sum."
+  status: "Implemented"
+  scope_note: "ADR-0035 (2026-07-12): new threat-catalog loader (src/data/threatCatalogLoader.ts) mirrors the target-object-category namespace loader (ADR-0026/T-034) byte-for-byte — fetch+retry/timeout, IndexedDB cache (new threatCatalogCache store, DB_VERSION 4->5), offline fallback with a warning toast, throws only when nothing is cached. Pure aggregation (src/features/dashboard/riskCoverage.ts, no React/Recharts import): buildThreatToControlsIndex reuses indexCatalogControls/uniqueCatalogControlEntries (catalogResolution.ts, ADR-0021's alt-identifier dedup) across every workspace catalog, deduped by control-id, reading each control's threats (comma-list, parseCommaList) and sec_level (normal-SdT | erhöht, confirmed live on all 998 Grundschutz++ controls) props — no model changes needed, both were already generic OSCAL props. A tagged control is 'OK' for one SSP if its implemented-requirement in *that* SSP's own controlImplementation (never another SSP's) reduces via controlBucket (ADR-0034) to implemented or alternative. Baseline-covered requires at least one normal-SdT tagged control to exist (an all-erhöht threat can't vacuously satisfy it) and every one of them to be OK; full requires every tagged control (any level) OK; partial requires at least one OK; uncovered requires zero OK. Unmapped is catalog-level (identical across every SSP by construction), so it survives the sum/SSP-count average unchanged with no special-casing. UI: a Recharts pie chart (workspace averages, rounded to 1 decimal, direct labels) plus a collapsed-by-default <CollapsibleSection> By-SSP bucket-count table, both landing into the ADR-0034 dashboard page shell above Control Coverage (mission-statement order: Risk, Control, Assessment). The Risk-layer color palette is deliberately distinct from Control Coverage's (uncovered=error/red as the one true alarm signal; unmapped=neutral muted text, a data-availability gap rather than a security failure) so the two tiles' colors don't visually compete."
+  linked_adr_ids: ["ADR-0005", "ADR-0006", "ADR-0010", "ADR-0011", "ADR-0021", "ADR-0026", "ADR-0034", "ADR-0035"]
+  linked_test_ids: ["TEST-DASH-01", "TEST-DASH-05", "TEST-DASH-06"]
 
 - id: DASH-002
   title: "Dashboard: Control Coverage"

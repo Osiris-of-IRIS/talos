@@ -10,7 +10,7 @@ import type { OscalArtifactType } from '@/models/oscalBase';
 import type { Asset, AssetType } from '@/models/asset';
 
 export const DB_NAME = 'talos';
-export const DB_VERSION = 4;
+export const DB_VERSION = 5;
 
 export type ArtifactStore =
   | 'catalogs'
@@ -84,6 +84,15 @@ export interface TargetObjectCategoryCacheEntry {
   rows: unknown;
 }
 
+/** Cached copy of the BSI `basethreats.csv` elementary-threats namespace (ADR-0035). Same
+ * not-sha-pinned, refresh-on-success/serve-stale-on-failure treatment as the target-object-category
+ * cache above. */
+export interface ThreatCatalogCacheEntry {
+  key: 'threat-catalog';
+  fetchedAt: string;
+  rows: unknown;
+}
+
 interface TalosDB extends DBSchema {
   catalogs: { key: string; value: StoredArtifact };
   profiles: { key: string; value: StoredArtifact };
@@ -103,6 +112,7 @@ interface TalosDB extends DBSchema {
   assets: { key: string; value: Asset };
   assetTypes: { key: string; value: AssetType };
   targetObjectCategoryCache: { key: string; value: TargetObjectCategoryCacheEntry };
+  threatCatalogCache: { key: string; value: ThreatCatalogCacheEntry };
 }
 
 let dbPromise: Promise<IDBPDatabase<TalosDB>> | null = null;
@@ -142,6 +152,10 @@ export function getDb(): Promise<IDBPDatabase<TalosDB>> {
         }
         if (!db.objectStoreNames.contains('targetObjectCategoryCache')) {
           db.createObjectStore('targetObjectCategoryCache', { keyPath: 'key' });
+        }
+        // v4->v5 (ADR-0035): new threat-catalog cache store — additive only, no migration.
+        if (!db.objectStoreNames.contains('threatCatalogCache')) {
+          db.createObjectStore('threatCatalogCache', { keyPath: 'key' });
         }
       },
     });

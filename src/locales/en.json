@@ -421,5 +421,14 @@
   "dashboard_table_col_ssp": "SSP",
   "dashboard_table_col_total": "Total",
   "dashboard_status_unspecified": "Unspecified",
-  "dashboard_chart_totals_aria": "Workspace-wide control counts by implementation stage"
+  "dashboard_chart_totals_aria": "Workspace-wide control counts by implementation stage",
+
+  "dashboard_risk_status_unmapped": "Unmapped",
+  "dashboard_risk_status_uncovered": "Uncovered",
+  "dashboard_risk_status_partial": "Partially covered",
+  "dashboard_risk_status_baseline": "Baseline covered",
+  "dashboard_risk_status_full": "Fully covered",
+  "dashboard_risk_totals_heading": "Average per SSP",
+  "dashboard_risk_by_ssp_heading": "By SSP",
+  "dashboard_risk_chart_aria": "Average risk coverage per SSP, by category"
 }

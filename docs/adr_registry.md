@@ -39,6 +39,7 @@ the order decisions were made.
 | [ADR-0032](adr/ADR-0032-profile-tailoring.md) | OSCAL Profile CRUD, Tailoring Model & the Profile Creation Assistant | Approved | ADR-0032 |
 | [ADR-0033](adr/ADR-0033-global-default-creator-settings.md) | Global Default Creator Identity & Settings Page | Approved | ADR-0033 |
 | [ADR-0034](adr/ADR-0034-management-dashboard-control-coverage.md) | Management Dashboard — Page Shell, Charting Dependency & Control Coverage Aggregation | Approved | ADR-0034 |
+| [ADR-0035](adr/ADR-0035-risk-coverage.md) | Risk Coverage — Per-SSP Threat/Control Aggregation & Threat Catalog Loader | Approved | ADR-0035 |
 
 ## Notes
 

@@ -108,8 +108,9 @@ Shared **`OscalArtifact`** base (`uuid`, `metadata`, `back-matter`) extended per
 
 **IndexedDB `talos`** — object stores: `profiles`, `componentDefinitions`, `ssps`,
 `assessmentPlans`, `assessmentResults`, `poams`, `libraryCache`, `unresolvedReferences`,
-`settings`. Each artifact record carries `origin` (`user` | `imported` | `library`),
-`createdAt`, `updatedAt`.
+`settings`, `assets`, `assetTypes`, `targetObjectCategoryCache` (ADR-0026),
+`threatCatalogCache` (ADR-0035). Each artifact record carries `origin`
+(`user` | `imported` | `library`), `createdAt`, `updatedAt`.
 
 **Flows**
 - *Create/edit* → Zustand store → repository `put` → IndexedDB (draft-friendly; validation is
@@ -153,11 +154,15 @@ on quota error, warn + guide to export, never drop data.
 - **Shared widgets:** markup renderer `[ADR-0009]`, entity-search over IndexedDB `[ADR-0013]`,
   symbol set `[ADR-0011]`.
 - **Management Dashboard** (`/dashboard`, `[ADR-0034]`): one page, one section per tile in
-  mission-statement order (Risk Coverage, Control Coverage, Assessment State). Control Coverage
-  (T-401) is the first live tile — pure aggregation (`controlCoverage.ts`) + a Recharts chart +
-  an accessible summary/table, both workspace-wide totals and a per-SSP breakdown. The other two
-  tiles render the same disabled "coming soon" placeholder T-040 established for not-yet-built
-  landing features until T-400/T-402 land.
+  mission-statement order (Risk Coverage, Control Coverage, Assessment State). Both Risk Coverage
+  (T-400, `[ADR-0035]`) and Control Coverage (T-401) are live: each is a pure aggregation module
+  (`riskCoverage.ts` / `controlCoverage.ts`, no React/Recharts import) + a Recharts chart + a
+  collapsed-by-default per-SSP breakdown table (`<CollapsibleSection>`). Control Coverage's chart
+  is a per-control worst-status-wins bar chart of workspace totals; Risk Coverage's is a pie
+  chart of workspace **averages** (sum-across-SSPs ÷ SSP-count per bucket) — coverage is computed
+  independently per SSP, since a threat can be fully handled by one system and unaddressed by
+  another. Assessment State still renders the disabled "coming soon" placeholder T-040
+  established for not-yet-built landing features, until T-402 lands.
 
 ---
 
@@ -269,9 +274,10 @@ to Pages (`actions/deploy-pages`). `404.html` = `index.html` copy for non-hash f
 
 ## 14. Open design uncertainties
 
-1. **Threat/risk dashboard field** — `controls > props > name:"threats"` (comma-separated threat
-   IDs referencing `basethreats.csv` in the BSI namespace folder) is a **coming** BSI feature;
-   exact field/namespace **confirmed at implementation** of the Risk-Coverage dashboard (Q12).
+1. ~~**Threat/risk dashboard field**~~ — **Resolved (ADR-0035, T-400):** `controls > props >
+   name:"threats"` is live — 899/998 Grundschutz++ controls carry it, comma-separated threat IDs
+   referencing `basethreats.csv` in the BSI namespace folder, exactly as anticipated. Loader
+   mirrors the target-object-category namespace CSV loader (item 4 below).
 2. **External viewer deep-linking** — no per-control URL API today; revisit if the viewer adds
    one `[ADR-0008]`.
 3. **Multi-version OSCAL conversion** — deferred; revisit if BSI/user files diverge from 1.2.2

@@ -421,5 +421,14 @@
   "dashboard_table_col_ssp": "SSP",
   "dashboard_table_col_total": "Gesamt",
   "dashboard_status_unspecified": "Nicht angegeben",
-  "dashboard_chart_totals_aria": "Kontrollanzahl nach Umsetzungsstand, arbeitsbereichsweit"
+  "dashboard_chart_totals_aria": "Kontrollanzahl nach Umsetzungsstand, arbeitsbereichsweit",
+
+  "dashboard_risk_status_unmapped": "Nicht zugeordnet",
+  "dashboard_risk_status_uncovered": "Nicht abgedeckt",
+  "dashboard_risk_status_partial": "Teilweise abgedeckt",
+  "dashboard_risk_status_baseline": "Basis abgedeckt",
+  "dashboard_risk_status_full": "Vollständig abgedeckt",
+  "dashboard_risk_totals_heading": "Durchschnitt je SSP",
+  "dashboard_risk_by_ssp_heading": "Nach SSP",
+  "dashboard_risk_chart_aria": "Durchschnittliche Risikoabdeckung je SSP, nach Kategorie"
 }
