@@ -35,7 +35,11 @@ async function mockTargetObjectCategories(page: Page): Promise<void> {
 test('bootstrap assistant is gated on the landing page until an asset list is uploaded', async ({ page }) => {
   await page.goto('/');
   await useEnglishUi(page);
-  await expect(page.getByTestId('feature-card-disabled')).toContainText('SSP Bootstrap Assistant');
+  // Not-yet-built features (Assessment layer, Dashboard) are also always-disabled (ADR-0034), so
+  // scope to the bootstrap-assistant card specifically rather than assuming it's the only match.
+  await expect(
+    page.getByTestId('feature-card-disabled').filter({ hasText: 'SSP Bootstrap Assistant' }),
+  ).toBeVisible();
 
   // Scoped to <main>: the persistent sidebar (ADR-0029) also links here, by the same text.
   await page.locator('main').getByRole('link', { name: 'Assets' }).click();
