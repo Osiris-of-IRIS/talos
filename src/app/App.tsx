@@ -22,6 +22,7 @@ import { ProfileCreationAssistantPage } from '@/features/profiles/ProfileCreatio
 import { LibraryPage } from '@/features/library/LibraryPage';
 import { AssetsListPage } from '@/features/assets/AssetsListPage';
 import { BootstrapAssistantPage } from '@/features/bootstrap/BootstrapAssistantPage';
+import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import './app.css';
 
 export function App() {
@@ -57,6 +58,7 @@ export function App() {
                 <Route path="/assets" element={<AssetsListPage />} />
                 <Route path="/bootstrap" element={<BootstrapAssistantPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
               </Routes>
             </div>
           </div>

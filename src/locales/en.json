@@ -406,5 +406,20 @@
   "settings_creator_status_unconfigured": "Not set yet — new documents still require the creator to be filled in by hand (as before).",
   "settings_clear_button": "Clear",
   "settings_saved_toast": "Settings saved.",
-  "settings_cleared_toast": "Default creator cleared."
+  "settings_cleared_toast": "Default creator cleared.",
+
+  "dashboard_heading": "Management Dashboard",
+  "dashboard_intro": "An overview of your workspace's security posture.",
+  "dashboard_risk_heading": "Risk Coverage",
+  "dashboard_risk_desc": "How many risks are covered by implemented controls in your SSPs.",
+  "dashboard_assessment_heading": "Assessment State",
+  "dashboard_assessment_desc": "Assessment coverage, recency, and findings per SSP.",
+  "dashboard_control_heading": "Control Coverage",
+  "dashboard_control_desc": "SSP controls by implementation stage.",
+  "dashboard_control_totals_heading": "Workspace totals",
+  "dashboard_control_by_ssp_heading": "By SSP",
+  "dashboard_table_col_ssp": "SSP",
+  "dashboard_table_col_total": "Total",
+  "dashboard_status_unspecified": "Unspecified",
+  "dashboard_chart_totals_aria": "Workspace-wide control counts by implementation stage"
 }

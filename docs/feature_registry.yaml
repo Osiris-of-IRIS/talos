@@ -212,9 +212,12 @@
   user_story: "As a manager, I want to see how many SSP controls are in each implementation stage."
   acceptance_criteria:
     - "Aggregates implemented-requirement statuses across SSPs (planned/implemented/partial/...)."
-  status: "Draft"
-  linked_adr_ids: ["ADR-0006", "ADR-0010"]
-  linked_test_ids: ["TEST-DASH-02"]
+    - "Both a workspace-wide total and a per-SSP breakdown are shown, not totals-only."
+    - "A control's `implementation-status` lives per by-component (ADR-0023); a control with no by-components or no status set counts as its own 'Unspecified' bucket rather than dropping out of the totals."
+  status: "Implemented"
+  scope_note: "ADR-0034 (2026-07-12): Recharts adopted as the project's one charting dependency (used by all three dashboard tiles, not just this one) — SVG output composes with ADR-0010 CSS custom properties directly as fill/stroke, unlike a canvas-based alternative. New /dashboard page (src/features/dashboard/DashboardPage.tsx) is the reusable shell all three tiles land into: one section per tile in mission-statement order (Risk Coverage, Control Coverage, Assessment State), with Risk/Assessment still rendered as the same disabled 'coming soon' placeholder T-040 established for not-yet-built landing features. The Dashboard landing/sidebar card (navigationGroups(), ADR-0029) flips from disabled to a live link now that one tile is real. Pure aggregation (src/features/dashboard/controlCoverage.ts, no React/Recharts import) reduces each implemented-requirement's by-components to one bucket via a fixed worst-status-wins order (planned < alternative < partial < implemented); not-applicable by-components are dropped from that reduction when a real status is also present, and only count as their own bucket when every by-component on a control is not-applicable. Status→color mapping reuses existing ADR-0010 tokens (no new raw colors): implemented=ok, partial=warning, alternative=--color-impl-muted, planned=neutral bronze, not-applicable=muted text, unspecified=error. Workspace totals render as both a Recharts horizontal bar chart and an always-rendered accessible <dl> summary (the latter also sidesteps jsdom/ResizeObserver chart-measurement quirks in tests — tests/setup.ts gained a minimal ResizeObserver stub Recharts' <ResponsiveContainer> needs under jsdom); the per-SSP breakdown is a plain HTML table, doubling as the dataviz accessibility guidance's required table view."
+  linked_adr_ids: ["ADR-0006", "ADR-0010", "ADR-0011", "ADR-0023", "ADR-0034"]
+  linked_test_ids: ["TEST-DASH-02", "TEST-DASH-04"]
 
 - id: DASH-003
   title: "Dashboard: Assessment State"

@@ -133,8 +133,8 @@ describe('LandingPage — empty-state guidance (TEST-LAND-02)', () => {
   });
 });
 
-describe('LandingPage — Assessment layer & Management Dashboard placeholders', () => {
-  it('renders Assessment Plans/Results/POA&M and the Dashboard as disabled "coming soon" cards, not dead links', async () => {
+describe('LandingPage — Assessment layer placeholders', () => {
+  it('renders Assessment Plans/Results/POA&M as disabled "coming soon" cards, not dead links', async () => {
     render(
       <MemoryRouter>
         <LandingPage />
@@ -142,21 +142,27 @@ describe('LandingPage — Assessment layer & Management Dashboard placeholders',
     );
     const disabledCards = await screen.findAllByTestId('feature-card-disabled');
     const disabledTitles = disabledCards.map((c) => c.textContent);
-    for (const label of [
-      'Assessment Plans',
-      'Assessment Results',
-      'Plan of Action & Milestones',
-      'Management Dashboard',
-    ]) {
+    for (const label of ['Assessment Plans', 'Assessment Results', 'Plan of Action & Milestones']) {
       expect(disabledTitles.some((t) => t?.includes(label))).toBe(true);
     }
     const hrefs = screen.getAllByRole('link').map((l) => l.getAttribute('href'));
-    for (const path of ['assessment-plans', 'assessment-results', 'poams', 'dashboard']) {
+    for (const path of ['assessment-plans', 'assessment-results', 'poams']) {
       expect(hrefs).not.toContain(`#/${path}`);
     }
-    // Symbol + "coming soon" tooltip carried on the disabled card too, not link-only chrome.
-    const dashboardCard = disabledCards.find((c) => c.textContent?.includes('Management Dashboard'));
-    expect(dashboardCard).toHaveTextContent('📊');
-    expect(dashboardCard?.querySelector('[title]')).toHaveAttribute('title', 'Coming soon.');
+  });
+});
+
+describe('LandingPage — Management Dashboard card (ADR-0034)', () => {
+  it('renders as a live link now that Control Coverage has landed', async () => {
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>,
+    );
+    const dashboardLink = await screen.findByRole('link', { name: /Management Dashboard/ });
+    expect(dashboardLink).toHaveAttribute('href', '#/dashboard');
+    expect(dashboardLink).toHaveTextContent('📊');
+    const disabledCards = screen.queryAllByTestId('feature-card-disabled');
+    expect(disabledCards.some((c) => c.textContent?.includes('Management Dashboard'))).toBe(false);
   });
 });

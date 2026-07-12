@@ -406,5 +406,20 @@
   "settings_creator_status_unconfigured": "Noch nicht gesetzt — bei neuen Dokumenten muss der Ersteller wie bisher von Hand eingetragen werden.",
   "settings_clear_button": "Zurücksetzen",
   "settings_saved_toast": "Einstellungen gespeichert.",
-  "settings_cleared_toast": "Standard-Ersteller zurückgesetzt."
+  "settings_cleared_toast": "Standard-Ersteller zurückgesetzt.",
+
+  "dashboard_heading": "Management-Dashboard",
+  "dashboard_intro": "Ein Überblick über die Sicherheitslage Ihres Arbeitsbereichs.",
+  "dashboard_risk_heading": "Risikoabdeckung",
+  "dashboard_risk_desc": "Wie viele Risiken durch umgesetzte Kontrollen in Ihren SSPs abgedeckt sind.",
+  "dashboard_assessment_heading": "Bewertungsstand",
+  "dashboard_assessment_desc": "Bewertungsabdeckung, Aktualität und Feststellungen je SSP.",
+  "dashboard_control_heading": "Kontrollabdeckung",
+  "dashboard_control_desc": "SSP-Kontrollen nach Umsetzungsstand.",
+  "dashboard_control_totals_heading": "Gesamt im Arbeitsbereich",
+  "dashboard_control_by_ssp_heading": "Nach SSP",
+  "dashboard_table_col_ssp": "SSP",
+  "dashboard_table_col_total": "Gesamt",
+  "dashboard_status_unspecified": "Nicht angegeben",
+  "dashboard_chart_totals_aria": "Kontrollanzahl nach Umsetzungsstand, arbeitsbereichsweit"
 }

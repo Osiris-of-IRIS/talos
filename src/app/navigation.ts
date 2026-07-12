@@ -149,8 +149,6 @@ export function navigationGroups(hasAssets: boolean): FeatureGroup[] {
           descriptionKey: 'landing_feature_dashboard_desc',
           path: '/dashboard',
           symbol: '📊',
-          disabled: true,
-          disabledTitleKey: 'landing_coming_soon_title',
         },
       ],
     },

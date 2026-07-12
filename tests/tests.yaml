@@ -44,6 +44,7 @@ adr_coverage_required:
   - ADR-0030 # expanded OSCAL markup rendering: headings/lists/code/blockquote/table, char escaping, param insertion
   - ADR-0031 # asset inventory OSCAL alignment: asset-id/uuid split, NIST asset-type alignment, inventory-item generation
   - ADR-0032 # profile CRUD, tailoring model (imports/merge/modify), Profile Creation Assistant
+  - ADR-0034 # management dashboard page shell, Recharts, control coverage per-control aggregation
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -881,12 +882,22 @@ suites:
     adr_refs: [ADR-0001, ADR-0006, ADR-0011]
 
   - id: TEST-DASH-02
-    title: Dashboard Control Coverage (implemented-requirement statuses)
+    title: Dashboard Control Coverage (per-control worst-status-wins reduction, workspace + per-SSP totals)
+    file: tests/features/controlCoverage.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: DASH-002
+    adr_refs: [ADR-0001, ADR-0006, ADR-0010, ADR-0023, ADR-0034]
+
+  - id: TEST-DASH-04
+    title: Dashboard page — Control Coverage tile renders totals/breakdown; Risk/Assessment tiles render as disabled placeholders
+    file: tests/features/dashboardPage.test.tsx
     type: component
     runner: vitest
-    status: planned
+    status: implemented
     feature: DASH-002
-    adr_refs: [ADR-0001, ADR-0006, ADR-0010]
+    adr_refs: [ADR-0001, ADR-0006, ADR-0011, ADR-0034]
 
   - id: TEST-DASH-03
     title: Dashboard Assessment State (coverage/recency/findings per SSP)

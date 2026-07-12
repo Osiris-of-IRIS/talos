@@ -73,6 +73,7 @@ flowchart TB
 | Persistence | **IndexedDB** (`idb` wrapper) | `[ADR-0004]` |
 | Zip (workspace bundle) | a small zip lib (e.g. `fflate`) | export/import-all (Q8) |
 | Markdown | dependency-free renderer (optionally `marked`+`DOMPurify`, constrained) | `[ADR-0009]` |
+| Charts (Management Dashboard) | **Recharts** | SVG-based, composes with ADR-0010 CSS tokens directly `[ADR-0034]` |
 | Tests | Vitest + React Testing Library; Playwright (E2E); `runner.py` (YAML/golden) | `[ADR-0001]` |
 
 Dependency manifest lives in `package.json` (T-023); Python-side harness deps in
@@ -151,6 +152,12 @@ on quota error, warn + guide to export, never drop data.
   metadata/back-matter panels; no generic schema-form dependency.
 - **Shared widgets:** markup renderer `[ADR-0009]`, entity-search over IndexedDB `[ADR-0013]`,
   symbol set `[ADR-0011]`.
+- **Management Dashboard** (`/dashboard`, `[ADR-0034]`): one page, one section per tile in
+  mission-statement order (Risk Coverage, Control Coverage, Assessment State). Control Coverage
+  (T-401) is the first live tile — pure aggregation (`controlCoverage.ts`) + a Recharts chart +
+  an accessible summary/table, both workspace-wide totals and a per-SSP breakdown. The other two
+  tiles render the same disabled "coming soon" placeholder T-040 established for not-yet-built
+  landing features until T-400/T-402 land.
 
 ---
 
