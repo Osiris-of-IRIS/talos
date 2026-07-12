@@ -634,28 +634,96 @@ p[role='status'] {
   margin-top: -0.5rem;
 }
 
+section + section {
+  margin-top: 2rem;
+}
+
 .feature-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.9rem;
+  margin-top: 0.75rem;
+  list-style: none;
+  padding-left: 0;
 }
 
 .feature-cards .feature-card {
   border-left-width: 4px;
+  border-radius: var(--radius);
+  background: var(--color-bg-elevated);
+  box-shadow: 0 1px 2px var(--color-shadow);
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
 }
 
 .feature-cards .feature-card.priority {
   border-left-width: 6px;
-  font-weight: 700;
 }
 
 .feature-cards .feature-card a {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
   text-decoration: none;
+  color: var(--color-text);
 }
 
-.feature-cards .feature-card a:hover,
+.feature-cards .feature-card:hover,
+.feature-cards .feature-card:focus-within {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px var(--color-accent-bronze-bright), 0 3px 10px var(--color-shadow);
+}
+
 .feature-cards .feature-card a:focus-visible {
+  outline: 2px solid var(--color-accent-bronze-bright);
+  outline-offset: 2px;
+}
+
+.feature-card-symbol {
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.feature-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.feature-card-title {
+  font-weight: 700;
+}
+
+.feature-card a:hover .feature-card-title,
+.feature-card a:focus-visible .feature-card-title {
   text-decoration: underline;
+}
+
+.feature-card.priority .feature-card-title {
+  font-weight: 800;
+}
+
+.feature-card-desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.feature-card-count {
+  font-size: 0.78rem;
+  color: var(--color-accent-bronze);
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.feature-card-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-weight: 400;
+  margin-top: 0.15rem;
 }
 
 .priority-badge {
@@ -682,7 +750,18 @@ section[data-layer='Assistants'] .feature-card {
   border-left-color: var(--color-impl);
 }
 
+/* Dashboard has no single ADR-0010 domain color of its own (it aggregates across layers) —
+   reuses the neutral bronze accent, same treatment as the Data layer, until T-400/401/402
+   settle whether it needs a dedicated one. */
+section[data-layer='Dashboard'] .feature-card {
+  border-left-color: var(--color-accent-bronze);
+}
+
 .feature-cards .feature-card--disabled {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
   opacity: 0.55;
   cursor: not-allowed;
 }

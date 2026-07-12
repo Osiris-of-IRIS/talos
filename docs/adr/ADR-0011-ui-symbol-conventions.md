@@ -22,7 +22,8 @@ Adopt a shared symbol registry. Every interactive symbol carries `aria-label` + 
 
 ### Layers & artifacts
 - **📘** Catalog · **🎛️** Profile (tailoring) · **🧩** Component-Definition · **🖥️** SSP ·
-  **📋** Assessment Plan · **✅** Assessment Results · **🛠️** POA&M *(text label always paired)*.
+  **📋** Assessment Plan · **✅** Assessment Results · **🛠️** POA&M · **📚** BSI Library ·
+  **📦** Assets · **📊** Management Dashboard *(text label always paired)*.
 
 ### Security / risk
 - **🔥** Risk/threat · **🧮** risk calculation/matrix · **🐞** vulnerability/weakness.

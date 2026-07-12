@@ -89,8 +89,13 @@ describe('Sidebar', () => {
         <Sidebar />
       </MemoryRouter>,
     );
-    const disabled = await screen.findByTestId('sidebar-link-disabled');
-    expect(disabled).toHaveTextContent('SSP Bootstrap Assistant');
+    // Not-yet-built features (Assessment layer, Dashboard) are also always-disabled, so scope
+    // to the bootstrap-assistant one specifically rather than assuming it's the only match.
+    await waitFor(() => expect(screen.getAllByTestId('sidebar-link-disabled').length).toBeGreaterThan(0));
+    const disabled = screen
+      .getAllByTestId('sidebar-link-disabled')
+      .find((el) => el.textContent === 'SSP Bootstrap Assistant');
+    expect(disabled).toBeDefined();
     expect(screen.queryByRole('link', { name: /SSP Bootstrap Assistant/ })).not.toBeInTheDocument();
   });
 
@@ -113,6 +118,8 @@ describe('Sidebar', () => {
     await waitFor(() =>
       expect(screen.getByRole('link', { name: /SSP Bootstrap Assistant/ })).toHaveAttribute('href', '/bootstrap'),
     );
-    expect(screen.queryByTestId('sidebar-link-disabled')).not.toBeInTheDocument();
+    expect(
+      screen.queryAllByTestId('sidebar-link-disabled').some((el) => el.textContent === 'SSP Bootstrap Assistant'),
+    ).toBe(false);
   });
 });
