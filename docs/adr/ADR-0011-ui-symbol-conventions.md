@@ -23,7 +23,8 @@ Adopt a shared symbol registry. Every interactive symbol carries `aria-label` + 
 ### Layers & artifacts
 - **📘** Catalog · **🎛️** Profile (tailoring) · **🧩** Component-Definition · **🖥️** SSP ·
   **📋** Assessment Plan · **✅** Assessment Results · **🛠️** POA&M · **📚** BSI Library ·
-  **📦** Assets · **📊** Management Dashboard *(text label always paired)*.
+  **📦** Assets · **🗂️** SSP Groups (ADR-0037) · **📊** Management Dashboard
+  *(text label always paired)*.
 
 ### Security / risk
 - **🔥** Risk/threat · **🧮** risk calculation/matrix · **🐞** vulnerability/weakness.
@@ -40,7 +41,8 @@ Adopt a shared symbol registry. Every interactive symbol carries `aria-label` + 
 
 ### Provenance & AI
 - **imported/library** read-only badge (dashed, muted green — ADR-0010) with **≡** view-only.
-- **✦** AI/assistant features (the two workflow assistants); decorative bursts use **✺/✶**.
+- **✦** AI/assistant features (the three workflow assistants, ADR-0026/ADR-0032/ADR-0036);
+  decorative bursts use **✺/✶**.
 
 ### Guidelines
 Same symbol = same meaning app-wide; pair critical actions with text labels; use widely

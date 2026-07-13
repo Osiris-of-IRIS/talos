@@ -20,6 +20,9 @@ import type { ComponentDefinition } from '@/models/componentDefinition';
 import type { Catalog } from '@/models/catalog';
 import type { Profile } from '@/models/profile';
 import catalogJson from '../data/catalog-minimal.json';
+import { createSspGroup } from '@/data/sspGroupRepository';
+import { ToastProvider } from '@/shared/toast';
+import { importComponentFromDefinition } from '@/features/ssps/componentImport';
 
 const sspRepo = () => ArtifactRepository.forType<SystemSecurityPlan>('systemSecurityPlan');
 const cdRepo = () => ArtifactRepository.forType<ComponentDefinition>('componentDefinition');
@@ -485,5 +488,202 @@ describe('loaded (existing) SSP — sections and rows collapsed by default', () 
     expect(screen.queryByTestId('ir-control-id-input')).not.toBeInTheDocument();
     await user.click(screen.getByTestId('ir-summary'));
     expect(screen.getByTestId('ir-control-id-input')).toHaveValue('IA-5');
+  });
+});
+
+describe('group membership (T-512, ADR-0037)', () => {
+  it('shows a hint linking to the groups page when the workspace has no groups yet', async () => {
+    renderAt('/ssps/new');
+    expect(await screen.findByText('SSP Groups')).toBeInTheDocument();
+  });
+
+  it('toggles group membership and persists it as metadata.props[name="groups"]', async () => {
+    await createSspGroup({ uuid: 'g1', title: 'Berlin Site' });
+    await createSspGroup({ uuid: 'g2', title: 'Munich Site' });
+    const user = userEvent.setup();
+    renderAt('/ssps/new');
+
+    await user.type(screen.getByTestId('md-title'), 'Grouped SSP');
+    const checkboxes = await screen.findAllByTestId('ssp-group-membership-checkbox');
+    expect(checkboxes).toHaveLength(2);
+    await user.click(checkboxes[0]!); // Berlin Site (alphabetically first)
+
+    await user.click(screen.getByTestId('save-ssp'));
+    await waitFor(() => expect(screen.getByTestId('detail-landed')).toBeInTheDocument());
+
+    const rec = (await sspRepo().getAll())[0]!;
+    expect(rec.artifact.metadata.props).toEqual([{ name: 'groups', value: 'g1' }]);
+  });
+
+  it('shows the resolved asset-type read-only when the loaded SSP has an inventory-item carrying one', async () => {
+    const uuid = 'ssp-asset-type';
+    await sspRepo().create({
+      uuid,
+      type: 'systemSecurityPlan',
+      origin: 'user',
+      artifact: {
+        uuid,
+        metadata: { title: 'Bootstrapped SSP', version: '1.0.0', oscalVersion: '1.2.2' },
+        importProfile: { href: '' },
+        systemCharacteristics: {
+          systemIds: [{ id: 'sys-1' }],
+          systemName: 'Sys',
+          description: 'x',
+          systemInformation: { informationTypes: [] },
+          status: { state: 'operational' },
+          authorizationBoundary: { description: 'x' },
+        },
+        systemImplementation: {
+          users: [],
+          components: [],
+          inventoryItems: [
+            { uuid: 'inv-1', description: 'x', props: [{ name: 'asset-type', value: 'router' }] },
+          ],
+        },
+        controlImplementation: { description: 'x', implementedRequirements: [] },
+      },
+    });
+
+    renderAt(`/ssps/${uuid}/edit`);
+    expect(await screen.findByTestId('ssp-asset-type-readout')).toHaveTextContent('router');
+  });
+});
+
+describe('apply to... propagation (T-512, ADR-0037)', () => {
+  function renderWithToast(path: string) {
+    return render(
+      <ToastProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/ssps/:uuid/edit" element={<SspEditorPage />} />
+            <Route path="/ssps/:uuid" element={<div data-testid="detail-landed" />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>,
+    );
+  }
+
+  const sharedCharacteristics: SystemSecurityPlan['systemCharacteristics'] = {
+    systemIds: [{ id: 'sys-1' }],
+    systemName: 'Sys',
+    description: 'x',
+    systemInformation: { informationTypes: [] },
+    status: { state: 'operational' },
+    authorizationBoundary: { description: 'x' },
+  };
+
+  const definedComponent = { uuid: 'comp-1', type: 'software', title: 'Shared Firewall', description: 'x' };
+
+  async function seedComponentDefinition() {
+    await cdRepo().create({
+      uuid: 'cd-1',
+      type: 'componentDefinition',
+      origin: 'user',
+      artifact: {
+        uuid: 'cd-1',
+        metadata: { title: 'Shared CD', version: '1.0.0', oscalVersion: '1.2.2' },
+        components: [definedComponent],
+      },
+    });
+  }
+
+  it('propagates a by-component status+description edit to another SSP in the same group', async () => {
+    await createSspGroup({ uuid: 'g1', title: 'Berlin Site' });
+    await seedComponentDefinition();
+
+    const sourceSc = importComponentFromDefinition('cd-1', definedComponent);
+    const sourceUuid = 'ssp-source';
+    const source: SystemSecurityPlan = {
+      uuid: sourceUuid,
+      metadata: { title: 'Source SSP', version: '1.0.0', oscalVersion: '1.2.2', props: [{ name: 'groups', value: 'g1' }] },
+      importProfile: { href: '' },
+      systemCharacteristics: sharedCharacteristics,
+      systemImplementation: { users: [], components: [sourceSc] },
+      controlImplementation: {
+        description: 'x',
+        implementedRequirements: [
+          {
+            uuid: 'ir-1',
+            controlId: 'CTRL-1',
+            byComponents: [
+              { uuid: 'bc-1', componentUuid: sourceSc.uuid, description: 'new description', props: [{ name: 'implementation-status', value: 'planned' }] },
+            ],
+          },
+        ],
+      },
+    };
+    await sspRepo().create({ uuid: sourceUuid, type: 'systemSecurityPlan', origin: 'user', artifact: source });
+
+    const targetSc = importComponentFromDefinition('cd-1', definedComponent);
+    const targetUuid = 'ssp-target';
+    const target: SystemSecurityPlan = {
+      uuid: targetUuid,
+      metadata: { title: 'Target SSP', version: '1.0.0', oscalVersion: '1.2.2', props: [{ name: 'groups', value: 'g1' }] },
+      importProfile: { href: '' },
+      systemCharacteristics: sharedCharacteristics,
+      systemImplementation: { users: [], components: [targetSc] },
+      controlImplementation: {
+        description: 'x',
+        implementedRequirements: [{ uuid: 'ir-2', controlId: 'CTRL-1', byComponents: [{ uuid: 'bc-2', componentUuid: targetSc.uuid, description: '' }] }],
+      },
+    };
+    await sspRepo().create({ uuid: targetUuid, type: 'systemSecurityPlan', origin: 'user', artifact: target });
+
+    const user = userEvent.setup();
+    renderWithToast(`/ssps/${sourceUuid}/edit`);
+    await waitFor(() => expect(screen.getByTestId('md-title')).toHaveValue('Source SSP'));
+
+    await user.click(screen.getByTestId('ssp-section-control-impl-toggle'));
+    await user.click(screen.getByTestId('ir-summary'));
+    await user.click(await screen.findByTestId('apply-to-scope-button'));
+
+    await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Applied to 1 SSP(s).'));
+
+    const rec = (await sspRepo().get(targetUuid))!;
+    const bc = rec.artifact.controlImplementation.implementedRequirements[0]!.byComponents![0]!;
+    expect(bc.description).toBe('new description');
+    expect(bc.props).toEqual([{ name: 'implementation-status', value: 'planned' }]);
+  });
+
+  it('propagates a component import to another SSP in the same group', async () => {
+    await createSspGroup({ uuid: 'g1', title: 'Berlin Site' });
+    await seedComponentDefinition();
+
+    const sourceSc = importComponentFromDefinition('cd-1', definedComponent);
+    const sourceUuid = 'ssp-source-2';
+    const source: SystemSecurityPlan = {
+      uuid: sourceUuid,
+      metadata: { title: 'Source SSP 2', version: '1.0.0', oscalVersion: '1.2.2', props: [{ name: 'groups', value: 'g1' }] },
+      importProfile: { href: '' },
+      systemCharacteristics: sharedCharacteristics,
+      systemImplementation: { users: [], components: [sourceSc] },
+      controlImplementation: { description: 'x', implementedRequirements: [] },
+    };
+    await sspRepo().create({ uuid: sourceUuid, type: 'systemSecurityPlan', origin: 'user', artifact: source });
+
+    const targetUuid = 'ssp-target-2';
+    const target: SystemSecurityPlan = {
+      uuid: targetUuid,
+      metadata: { title: 'Target SSP 2', version: '1.0.0', oscalVersion: '1.2.2', props: [{ name: 'groups', value: 'g1' }] },
+      importProfile: { href: '' },
+      systemCharacteristics: sharedCharacteristics,
+      systemImplementation: { users: [], components: [] },
+      controlImplementation: { description: 'x', implementedRequirements: [] },
+    };
+    await sspRepo().create({ uuid: targetUuid, type: 'systemSecurityPlan', origin: 'user', artifact: target });
+
+    const user = userEvent.setup();
+    renderWithToast(`/ssps/${sourceUuid}/edit`);
+    await waitFor(() => expect(screen.getByTestId('md-title')).toHaveValue('Source SSP 2'));
+
+    await user.click(screen.getByTestId('ssp-section-implementation-toggle'));
+    await user.click(screen.getByTestId('si-component-summary'));
+    await user.click(await screen.findByTestId('apply-to-scope-button'));
+
+    await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Applied to 1 SSP(s).'));
+
+    const rec = (await sspRepo().get(targetUuid))!;
+    expect(rec.artifact.systemImplementation.components).toHaveLength(1);
+    expect(rec.artifact.systemImplementation.components[0]!.title).toBe('Shared Firewall');
   });
 });

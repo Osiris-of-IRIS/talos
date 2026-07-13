@@ -18,9 +18,11 @@ import {
   componentStaleness,
   getComponentProvenance,
 } from './componentImport';
+import { ApplyToControl } from './ApplyToControl';
 import { SYSTEM_STATUS_STATES } from '@/models/systemStatus';
+import type { PropagationScope, PropagationResult } from './propagateChange';
 import type { StoredArtifact } from '@/data/db';
-import type { ComponentDefinition } from '@/models/componentDefinition';
+import type { ComponentDefinition, DefinedComponent } from '@/models/componentDefinition';
 import type { SystemComponent, SystemImplementation } from '@/models/ssp';
 
 const STATUS_OPTIONS = SYSTEM_STATUS_STATES.map((s) => ({ value: s.value, label: s.description }));
@@ -31,6 +33,14 @@ interface Props {
   /** Fired (in addition to onChange) when a component is removed, so the parent can cascade-clean by-components. */
   onComponentRemoved?: (componentUuid: string) => void;
   workspaceComponentDefs: StoredArtifact<ComponentDefinition>[];
+  /** "Apply to..." (T-512, ADR-0037) — see the matching doc comment on
+   * `SspControlImplementationEditor`'s `applyToScopes` prop. */
+  applyToScopes: PropagationScope[] | null;
+  onApplyComponentImport?: (
+    scope: PropagationScope,
+    componentDefinitionUuid: string,
+    component: DefinedComponent,
+  ) => Promise<PropagationResult>;
 }
 
 export function SystemImplementationEditor({
@@ -38,6 +48,8 @@ export function SystemImplementationEditor({
   onChange,
   onComponentRemoved,
   workspaceComponentDefs,
+  applyToScopes,
+  onApplyComponentImport,
 }: Props) {
   const { t } = useI18n();
   const expanded = useExpandedSet();
@@ -52,6 +64,15 @@ export function SystemImplementationEditor({
 
   const selectedCd = workspaceComponentDefs.find((r) => r.uuid === selectedCdUuid);
   const importableComponents = selectedCd?.artifact.components ?? [];
+
+  /** The live source component-definition component an imported SystemComponent came from
+   * (ADR-0023 provenance), for "Apply to..." — same lookup `refreshComponent` already does. */
+  function resolveSource(sc: SystemComponent): { componentDefinitionUuid: string; component: DefinedComponent } | undefined {
+    const prov = getComponentProvenance(sc);
+    const cd = workspaceComponentDefs.find((r) => r.uuid === prov?.componentDefinitionUuid);
+    const source = cd?.artifact.components?.find((c) => c.uuid === prov?.componentUuid);
+    return prov && source ? { componentDefinitionUuid: prov.componentDefinitionUuid, component: source } : undefined;
+  }
 
   function doImport() {
     const comp = importableComponents.find((c) => c.uuid === selectedComponentUuid);
@@ -192,6 +213,17 @@ export function SystemImplementationEditor({
                       {t('si_refresh_button')}
                     </button>
                   )}
+                  {applyToScopes &&
+                    onApplyComponentImport &&
+                    (() => {
+                      const source = resolveSource(c);
+                      return source ? (
+                        <ApplyToControl
+                          scopes={applyToScopes}
+                          onApply={(scope) => onApplyComponentImport(scope, source.componentDefinitionUuid, source.component)}
+                        />
+                      ) : null;
+                    })()}
                   <button
                     type="button"
                     data-testid="si-remove-component"

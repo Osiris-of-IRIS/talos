@@ -195,8 +195,8 @@ describe('golden data (tests/data/golden/recplast)', () => {
     );
     const assets = parseAssetsCsv(readGolden('assets.csv'));
 
-    expect(types).toHaveLength(23);
-    expect(assets).toHaveLength(94);
+    expect(types).toHaveLength(26);
+    expect(assets).toHaveLength(97);
     expect(crossCheckAssets(assets, types)).toEqual([]);
     expect(types.every((t) => t.targetObjectCategoryUuid)).toBe(true);
   });

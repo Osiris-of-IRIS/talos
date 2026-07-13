@@ -1,9 +1,11 @@
 /**
  * Profile detail page: resolved imports (catalog/profile source), included/excluded control
- * display, set-parameters. Decision IDs: ADR-0032. Covers TEST-PROF-04.
+ * display, set-parameters, and the control text filter (T-513, ADR-0038). Decision IDs:
+ * ADR-0032, ADR-0038. Covers TEST-PROF-04.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests } from '@/data/db';
@@ -90,5 +92,130 @@ describe('detail page', () => {
   it('shows not-found for a missing uuid', async () => {
     renderAt('/profiles/does-not-exist');
     expect(await screen.findByTestId('profile-not-found')).toBeInTheDocument();
+  });
+});
+
+describe('control filter (T-513, ADR-0038)', () => {
+  const bigCatalogUuid = 'cccccccc-3333-4333-8333-333333333333';
+  const byIdProfileUuid = 'pppppppp-3333-4333-8333-333333333333';
+  const allProfileUuid = 'pppppppp-4444-4444-8444-444444444444';
+  const bigResourceUuid = 'rrrrrrrr-3333-4333-8333-333333333333';
+
+  async function seedBigCatalog() {
+    await catalogRepo().create({
+      uuid: bigCatalogUuid,
+      type: 'catalog',
+      origin: 'user',
+      artifact: {
+        uuid: bigCatalogUuid,
+        metadata: { title: 'Big Catalog', version: '1.0.0', oscalVersion: '1.2.2' },
+        controls: [
+          { id: 'C1', title: 'Web application firewall' },
+          { id: 'C2', title: 'Database encryption at rest' },
+          { id: 'C3', title: 'Network segmentation' },
+        ],
+      } as Catalog,
+    });
+  }
+
+  it('narrows the by-id include list to controls matching the filter text (id/title/prose)', async () => {
+    await seedBigCatalog();
+    await repo().create({
+      uuid: byIdProfileUuid,
+      type: 'profile',
+      origin: 'user',
+      artifact: {
+        uuid: byIdProfileUuid,
+        metadata: { title: 'By-Id Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        imports: [{ href: `#${bigResourceUuid}`, includeControls: [{ withIds: ['C1', 'C2', 'C3'] }] }],
+        merge: { asIs: true },
+        backMatter: { resources: [{ uuid: bigResourceUuid, title: 'Big Catalog', documentIds: [{ identifier: bigCatalogUuid }] }] },
+      } as Profile,
+    });
+
+    const user = userEvent.setup();
+    renderAt(`/profiles/${byIdProfileUuid}`);
+    expect(await screen.findAllByTestId('profile-detail-include-control')).toHaveLength(3);
+
+    await user.type(screen.getByTestId('profile-detail-control-filter'), 'firewall');
+    await waitFor(() => expect(screen.getAllByTestId('profile-detail-include-control')).toHaveLength(1));
+    expect(screen.getByTestId('profile-detail-include-control')).toHaveTextContent('Web application firewall');
+  });
+
+  it('shows an empty-state message when the filter matches nothing', async () => {
+    await seedBigCatalog();
+    await repo().create({
+      uuid: byIdProfileUuid,
+      type: 'profile',
+      origin: 'user',
+      artifact: {
+        uuid: byIdProfileUuid,
+        metadata: { title: 'By-Id Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        imports: [{ href: `#${bigResourceUuid}`, includeAll: {} }],
+        merge: { asIs: true },
+        backMatter: { resources: [{ uuid: bigResourceUuid, title: 'Big Catalog', documentIds: [{ identifier: bigCatalogUuid }] }] },
+      } as Profile,
+    });
+
+    const user = userEvent.setup();
+    renderAt(`/profiles/${byIdProfileUuid}`);
+    expect(await screen.findAllByTestId('profile-detail-include-control')).toHaveLength(3);
+
+    await user.type(screen.getByTestId('profile-detail-control-filter'), 'no-such-control-xyz');
+    expect(await screen.findByTestId('profile-detail-controls-empty')).toBeInTheDocument();
+    expect(screen.queryByTestId('profile-detail-include-control')).not.toBeInTheDocument();
+  });
+
+  it('lists every resolved control for an includeAll import — previously nothing was shown at all', async () => {
+    await seedBigCatalog();
+    await repo().create({
+      uuid: allProfileUuid,
+      type: 'profile',
+      origin: 'user',
+      artifact: {
+        uuid: allProfileUuid,
+        metadata: { title: 'Include-All Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        imports: [{ href: `#${bigResourceUuid}`, includeAll: {} }],
+        merge: { asIs: true },
+        backMatter: { resources: [{ uuid: bigResourceUuid, title: 'Big Catalog', documentIds: [{ identifier: bigCatalogUuid }] }] },
+      } as Profile,
+    });
+
+    renderAt(`/profiles/${allProfileUuid}`);
+    const rows = await screen.findAllByTestId('profile-detail-include-control');
+    expect(rows.map((r) => r.textContent)).toEqual(
+      expect.arrayContaining([expect.stringContaining('firewall'), expect.stringContaining('encryption'), expect.stringContaining('segmentation')]),
+    );
+  });
+
+  it('resolves controls for a profile-sourced import too, not just a catalog source', async () => {
+    await seedBigCatalog();
+    const baselineProfileUuid = 'pppppppp-5555-4555-8555-555555555555';
+    await repo().create({
+      uuid: baselineProfileUuid,
+      type: 'profile',
+      origin: 'user',
+      artifact: {
+        uuid: baselineProfileUuid,
+        metadata: { title: 'Baseline', version: '1.0.0', oscalVersion: '1.2.2' },
+        imports: [{ href: `#${bigResourceUuid}`, includeAll: {} }],
+        merge: { asIs: true },
+        backMatter: { resources: [{ uuid: bigResourceUuid, title: 'Big Catalog', documentIds: [{ identifier: bigCatalogUuid }] }] },
+      } as Profile,
+    });
+    await repo().create({
+      uuid: allProfileUuid,
+      type: 'profile',
+      origin: 'user',
+      artifact: {
+        uuid: allProfileUuid,
+        metadata: { title: 'Derived Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        imports: [{ href: `#${baselineProfileUuid}`, includeControls: [{ withIds: ['C1'] }] }],
+        merge: { asIs: true },
+      } as Profile,
+    });
+
+    renderAt(`/profiles/${allProfileUuid}`);
+    expect(await screen.findByTestId('profile-detail-include-control')).toHaveTextContent('Web application firewall');
   });
 });

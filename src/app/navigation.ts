@@ -47,6 +47,12 @@ export function navigationGroups(hasAssets: boolean): FeatureGroup[] {
           symbol: '📦',
           emptyStateKey: 'assets_empty',
         },
+        {
+          titleKey: 'landing_feature_ssp_groups',
+          descriptionKey: 'landing_feature_ssp_groups_desc',
+          path: '/ssp-groups',
+          symbol: '🗂️',
+        },
       ],
     },
     {
@@ -129,6 +135,12 @@ export function navigationGroups(hasAssets: boolean): FeatureGroup[] {
           titleKey: 'landing_feature_profile_assistant',
           descriptionKey: 'landing_feature_profile_assistant_desc',
           path: '/profiles/assistant',
+          symbol: '✦',
+        },
+        {
+          titleKey: 'landing_feature_component_definition_assistant',
+          descriptionKey: 'landing_feature_component_definition_assistant_desc',
+          path: '/component-definitions/assistant',
           symbol: '✦',
         },
         {

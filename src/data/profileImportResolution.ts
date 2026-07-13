@@ -121,15 +121,67 @@ export interface ProfileControlsResolution {
   hasUnresolved: boolean;
 }
 
+export interface ProfileImportControlsResolution extends ProfileControlsResolution {
+  /** Every control the import's *source* resolves to, before this import's own excludes are
+   * applied — needed to look up an excluded control's own display info (the profile detail page,
+   * T-513, shows what an import explicitly excludes, not just what makes it through). */
+  sourceControlsById: Map<string, Control>;
+}
+
 /**
- * A profile's own effective control set (ADR-0032 §5/§7, T-206): a catalog-sourced import
- * contributes its own `indexCatalogControls` map directly; a profile-sourced import recursively
- * resolves *that* profile's own effective set first, via this same function — `merge`/`modify`
- * don't affect which controls make it through (merge is fixed `as-is` for v1, ADR-0032 §6), so
- * only `imports[].includeAll`/`includeControls`/`excludeControls` matter at each level.
- * `visited` (the chain of profile uuids walked so far) guards against a cycle in already-stored
- * data — not just at add-time (`wouldCreateProfileCycle`, used when a *new* import is picked in
- * the editor); a cycle here just stops the walk and flags `hasUnresolved`, never loops forever.
+ * One import's own contribution to a profile's effective control set (ADR-0032 §5/§7, T-206):
+ * a catalog-sourced import contributes its own `indexCatalogControls` map directly; a
+ * profile-sourced import recursively resolves *that* profile's own effective set first, via
+ * `resolveProfileEffectiveControls`. `merge`/`modify` don't affect which controls make it through
+ * (merge is fixed `as-is` for v1, ADR-0032 §6), so only this one import's own
+ * `includeAll`/`includeControls`/`excludeControls` matter. `visited` guards recursive
+ * profile-of-profile resolution against a cycle in already-stored data (see
+ * `resolveProfileEffectiveControls`'s doc comment).
+ */
+export function resolveProfileImportControls(
+  imp: ProfileImport,
+  profile: Profile,
+  catalogs: StoredArtifact<Catalog>[],
+  profiles: StoredArtifact<Profile>[],
+  visited: Set<string> = new Set(),
+): ProfileImportControlsResolution {
+  const excluded = new Set(imp.excludeControls?.[0]?.withIds ?? []);
+  const resolved = resolveProfileImportSource(imp, profile.backMatter, catalogs, profiles);
+  let sourceControlsById: Map<string, Control>;
+  let hasUnresolved = false;
+
+  if (resolved?.type === 'catalog') {
+    sourceControlsById = indexCatalogControls(resolved.item.artifact);
+  } else if (resolved?.type === 'profile') {
+    const nested = resolveProfileEffectiveControls(resolved.item.artifact, catalogs, profiles, visited);
+    sourceControlsById = nested.controlsById;
+    hasUnresolved = nested.hasUnresolved;
+  } else {
+    return { sourceControlsById: new Map(), controlsById: new Map(), hasUnresolved: true };
+  }
+
+  const controlsById = new Map<string, Control>();
+  if (imp.includeAll) {
+    for (const [id, control] of sourceControlsById) {
+      if (!excluded.has(id)) controlsById.set(id, control);
+    }
+  } else {
+    for (const id of imp.includeControls?.[0]?.withIds ?? []) {
+      if (excluded.has(id)) continue;
+      const control = sourceControlsById.get(id);
+      if (control) controlsById.set(id, control);
+    }
+  }
+
+  return { sourceControlsById, controlsById, hasUnresolved };
+}
+
+/**
+ * A profile's own effective control set (ADR-0032 §5/§7, T-206) — every import's own contribution
+ * (`resolveProfileImportControls`) merged together. `visited` (the chain of profile uuids walked
+ * so far) guards against a cycle in already-stored data — not just at add-time
+ * (`wouldCreateProfileCycle`, used when a *new* import is picked in the editor); a cycle here just
+ * stops the walk and flags `hasUnresolved`, never loops forever.
  */
 export function resolveProfileEffectiveControls(
   profile: Profile,
@@ -144,31 +196,9 @@ export function resolveProfileEffectiveControls(
   let hasUnresolved = false;
 
   for (const imp of profile.imports) {
-    const excluded = new Set(imp.excludeControls?.[0]?.withIds ?? []);
-    const resolved = resolveProfileImportSource(imp, profile.backMatter, catalogs, profiles);
-    let sourceControls: Map<string, Control>;
-    if (resolved?.type === 'catalog') {
-      sourceControls = indexCatalogControls(resolved.item.artifact);
-    } else if (resolved?.type === 'profile') {
-      const nested = resolveProfileEffectiveControls(resolved.item.artifact, catalogs, profiles, nextVisited);
-      sourceControls = nested.controlsById;
-      if (nested.hasUnresolved) hasUnresolved = true;
-    } else {
-      hasUnresolved = true;
-      continue;
-    }
-
-    if (imp.includeAll) {
-      for (const [id, control] of sourceControls) {
-        if (!excluded.has(id)) controlsById.set(id, control);
-      }
-    } else {
-      for (const id of imp.includeControls?.[0]?.withIds ?? []) {
-        if (excluded.has(id)) continue;
-        const control = sourceControls.get(id);
-        if (control) controlsById.set(id, control);
-      }
-    }
+    const importResolution = resolveProfileImportControls(imp, profile, catalogs, profiles, nextVisited);
+    if (importResolution.hasUnresolved) hasUnresolved = true;
+    for (const [id, control] of importResolution.controlsById) controlsById.set(id, control);
   }
 
   return { controlsById, hasUnresolved };

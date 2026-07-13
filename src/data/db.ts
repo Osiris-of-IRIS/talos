@@ -8,9 +8,10 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { OscalArtifactType } from '@/models/oscalBase';
 import type { Asset, AssetType } from '@/models/asset';
+import type { SspGroup } from '@/models/sspGroup';
 
 export const DB_NAME = 'talos';
-export const DB_VERSION = 5;
+export const DB_VERSION = 6;
 
 export type ArtifactStore =
   | 'catalogs'
@@ -113,6 +114,8 @@ interface TalosDB extends DBSchema {
   assetTypes: { key: string; value: AssetType };
   targetObjectCategoryCache: { key: string; value: TargetObjectCategoryCacheEntry };
   threatCatalogCache: { key: string; value: ThreatCatalogCacheEntry };
+  /** SSP organizational groups (T-512, ADR-0037) — not an OSCAL artifact type. */
+  sspGroups: { key: string; value: SspGroup };
 }
 
 let dbPromise: Promise<IDBPDatabase<TalosDB>> | null = null;
@@ -156,6 +159,10 @@ export function getDb(): Promise<IDBPDatabase<TalosDB>> {
         // v4->v5 (ADR-0035): new threat-catalog cache store — additive only, no migration.
         if (!db.objectStoreNames.contains('threatCatalogCache')) {
           db.createObjectStore('threatCatalogCache', { keyPath: 'key' });
+        }
+        // v5->v6 (ADR-0037): new SSP-groups store — additive only, no migration.
+        if (!db.objectStoreNames.contains('sspGroups')) {
+          db.createObjectStore('sspGroups', { keyPath: 'uuid' });
         }
       },
     });

@@ -34,6 +34,23 @@ export function getStatementProse(control: Control): string {
     .join('\n');
 }
 
+/**
+ * Text-search match against a control's id/alt-identifier/headline/statement-prose, case-
+ * insensitive substring — the filter behind `ControlSelectionChecklist` (profile editor + Profile
+ * Creation Assistant) and the profile detail page's control filter (T-513, ADR-0032). `control`
+ * may be absent (an id that didn't resolve to anything) — matches on the raw id string alone in
+ * that case, since there's no title/prose to search.
+ */
+export function controlMatchesSearch(id: string, control: Control | undefined, needle: string): boolean {
+  if (!needle) return true;
+  const q = needle.toLowerCase();
+  if (!control) return id.toLowerCase().includes(q);
+  const haystack = [id, getControlAltIdentifier(control) ?? '', getControlHeadline(control), getStatementProse(control)]
+    .join(' \n ')
+    .toLowerCase();
+  return haystack.includes(q);
+}
+
 /** Flatten every part (and nested parts) to `{name, prose}` for the tooltip. */
 export function flattenParts(parts: Part[] | undefined): { name: string; prose: string }[] {
   const out: { name: string; prose: string }[] = [];

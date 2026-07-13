@@ -412,6 +412,14 @@ legend {
   padding-right: 1.25rem;
 }
 
+/* A requirement row whose control carries params (T-511, Component-Definition Assistant) gets a
+   left accent bar — not a full box border, which would compete visually with the table's own row
+   dividers — so an author notices it needs attention without the table looking noisy. */
+.control-requirements-table tr.has-param-warning td:first-child {
+  border-left: 3px solid var(--color-warning);
+  padding-left: 0.5rem;
+}
+
 label {
   color: var(--color-text);
 }

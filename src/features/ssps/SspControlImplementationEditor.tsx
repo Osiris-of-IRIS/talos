@@ -20,6 +20,8 @@ import {
   IMPLEMENTATION_STATUS_VALUES,
 } from './componentImport';
 import { allControlIdOptions, type CatalogIndex } from '@/data/catalogResolution';
+import { ApplyToControl } from './ApplyToControl';
+import type { PropagationScope, PropagationResult } from './propagateChange';
 import type { StoredArtifact } from '@/data/db';
 import type { ComponentDefinition } from '@/models/componentDefinition';
 import type { SystemComponent, SspControlImplementation, SspImplementedRequirement, ByComponent } from '@/models/ssp';
@@ -35,6 +37,19 @@ interface Props {
   catalogIndex: CatalogIndex | null;
   /** For prefilling a by-component's description from its source component (item 3, ADR-0028). */
   workspaceComponentDefs: StoredArtifact<ComponentDefinition>[];
+  /** "Apply to..." (T-512, ADR-0037): this SSP's own propagation scopes, and the callback that
+   * actually writes a by-component's status+description into every matching target SSP. `null`
+   * (not just an empty array) while the SSP is still unsaved — a brand-new document has no other
+   * SSPs to have already been matched to it, so the control is hidden entirely rather than shown
+   * disabled. */
+  applyToScopes: PropagationScope[] | null;
+  onApplyByComponentField?: (
+    scope: PropagationScope,
+    component: SystemComponent,
+    controlId: string,
+    status: string | undefined,
+    description: string,
+  ) => Promise<PropagationResult>;
 }
 
 export function SspControlImplementationEditor({
@@ -43,6 +58,8 @@ export function SspControlImplementationEditor({
   systemComponents,
   catalogIndex,
   workspaceComponentDefs,
+  applyToScopes,
+  onApplyByComponentField,
 }: Props) {
   const { t } = useI18n();
   const expanded = useExpandedSet();
@@ -195,6 +212,17 @@ export function SspControlImplementationEditor({
                             </option>
                           ))}
                         </select>
+                        {applyToScopes && onApplyByComponentField && (() => {
+                          const component = systemComponents.find((c) => c.uuid === bc.componentUuid);
+                          return component ? (
+                            <ApplyToControl
+                              scopes={applyToScopes}
+                              onApply={(scope) =>
+                                onApplyByComponentField(scope, component, ir.controlId, getImplementationStatus(bc), bc.description)
+                              }
+                            />
+                          ) : null;
+                        })()}
                         <button
                           type="button"
                           aria-label={t('ci_remove_by_component_aria')}

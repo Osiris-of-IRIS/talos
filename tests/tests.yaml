@@ -220,13 +220,13 @@ suites:
     golden: [tests/data/catalog-minimal.json]
 
   - id: TEST-PROF-01
-    title: "Profile imports[].href resolution: catalog/profile back-matter-mediated lookup, cycle detection, unresolved-href collection; resolveProfileControlIds effective control-id set (include-all/by-id, excludes, recursive profile-of-profile via T-206)"
+    title: "Profile imports[].href resolution: catalog/profile back-matter-mediated lookup, cycle detection, unresolved-href collection; resolveProfileControlIds effective control-id set (include-all/by-id, excludes, recursive profile-of-profile via T-206); resolveProfileImportControls per-import resolution (source-vs-effective control maps, catalog and profile sources, dangling href) backing the profile detail page's control filter (T-513)"
     file: tests/data/profileImportResolution.test.ts
     type: unit
     runner: vitest
     status: implemented
     feature: CTRL-001
-    adr_refs: [ADR-0001, ADR-0014, ADR-0032]
+    adr_refs: [ADR-0001, ADR-0014, ADR-0032, ADR-0038]
 
   - id: TEST-PROF-02
     title: "Profiles list page: upload/list, bulk selection, delete-with-confirm"
@@ -248,13 +248,13 @@ suites:
     adr_refs: [ADR-0001, ADR-0003, ADR-0013, ADR-0016, ADR-0032, ADR-0033]
 
   - id: TEST-PROF-04
-    title: "Profile detail page: resolved import source, included/excluded control display, set-parameters"
+    title: "Profile detail page: resolved import source, included/excluded control display, set-parameters; control text filter (id/alt-id/title/statement-prose) narrows include/exclude/effective lists, empty-state message; includeAll imports now list every resolved control (previously nothing shown); a profile-sourced import now resolves controls too (previously catalog-only)"
     file: tests/features/profileDetail.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: CTRL-001
-    adr_refs: [ADR-0001, ADR-0016, ADR-0032]
+    adr_refs: [ADR-0001, ADR-0016, ADR-0032, ADR-0038]
 
   - id: TEST-PROF-05
     title: "Control tags prop parsing (BSI comma-separated `tags` prop, verified against the live catalog)"
@@ -692,13 +692,13 @@ suites:
     adr_refs: [ADR-0001, ADR-0004]
 
   - id: TEST-SSP-03
-    title: "SSP editor core authoring, system-implementation import, control-implementation + by-components + status, markup editor, control-id typeahead richness; by-component description prefill from the source component's matching requirement; import-profile picker resolution + apply-time add-all-controls offer (accept/decline/no-op/dedupe-against-existing); global default-creator auto-seed"
+    title: "SSP editor core authoring, system-implementation import, control-implementation + by-components + status, markup editor, control-id typeahead richness; by-component description prefill from the source component's matching requirement; import-profile picker resolution + apply-time add-all-controls offer (accept/decline/no-op/dedupe-against-existing); global default-creator auto-seed; group-membership checkboxes + resolved asset-type readout; end-to-end Apply-to propagation (by-component field + component import) to another SSP in the same group (ADR-0037)"
     file: tests/features/sspEditor.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: IMPL-002
-    adr_refs: [ADR-0001, ADR-0003, ADR-0017, ADR-0023, ADR-0024, ADR-0025, ADR-0028, ADR-0032, ADR-0033]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0017, ADR-0023, ADR-0024, ADR-0025, ADR-0028, ADR-0032, ADR-0033, ADR-0037]
 
   - id: TEST-SSP-IMPORT-01
     title: "Component import + staleness (hash snapshot) + refresh + implementation-status props; findMatchingRequirementDescription prefill lookup"
@@ -727,6 +727,24 @@ suites:
     status: implemented
     feature: IMPL-002
     adr_refs: [ADR-0001, ADR-0031]
+
+  - id: TEST-SGRP-01
+    title: "SSP Groups (T-512): tree helpers (descendantChain incl. cycle guard, groupDepth), metadata.props[name=groups] membership get/set, CRUD repository (create/list-sorted/rename/reparent, delete-cascades-children-to-grandparent), CRUD page (empty state, add, rename-on-blur, reparent excludes self+descendants, delete)"
+    file: tests/data/sspGroupRepository.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: IMPL-002
+    adr_refs: [ADR-0001, ADR-0004, ADR-0037]
+
+  - id: TEST-SGRP-02
+    title: "Apply-to propagation engine (T-512): scope resolution (own asset-type + own groups, dangling-group-safe), descendant-inclusive group target matching, by-component status+description propagation matched by controlId+shared-component-origin (skips missing control/unwired component/unimported source with reasons), component-import propagation (skips already-present, matched by origin not title)"
+    file: tests/features/propagateChange.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: IMPL-002
+    adr_refs: [ADR-0001, ADR-0023, ADR-0031, ADR-0037]
 
   # ---- Assessment layer (ASMT-00x) -----------------------------------------------
   - id: TEST-AP-01
@@ -770,6 +788,15 @@ suites:
     status: implemented
     feature: ASST-002
     adr_refs: [ADR-0001, ADR-0006, ADR-0026]
+
+  - id: TEST-CDA-01
+    title: "Component-Definition Creation Assistant: metadata/source gating, generated title/description templates, one requirement per unique control (alt-identifier dedup), source-change reset, has-param warning marker + reused set-parameter widget"
+    file: tests/features/componentDefinitionAssistant.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: ASST-003
+    adr_refs: [ADR-0001, ADR-0003, ADR-0011, ADR-0013, ADR-0016, ADR-0021, ADR-0024, ADR-0033, ADR-0036]
 
   - id: TEST-ASSET-01
     title: "Asset / asset-type / mapping CSV+JSON parsing, validation, cross-check; asset-id rename, NIST asset-type alignment, optional inventory-prop columns (ADR-0031)"

@@ -10,6 +10,13 @@ import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
 import { useWorkspaceCatalogs } from '@/features/shared/useWorkspaceCatalogs';
 import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
 import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
+import { useWorkspaceSspGroups } from '@/features/shared/useWorkspaceSspGroups';
+import { useWorkspaceSsps } from '@/features/shared/useWorkspaceSsps';
+import { getSspGroupIds, setSspGroupIds } from '@/data/sspGroupMembership';
+import { groupDepth } from '@/data/sspGroupHierarchy';
+import { getSspAssetType } from './sspAssetType';
+import { propagationScopesFor, resolveScopeTargets, propagateByComponentField, propagateComponentImport } from './propagateChange';
+import type { PropagationScope } from './propagateChange';
 import { EntitySearchField } from '@/shared/EntitySearchField';
 import type { SearchItem } from '@/shared/useEntitySearch';
 import { ensureArtifactResource } from '@/models/backMatter';
@@ -21,7 +28,8 @@ import { SspControlImplementationEditor } from './SspControlImplementationEditor
 import { createBlankSsp } from './blank';
 import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/toast';
-import type { SystemSecurityPlan } from '@/models/ssp';
+import type { SystemSecurityPlan, SystemComponent } from '@/models/ssp';
+import type { DefinedComponent } from '@/models/componentDefinition';
 
 const repo = () => ArtifactRepository.forType<SystemSecurityPlan>('systemSecurityPlan');
 
@@ -36,6 +44,8 @@ export function SspEditorPage() {
   const workspaceCatalogs = useWorkspaceCatalogs();
   const workspaceComponentDefs = useWorkspaceComponentDefinitions();
   const workspaceProfiles = useWorkspaceProfiles();
+  const workspaceGroups = useWorkspaceSspGroups();
+  const workspaceSsps = useWorkspaceSsps();
   const isNew = !uuid;
   const [draft, setDraft] = useState<SystemSecurityPlan | null>(isNew ? createBlankSsp() : null);
   const [notFound, setNotFound] = useState(false);
@@ -119,6 +129,39 @@ export function SspEditorPage() {
     update(next);
   }
 
+  function toggleGroup(groupUuid: string) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev);
+      const current = new Set(getSspGroupIds(next));
+      if (current.has(groupUuid)) current.delete(groupUuid);
+      else current.add(groupUuid);
+      setSspGroupIds(next, [...current]);
+      return next;
+    });
+  }
+
+  // "Apply to..." (T-512, ADR-0037): null while the SSP is unsaved (isNew) — there's no persisted
+  // uuid yet for other SSPs to have been matched against, so the controls stay hidden rather than
+  // shown disabled. Once saved, scope options come from the SSP's *own* asset-type/groups only.
+  const applyToScopes: PropagationScope[] | null = isNew ? null : propagationScopesFor(draft, workspaceGroups);
+
+  function applyByComponentField(
+    scope: PropagationScope,
+    component: SystemComponent,
+    controlId: string,
+    status: string | undefined,
+    description: string,
+  ) {
+    const targets = resolveScopeTargets(scope, draft!.uuid, workspaceSsps, workspaceGroups);
+    return propagateByComponentField(component, controlId, status, description, targets);
+  }
+
+  function applyComponentImport(scope: PropagationScope, componentDefinitionUuid: string, component: DefinedComponent) {
+    const targets = resolveScopeTargets(scope, draft!.uuid, workspaceSsps, workspaceGroups);
+    return propagateComponentImport(componentDefinitionUuid, component, targets);
+  }
+
   function removeByComponentsReferencing(componentUuid: string) {
     setDraft((prev) => {
       if (!prev) return prev;
@@ -160,6 +203,9 @@ export function SspEditorPage() {
   }));
   const resolvedImportSource = resolveProfileImportSource(draft.importProfile, draft.backMatter, workspaceCatalogs, workspaceProfiles);
   const resolvedImportProfile = resolvedImportSource?.type === 'profile' ? resolvedImportSource.item : undefined;
+  const sspAssetType = getSspAssetType(draft);
+  const memberGroupIds = new Set(getSspGroupIds(draft));
+  const groupByUuid = new Map(workspaceGroups.map((g) => [g.uuid, g]));
 
   return (
     <main data-testid="ssp-editor">
@@ -189,6 +235,38 @@ export function SspEditorPage() {
         )}
       </fieldset>
 
+      <fieldset>
+        <legend>🗂️ {t('ssp_groups_heading')}</legend>
+        {sspAssetType && (
+          <p data-testid="ssp-asset-type-readout">
+            <small>{t('ssp_asset_type_readout', { assetType: sspAssetType })}</small>
+          </p>
+        )}
+        {workspaceGroups.length === 0 ? (
+          <p>
+            <small>
+              {t('ssp_groups_none_yet_pre')} <Link to="/ssp-groups">{t('landing_feature_ssp_groups')}</Link>.
+            </small>
+          </p>
+        ) : (
+          <ul data-testid="ssp-editor-group-list">
+            {workspaceGroups.map((g) => (
+              <li key={g.uuid} style={{ paddingLeft: `${groupDepth(g.uuid, groupByUuid) * 1.5}rem` }}>
+                <label>
+                  <input
+                    type="checkbox"
+                    data-testid="ssp-group-membership-checkbox"
+                    checked={memberGroupIds.has(g.uuid)}
+                    onChange={() => toggleGroup(g.uuid)}
+                  />{' '}
+                  {g.title}
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+      </fieldset>
+
       <CollapsibleSection
         testId="ssp-section-characteristics"
         isOpen={sections.isExpanded('characteristics')}
@@ -212,6 +290,8 @@ export function SspEditorPage() {
           onChange={(si) => update({ ...draft, systemImplementation: si })}
           onComponentRemoved={removeByComponentsReferencing}
           workspaceComponentDefs={workspaceComponentDefs}
+          applyToScopes={applyToScopes}
+          onApplyComponentImport={applyComponentImport}
         />
       </CollapsibleSection>
 
@@ -227,6 +307,8 @@ export function SspEditorPage() {
           systemComponents={draft.systemImplementation.components}
           catalogIndex={catalogIndex}
           workspaceComponentDefs={workspaceComponentDefs}
+          applyToScopes={applyToScopes}
+          onApplyByComponentField={applyByComponentField}
         />
       </CollapsibleSection>
 

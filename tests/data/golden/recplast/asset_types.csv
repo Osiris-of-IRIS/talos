@@ -13,6 +13,8 @@ network-switch,Switch,switch
 network-firewall,Firewall,firewall
 network-wlan-ap,WLAN Access Point,
 network-recobs,ReCoBS-Verbindung,
+network-internal,Internes Netz,
+network-external,Internet,
 telecom-phone-system,Telefonanlage,
 telecom-fax,Faxgerät,
 building,Gebäude,
@@ -22,3 +24,4 @@ room-technical,Technikraum,
 room-archive,Datenträgerarchiv,
 room-production,Produktionshalle,
 service-provider,Dienstleister,
+users,Mitarbeitende,

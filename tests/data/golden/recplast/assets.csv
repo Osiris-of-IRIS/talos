@@ -72,6 +72,8 @@ N005,ReCoBS,network-recobs,ReCoBS-Netzwerkverbindung,normal,ReCoBS-Daten,10.10.2
 N006,Switche in den Vertriebsbüros,network-switch,Switches in Vertriebsbüros,normal,Netzwerk-Verkehr,10.10.254.80,,,,02:00:00:00:08:16,SN-N006,Technikraum Bad Godesberg,Ubiquiti,,yes
 N007,Router zum Internet der Vertriebsbüros,network-router,Internet-Router Vertriebsbüros,erhöht,Netzwerk-Verkehr,10.10.254.81,,,,02:00:00:00:08:17,SN-N007,Technikraum Bad Godesberg,Juniper,,yes
 N008,WLAN-Access-Points,network-wlan-ap,WLAN-Zugangspunkte,erhöht,WLAN-Verkehr,10.10.254.82,,,,02:00:00:00:08:18,SN-N008,Technikraum Bad Godesberg,Cisco,,yes
+N901,Internes Netz,network-internal,,,,,,,,,,,,,yes
+N902,Internetanschluss,network-external,,,,,,,,,,,,,no
 T001,Telefonanlagen Bad Godesberg und Beuel,telecom-phone-system,Telefonanlagen beide Standorte,normal,Telefonie,,,,,,,Bad Godesberg,Avaya,,yes
 T002,Faxgeräte,telecom-fax,Faxgeräte,normal,Fax-Kommunikation,,,,,,,Bad Godesberg,Brother,,no
 GB001,Verwaltungsgebäude Bad Godesberg,building,Verwaltungsgebäude in Bad Godesberg,normal,,,,,,,,Verwaltungsgebäude Bad Godesberg,,,
@@ -93,3 +95,4 @@ D003,Hosting Website GmbH&Co.KG,service-provider,Website-Hosting-Dienstleister,n
 D004,Telfcom,service-provider,Telekommunikationsdienstleister,normal,,,,,,,,,,,
 D005,Indust GmbH & Co.KG,service-provider,Industrie-Dienstleister,normal,,,,,,,,,,,
 D006,VPN Ware GmbH,service-provider,VPN-Dienstleister,erhöht,,,,,,,,,,,
+U001,Mitarbeitende (alle Standorte),users,Mitarbeitende der Institution,normal,,,,,,,,,,,

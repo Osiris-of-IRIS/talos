@@ -65,9 +65,11 @@ function parseValues(raw: string): string[] | undefined {
 
 /**
  * One set-parameter row. Keeps the values text in local state so mid-word spaces/commas survive
- * typing; the parsed array is written to the model on change.
+ * typing; the parsed array is written to the model on change. Exported (T-511) so the
+ * Component-Definition Creation Assistant reuses the exact same choice/select-vs-free-text
+ * behaviour instead of a second implementation.
  */
-function SetParameterRow({
+export function SetParameterRow({
   value,
   onChange,
   onRemove,

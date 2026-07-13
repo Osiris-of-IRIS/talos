@@ -6,7 +6,7 @@
  */
 import { useState } from 'react';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
-import { getControlHeadline, getControlAltIdentifier, getStatementProse } from '@/models/controlDisplay';
+import { getControlHeadline, controlMatchesSearch } from '@/models/controlDisplay';
 import { uniqueCatalogControlEntries } from '@/data/catalogResolution';
 import { useI18n } from '@/shared/i18n';
 import type { Control } from '@/models/control';
@@ -17,19 +17,6 @@ interface Props {
   selectedIds: Set<string>;
   onChange: (next: Set<string>) => void;
   dataTestId?: string;
-}
-
-function matchesFilter(id: string, control: Control, needle: string): boolean {
-  if (!needle) return true;
-  const haystack = [
-    id,
-    getControlAltIdentifier(control) ?? '',
-    getControlHeadline(control),
-    getStatementProse(control),
-  ]
-    .join(' \n ')
-    .toLowerCase();
-  return haystack.includes(needle.toLowerCase());
 }
 
 export function ControlSelectionChecklist({ controlsById, selectedIds, onChange, dataTestId }: Props) {
@@ -46,7 +33,7 @@ export function ControlSelectionChecklist({ controlsById, selectedIds, onChange,
   // Each control exactly once — controlsById dual-keys a control under both its literal id and
   // its `_{uuid}` alt-identifier form for lookup (ADR-0021); a raw `.entries()` iteration here
   // would show (and let a user pick) the same control twice.
-  const rows = uniqueCatalogControlEntries(controlsById).filter(([id, control]) => matchesFilter(id, control, filter));
+  const rows = uniqueCatalogControlEntries(controlsById).filter(([id, control]) => controlMatchesSearch(id, control, filter));
 
   return (
     <div data-testid={dataTestId ?? 'control-selection-checklist'}>

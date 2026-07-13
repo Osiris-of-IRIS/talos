@@ -50,8 +50,8 @@ describe('useAssetsStore', () => {
       readGolden('mappings.csv'),
     );
     const state = useAssetsStore.getState();
-    expect(state.assets).toHaveLength(94);
-    expect(state.assetTypes).toHaveLength(23);
+    expect(state.assets).toHaveLength(97);
+    expect(state.assetTypes).toHaveLength(26);
     expect(state.warnings).toEqual([]);
   });
 

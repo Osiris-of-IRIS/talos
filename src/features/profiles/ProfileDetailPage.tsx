@@ -1,14 +1,14 @@
-// Profile detail (read view). Decision IDs: ADR-0003, ADR-0009, ADR-0032 (feature CTRL-001).
+// Profile detail (read view). Decision IDs: ADR-0003, ADR-0009, ADR-0032, ADR-0038 (feature CTRL-001).
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
 import { downloadArtifact } from '@/data/fileIo';
 import { MarkupView } from '@/shared/MarkupView';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
-import { useCatalogControlsByUuid } from '@/features/shared/useCatalogControlsByUuid';
 import { useWorkspaceCatalogs } from '@/features/shared/useWorkspaceCatalogs';
 import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
-import { resolveProfileImportSource, unresolvedProfileImportHrefs } from '@/data/profileImportResolution';
+import { resolveProfileImportSource, resolveProfileImportControls, unresolvedProfileImportHrefs } from '@/data/profileImportResolution';
+import { controlMatchesSearch } from '@/models/controlDisplay';
 import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/toast';
 import type { StoredArtifact } from '@/data/db';
@@ -19,9 +19,9 @@ export function ProfileDetailPage() {
   const { t } = useI18n();
   const { showToast } = useToast();
   const [record, setRecord] = useState<StoredArtifact<Profile> | null | undefined>(undefined);
+  const [filter, setFilter] = useState('');
   const workspaceCatalogs = useWorkspaceCatalogs();
   const workspaceProfiles = useWorkspaceProfiles();
-  const catalogControlsByUuid = useCatalogControlsByUuid(workspaceCatalogs);
 
   function onDownload(r: StoredArtifact<Profile>) {
     try {
@@ -95,11 +95,28 @@ export function ProfileDetailPage() {
         </p>
       )}
       <h2>{t('profile_imports_heading', { count: imports.length })}</h2>
+      <label>
+        {t('control_checklist_filter_label')}
+        <input
+          type="search"
+          aria-label={t('control_checklist_filter_aria')}
+          data-testid="profile-detail-control-filter"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />
+      </label>
       {imports.map((imp, i) => {
         const resolved = resolveProfileImportSource(imp, profile.backMatter, workspaceCatalogs, workspaceProfiles);
-        const controlsById = resolved?.type === 'catalog' ? catalogControlsByUuid.get(resolved.item.uuid) : undefined;
+        // Resolves both catalog- and profile-sourced imports (recursively, T-206) — not just
+        // catalog sources like the old `catalogControlsByUuid`-only lookup did.
+        const importResolution = resolveProfileImportControls(imp, profile, workspaceCatalogs, workspaceProfiles);
         const includeIds = imp.includeControls?.[0]?.withIds ?? [];
         const excludeIds = imp.excludeControls?.[0]?.withIds ?? [];
+        // The full resolved set for an includeAll import (T-513) — previously nothing was shown
+        // here at all, only the "All controls" mode label.
+        const effectiveEntries = [...importResolution.controlsById.entries()].filter(([id, c]) =>
+          controlMatchesSearch(id, c, filter),
+        );
         return (
           <section key={`${imp.href}-${i}`} className="collapsible-section" data-testid="profile-detail-import">
             <h3>
@@ -116,19 +133,31 @@ export function ProfileDetailPage() {
             </h3>
             <div>
               {imp.includeAll ? t('profile_imports_mode_all') : t('profile_imports_mode_by_id')}
+              {imp.includeAll && (
+                <ul data-testid="profile-detail-effective-controls">
+                  {effectiveEntries.map(([id, c]) => (
+                    <li key={id} data-testid="profile-detail-include-control">
+                      <ControlDisplay control={c} />
+                    </li>
+                  ))}
+                  {effectiveEntries.length === 0 && (
+                    <li data-testid="profile-detail-controls-empty">{t('control_checklist_empty')}</li>
+                  )}
+                </ul>
+              )}
               {!imp.includeAll && includeIds.length > 0 && (
                 <>
                   {': '}
-                  {controlsById
-                    ? includeIds.map((id) => {
-                        const c = controlsById.get(id);
-                        return (
-                          <span key={id} data-testid="profile-detail-include-control">
-                            {c ? <ControlDisplay control={c} /> : <code>{id}</code>}{' '}
-                          </span>
-                        );
-                      })
-                    : includeIds.join(', ')}
+                  {includeIds
+                    .filter((id) => controlMatchesSearch(id, importResolution.sourceControlsById.get(id), filter))
+                    .map((id) => {
+                      const c = importResolution.sourceControlsById.get(id);
+                      return (
+                        <span key={id} data-testid="profile-detail-include-control">
+                          {c ? <ControlDisplay control={c} /> : <code>{id}</code>}{' '}
+                        </span>
+                      );
+                    })}
                 </>
               )}
             </div>
@@ -136,16 +165,16 @@ export function ProfileDetailPage() {
               <div>
                 {t('profile_imports_exclude_toggle')}
                 {': '}
-                {controlsById
-                  ? excludeIds.map((id) => {
-                      const c = controlsById.get(id);
-                      return (
-                        <span key={id} data-testid="profile-detail-exclude-control">
-                          {c ? <ControlDisplay control={c} /> : <code>{id}</code>}{' '}
-                        </span>
-                      );
-                    })
-                  : excludeIds.join(', ')}
+                {excludeIds
+                  .filter((id) => controlMatchesSearch(id, importResolution.sourceControlsById.get(id), filter))
+                  .map((id) => {
+                    const c = importResolution.sourceControlsById.get(id);
+                    return (
+                      <span key={id} data-testid="profile-detail-exclude-control">
+                        {c ? <ControlDisplay control={c} /> : <code>{id}</code>}{' '}
+                      </span>
+                    );
+                  })}
               </div>
             )}
           </section>

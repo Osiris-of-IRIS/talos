@@ -12,6 +12,7 @@ import {
   unresolvedProfileImportHrefs,
   resolveProfileControlIds,
   resolveProfileEffectiveControls,
+  resolveProfileImportControls,
 } from '@/data/profileImportResolution';
 import type { StoredArtifact } from '@/data/db';
 import type { Catalog } from '@/models/catalog';
@@ -195,5 +196,35 @@ describe('resolveProfileEffectiveControls', () => {
     const { controlsById, hasUnresolved } = resolveProfileEffectiveControls(top.artifact, [catalog], [middle]);
     expect([...controlsById.keys()].sort()).toEqual(['CTRL-1', 'CTRL-2', 'CTRL-3']); // resolved part still returned
     expect(hasUnresolved).toBe(true);
+  });
+});
+
+describe('resolveProfileImportControls (T-513, profile detail page control filter)', () => {
+  it('returns every source control for an includeAll import, minus its own excludes', () => {
+    const p = makeProfile('p1', 'P1', [
+      { href: `#${catalogUuid}`, includeAll: {}, excludeControls: [{ withIds: ['CTRL-2'] }] },
+    ]);
+    const r = resolveProfileImportControls(p.artifact.imports[0]!, p.artifact, [catalog], []);
+    expect([...r.controlsById.keys()].sort()).toEqual(['CTRL-1', 'CTRL-3']);
+    // sourceControlsById is pre-exclude — needed to display *what* was excluded, not just what
+    // made it through (the profile detail page shows both).
+    expect([...r.sourceControlsById.keys()].sort()).toEqual(['CTRL-1', 'CTRL-2', 'CTRL-3']);
+    expect(r.hasUnresolved).toBe(false);
+  });
+
+  it('resolves a profile-sourced import too (not just catalog), unlike the detail page before T-513', () => {
+    const other = makeProfile('p2', 'Baseline Profile', [{ href: `#${catalogUuid}`, includeAll: {} }]);
+    const p = makeProfile('p1', 'P1', [{ href: `#${other.uuid}`, includeControls: [{ withIds: ['CTRL-1'] }] }]);
+    const r = resolveProfileImportControls(p.artifact.imports[0]!, p.artifact, [catalog], [other]);
+    expect([...r.controlsById.keys()]).toEqual(['CTRL-1']);
+    expect(r.controlsById.get('CTRL-1')?.title).toBe('Control One');
+  });
+
+  it('returns empty maps and hasUnresolved for a dangling import href', () => {
+    const p = makeProfile('p1', 'P1', [{ href: '#missing', includeAll: {} }]);
+    const r = resolveProfileImportControls(p.artifact.imports[0]!, p.artifact, [catalog], []);
+    expect(r.controlsById.size).toBe(0);
+    expect(r.sourceControlsById.size).toBe(0);
+    expect(r.hasUnresolved).toBe(true);
   });
 });
