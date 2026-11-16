@@ -50,6 +50,8 @@ describe('DashboardPage — threat catalog load failure (TEST-DASH-07)', () => {
       expect(toast).toHaveTextContent(/elementary threats/i);
       expect(toast).toHaveTextContent(/HTTP 404/);
       expect(await screen.findByTestId('dashboard-risk-load-error')).toHaveTextContent(/threat catalog could not be loaded/i);
+      // Let the SSP/catalog store loads settle too (avoids act() noise), then check no rejection escaped.
+      await screen.findByTestId('dashboard-risk-empty-state');
       await new Promise((r) => setTimeout(r, 0));
       expect(unhandled).not.toHaveBeenCalled();
     } finally {

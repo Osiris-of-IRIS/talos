@@ -3,10 +3,11 @@
  * ADR-0039.
  * Deliberately free of `@/assets/*` image imports: e2e specs import this module directly under
  * Node (not through Vite), and a binary asset import here would break that transform (ADR-0029)
- * — asset resolution for HERO_BACKGROUND lives in src/app/heroBackground.ts instead.
+ * — asset resolution for HERO_BACKGROUND lives in src/app/heroBackground.ts instead. For the same
+ * reason the library-index JSON import carries `with { type: 'json' }` (Node ESM requires it).
  */
 import { OSCAL_AUTHORING_VERSION } from '@/models/oscalBase';
-import libraryIndex from '@/data/library-index.json';
+import libraryIndex from '@/data/library-index.json' with { type: 'json' };
 
 /** Vite `base` / GitHub Pages sub-path (mirrors `vite.config.ts`'s `base`, ADR-0002). Kept as a
  * plain constant, not `import.meta.env.BASE_URL` — this module is imported directly under Node
