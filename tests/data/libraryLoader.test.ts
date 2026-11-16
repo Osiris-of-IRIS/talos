@@ -33,7 +33,7 @@ function mockFetch(doc: unknown, opts: { failFirst?: number; alwaysFail?: boolea
 }
 
 const catalogEntry = (sha = 'sha-a'): LibraryManifestEntry => ({
-  path: 'Anwenderkataloge/Grundschutz++/Grundschutz++-catalog.json',
+  path: 'control_layer/Grundschutz++/Grundschutz++-resolved_catalog.json',
   artifactType: 'catalog',
   title: 'Grundschutz++',
   category: 'Anwenderkatalog',
@@ -42,7 +42,7 @@ const catalogEntry = (sha = 'sha-a'): LibraryManifestEntry => ({
 });
 
 const compDefEntry = (): LibraryManifestEntry => ({
-  path: 'Implementierungsbeschreibungen/Komponenten/Passwortrichtlinie/Passwortrichtlinie-component_definition.json',
+  path: 'implementation_layer/Passwortrichtlinie/Passwortrichtlinie-component_definition.json',
   artifactType: 'component-definition',
   title: 'Passwortrichtlinie',
   category: 'Komponente',
@@ -51,11 +51,11 @@ const compDefEntry = (): LibraryManifestEntry => ({
 });
 
 describe('manifest (TEST-LIB-01)', () => {
-  it('bundles entries across the three categories, read-only', () => {
+  it('bundles entries across the upstream categories, read-only (ADR-0039 layout)', () => {
     const m = getLibraryManifest();
     expect(m.license).toBe('CC-BY-SA-4.0');
     const categories = new Set(m.entries.map((e) => e.category));
-    expect(categories).toEqual(new Set(['Anwenderkatalog', 'Quellkatalog', 'Komponente']));
+    expect(categories).toEqual(new Set(['Anwenderkatalog', 'Quellkatalog', 'Profil', 'Komponente', 'Mapping']));
     expect(m.entries.some((e) => e.artifactType === 'catalog')).toBe(true);
     expect(m.entries.some((e) => e.artifactType === 'component-definition')).toBe(true);
   });
@@ -132,5 +132,15 @@ describe('adopt (TEST-LIB-02)', () => {
     const rec = await ArtifactRepository.forType('componentDefinition').get(newUuid);
     expect(rec?.origin).toBe('user');
     expect((rec?.artifact as { uuid: string }).uuid).toBe(newUuid);
+  });
+});
+
+describe('root "$schema" key (TEST-LIB-01, ADR-0039)', () => {
+  it('loads and adopts a library file that carries a root $schema key', async () => {
+    const withSchema = { $schema: 'https://example.org/oscal_complete_schema.json', ...compDefDoc };
+    const loaded = await loadLibraryArtifact(compDefEntry(), { fetch: mockFetch(withSchema), backoffMs: 0 });
+    expect(loaded.type).toBe('componentDefinition');
+    const newUuid = await adoptLibraryArtifact(loaded);
+    expect(await ArtifactRepository.forType('componentDefinition').get(newUuid)).toBeTruthy();
   });
 });

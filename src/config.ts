@@ -1,10 +1,13 @@
 /**
- * App configuration constants. Decision IDs: ADR-0002, ADR-0005, ADR-0008, ADR-0015, ADR-0029.
+ * App configuration constants. Decision IDs: ADR-0002, ADR-0005, ADR-0008, ADR-0015, ADR-0029,
+ * ADR-0039.
  * Deliberately free of `@/assets/*` image imports: e2e specs import this module directly under
  * Node (not through Vite), and a binary asset import here would break that transform (ADR-0029)
- * — asset resolution for HERO_BACKGROUND lives in src/app/heroBackground.ts instead.
+ * — asset resolution for HERO_BACKGROUND lives in src/app/heroBackground.ts instead. For the same
+ * reason the library-index JSON import carries `with { type: 'json' }` (Node ESM requires it).
  */
 import { OSCAL_AUTHORING_VERSION } from '@/models/oscalBase';
+import libraryIndex from '@/data/library-index.json' with { type: 'json' };
 
 /** Vite `base` / GitHub Pages sub-path (mirrors `vite.config.ts`'s `base`, ADR-0002). Kept as a
  * plain constant, not `import.meta.env.BASE_URL` — this module is imported directly under Node
@@ -14,24 +17,40 @@ export const VIEWER_URL = 'https://bsi-community.github.io/Stand-der-Technik-Vie
 export const DEFAULT_LANGUAGE: 'de' | 'en' = 'de';
 export const MAX_EMBEDDED_FILE_BYTES = 5 * 1024 * 1024;
 
-/** Raw base for BSI Stand-der-Technik-Bibliothek content (CORS `*`), used lazily (ADR-0005). */
+/**
+ * Raw base for BSI Stand-der-Technik-Bibliothek content (CORS `*`), used lazily (ADR-0005).
+ * Follows BSI's live `main` branch, not a pinned commit (ADR-0039, PO decision Q1).
+ */
 export const LIBRARY_RAW_BASE =
   'https://raw.githubusercontent.com/BSI-Bund/Stand-der-Technik-Bibliothek/main/';
 /** Licence of the BSI library content (surfaced in the browser + README, ADR-0005). */
 export const LIBRARY_LICENSE = 'CC-BY-SA-4.0';
 
+/**
+ * Repo-relative paths of the BSI namespace CSVs. Recorded in the generated library index
+ * (tools/gen-library-index.mjs locates them by file name), so one regeneration after an upstream
+ * move fixes the library *and* the namespaces together (ADR-0039).
+ */
+export const LIBRARY_NAMESPACE_PATHS: { targetObjectCategories: string; threats: string } = {
+  targetObjectCategories: libraryIndex.namespaces.targetObjectCategories,
+  threats: libraryIndex.namespaces.threats,
+};
+
+/** Absolute raw URL for a repo path; encoded per segment (BSI paths contain spaces and `+`). */
+export function libraryRawUrl(path: string): string {
+  const encoded = path
+    .replace(/^\/+/, '')
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  return LIBRARY_RAW_BASE + encoded;
+}
+
 /** BSI target-object-category (Zielobjektkategorie) namespace CSV, live-fetched (ADR-0026). */
-export const TARGET_OBJECT_CATEGORIES_URL =
-  'https://raw.githubusercontent.com/BSI-Bund/Stand-der-Technik-Bibliothek/refs/heads/main/Dokumentation/namespaces/target_object_categories.csv';
+export const TARGET_OBJECT_CATEGORIES_URL = libraryRawUrl(LIBRARY_NAMESPACE_PATHS.targetObjectCategories);
 
 /** BSI elementary-threats (`basethreats.csv`) namespace CSV, live-fetched (ADR-0035). */
-export const THREATS_CATALOG_URL =
-  'https://raw.githubusercontent.com/BSI-Bund/Stand-der-Technik-Bibliothek/refs/heads/main/Dokumentation/namespaces/basethreats.csv';
-
-/** Absolute raw URL for a library file path from the manifest (ADR-0005). */
-export function libraryRawUrl(path: string): string {
-  return LIBRARY_RAW_BASE + path.replace(/^\/+/, '');
-}
+export const THREATS_CATALOG_URL = libraryRawUrl(LIBRARY_NAMESPACE_PATHS.threats);
 
 /** The two hero backgrounds supplied for the landing page (ADR-0029); resolved to an asset URL
  * by src/app/heroBackground.ts (kept out of this module — see the file-level note above). */
@@ -61,6 +80,8 @@ export interface TalosConfig {
   basePath: string;
   library: {
     rawBase: string;
+    /** Repo-relative namespace CSV paths (from the library index, ADR-0039). */
+    namespaces: { targetObjectCategories: string; threats: string };
   };
   viewerUrl: string;
   defaultLanguage: 'de' | 'en';
@@ -75,6 +96,7 @@ export const TALOS_CONFIG: TalosConfig = {
   basePath: BASE_PATH,
   library: {
     rawBase: LIBRARY_RAW_BASE,
+    namespaces: LIBRARY_NAMESPACE_PATHS,
   },
   viewerUrl: VIEWER_URL,
   defaultLanguage: DEFAULT_LANGUAGE,
@@ -105,6 +127,14 @@ export function validateConfig(config: TalosConfig): string[] {
   }
   if (!isAbsoluteHttpUrl(config.library.rawBase)) {
     errors.push(`library.rawBase must be an absolute http(s) URL, got "${config.library.rawBase}"`);
+  }
+  for (const key of ['targetObjectCategories', 'threats'] as const) {
+    const path: unknown = config.library.namespaces?.[key];
+    if (typeof path !== 'string' || path.trim() === '' || /^[a-z][a-z0-9+.-]*:/i.test(path) || path.startsWith('/')) {
+      errors.push(
+        `library.namespaces.${key} must be a non-empty repo-relative path (regenerate src/data/library-index.json), got "${String(path)}"`,
+      );
+    }
   }
   if (!isAbsoluteHttpUrl(config.viewerUrl)) {
     errors.push(`viewerUrl must be an absolute http(s) URL, got "${config.viewerUrl}"`);

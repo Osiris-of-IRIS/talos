@@ -82,3 +82,18 @@ describe('golden round-trip (import -> model -> export)', () => {
     expect(serializeOscalDocument(type, artifact)).toEqual(doc);
   });
 });
+
+describe('root "$schema" key (ADR-0039)', () => {
+  it('ignores a JSON-Schema "$schema" pointer next to the wrapper key (BSI ships one)', () => {
+    const { type, artifact } = parseOscalDocument<{ uuid: string }>({
+      $schema: 'https://raw.githubusercontent.com/usnistgov/OSCAL/main/json/schema/oscal_complete_schema.json',
+      ...catalogMinimal,
+    });
+    expect(type).toBe('catalog');
+    expect(artifact.uuid).toBe((catalogMinimal as { catalog: { uuid: string } }).catalog.uuid);
+  });
+
+  it('still rejects two real wrapper keys', () => {
+    expect(() => parseOscalDocument({ ...catalogMinimal, ...profileMinimal })).toThrow(/exactly one/);
+  });
+});

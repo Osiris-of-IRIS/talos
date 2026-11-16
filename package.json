@@ -18,6 +18,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:harness": "python3 tests/test_harness/runner.py",
+    "check:library": "node tools/check-library.mjs",
+    "gen:library-index": "node tools/gen-library-index.mjs",
     "check": "npm run lint && npm run typecheck && npm run test"
   },
   "dependencies": {

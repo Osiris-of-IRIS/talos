@@ -24,6 +24,19 @@ describe('validateConfig', () => {
     expect(errors.some((e) => e.includes('library.rawBase'))).toBe(true);
   });
 
+  it('rejects an empty or absolute BSI namespace path (ADR-0039: paths come from the library index)', () => {
+    const errors = validateConfig(
+      withOverride({
+        library: {
+          ...TALOS_CONFIG.library,
+          namespaces: { targetObjectCategories: '', threats: 'https://elsewhere/basethreats.csv' },
+        },
+      }),
+    );
+    expect(errors.some((e) => e.includes('library.namespaces.targetObjectCategories'))).toBe(true);
+    expect(errors.some((e) => e.includes('library.namespaces.threats'))).toBe(true);
+  });
+
   it('rejects a non-absolute viewerUrl', () => {
     const errors = validateConfig(withOverride({ viewerUrl: 'ftp://bad-scheme' }));
     expect(errors.some((e) => e.includes('viewerUrl'))).toBe(true);

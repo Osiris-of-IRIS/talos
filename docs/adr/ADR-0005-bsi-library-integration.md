@@ -1,6 +1,9 @@
 # ADR-0005: BSI Stand-der-Technik-Bibliothek Integration
 
-- **Status:** Approved
+- **Status:** Approved — **amended by [ADR-0039](ADR-0039-bsi-upstream-live-main-resilience.md)**
+  (2026-11-16): new upstream layout, manifest semantics (live `main`, shas informational),
+  refresh policy (`npm run check:library` + regeneration, no CI job), structured upstream errors.
+  Where this ADR and ADR-0039 disagree, ADR-0039 wins.
 - **Date:** 2026-07-02
 - **Deciders:** Human supervisor, engineering
 - **Decision IDs:** ADR-0005
@@ -11,7 +14,9 @@ The mission requires that OSCAL artifacts are either uploaded by the user **or**
 available from the **BSI Stand-der-Technik-Bibliothek**, which should be *read at the start*.
 Source: `https://github.com/BSI-Bund/Stand-der-Technik-Bibliothek` (CC-BY-SA-4.0).
 
-Verified repository layout (2026-07-02):
+Verified repository layout (2026-07-02) — **historical; superseded by the 2026-10 reorganisation
+into `control_layer/`, `implementation_layer/`, `assessment_layer/`, `documentation/`, see
+ADR-0039 §2**:
 
 ```
 Anwenderkataloge/<name>/<name>-catalog.json          # OSCAL catalogs (Grundschutz++, Mindeststandard-TLS)
@@ -35,6 +40,8 @@ artifacts are user-created. As a static app, TALOS can only fetch this content c
   the unauthenticated GitHub API at runtime (60 req/h/IP limit) and pins a known-good set;
   the manifest records `{ path, artifactType, title, sha, size }` per file. A "refresh from
   upstream" action can re-fetch when online.
+  *Amended by ADR-0039:* content follows live `main` (PO Q1); `sha`/`commit` record the generating
+  upstream state and are not a content pin; the manifest also carries the namespace CSV paths.
 
 ### Loading & caching
 
@@ -74,7 +81,8 @@ artifacts are user-created. As a static app, TALOS can only fetch this content c
 - Clear provenance and licence handling; adopt-to-edit keeps upstream pristine.
 
 **Negative**
-- Manifest must be regenerated to track upstream additions (a maintenance script + CI job).
+- Manifest must be regenerated to track upstream additions and moves (maintenance script;
+  ADR-0039 replaces the CI job with the opt-in `npm run check:library` drift check).
 - Dependent on `raw.githubusercontent.com` CORS/availability (mitigated by cache).
 
 ## References

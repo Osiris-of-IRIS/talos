@@ -16,14 +16,15 @@ const catalogFixture = fileURLToPath(
   new URL('../data/catalog-target-object-categories.json', import.meta.url),
 );
 
-// Real BSI rows for the categories the golden recplast mappings reference (client-pc/laptop ->
-// Endgeräte, server -> Hostsysteme, both Typ="IT-Systeme"). Mocked so generation is deterministic
+// Real BSI rows for the categories the golden recplast mappings reference (client-pc -> IT-Systeme,
+// laptop -> Mobile Endgeräte, server -> Hostsysteme, all Typ="IT-Systeme"; titles as on BSI main
+// @ c3f3785, ADR-0039). Mocked so generation is deterministic
 // and doesn't depend on live network access in CI — same reasoning PLAT-002 documents for why the
 // BSI-library e2e stays offline-fixture-based rather than hitting the real network.
 const TARGET_OBJECT_CATEGORIES_CSV =
   'Zielobjekt,Definition,Typ,Kategorie,Synonyme,ChildOfUUID,UUID\n' +
   'IT-Systeme,"Eigenständige informationstechnische Systeme.",IT-Systeme,Technisch,,,427da6dd-d744-4b2b-88b7-f0a695f21e14\n' +
-  'Endgeräte,"End User Devices.",IT-Systeme,Technisch,,427da6dd-d744-4b2b-88b7-f0a695f21e14,837781a4-7b47-4695-9545-a3310eac7a66\n' +
+  'Mobile Endgeräte,"Mobile IT-Systeme.",IT-Systeme,Technisch,,427da6dd-d744-4b2b-88b7-f0a695f21e14,837781a4-7b47-4695-9545-a3310eac7a66\n' +
   'Hostsysteme,"Serversysteme.",IT-Systeme,Technisch,Server,427da6dd-d744-4b2b-88b7-f0a695f21e14,19c946fc-e991-44ee-87c5-7bbe5d5aaf55\n';
 
 async function mockTargetObjectCategories(page: Page): Promise<void> {

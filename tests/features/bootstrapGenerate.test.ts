@@ -3,7 +3,7 @@
  * controls) and BSI-style (one ISMS SSP for untagged controls + one SSP per mapped asset, filtered
  * by target-object-category ancestor chain). Uses the target-object-category-tagged fixture
  * catalog (tests/data/catalog-target-object-categories.json) and small, real-UUID asset fixtures.
- * Covers TEST-BOOTSTRAP-01.
+ * Covers TEST-BOOTSTRAP-01, TEST-TOC-04.
  */
 import { describe, it, expect } from 'vitest';
 import { generateNist } from '@/features/bootstrap/generateNist';
@@ -142,5 +142,41 @@ describe('generateBsi', () => {
     });
     expect(plans.some((p) => p.correlationKey === assetCorrelationKey('D001'))).toBe(false);
     expect(warnings.some((w) => w.includes('D001'))).toBe(true);
+  });
+
+  // ADR-0039: BSI renamed "Endgeräte" -> "Mobile Endgeräte" in place. A workspace catalog adopted
+  // before such a rename tags controls with a title the live hierarchy no longer has; those
+  // controls can never match an asset, so say so instead of silently dropping them.
+  it('warns (naming the titles) when catalog controls carry categories missing from the hierarchy', () => {
+    const staleCatalog = {
+      ...catalog,
+      controls: [
+        ...(catalog.controls ?? []),
+        {
+          id: 'SYS.2.1.1',
+          title: 'Old-style tag',
+          parts: [{ id: 'SYS.2.1.1_stm', name: 'statement', props: [{ name: 'target_object_categories', value: 'Clients' }] }],
+        },
+      ],
+    } as Catalog;
+    const { warnings } = generateBsi({
+      assets: ASSETS,
+      assetTypes: ASSET_TYPES,
+      categoryRows: CATEGORY_ROWS,
+      catalog: staleCatalog,
+      ismsSystemName: 'ISMS',
+    });
+    expect(warnings.some((w) => w.includes('Clients') && /not in the current BSI/i.test(w))).toBe(true);
+  });
+
+  it('emits no unknown-category warning when every tag resolves', () => {
+    const { warnings } = generateBsi({
+      assets: ASSETS,
+      assetTypes: ASSET_TYPES,
+      categoryRows: CATEGORY_ROWS,
+      catalog,
+      ismsSystemName: 'ISMS',
+    });
+    expect(warnings.some((w) => /not in the current BSI/i.test(w))).toBe(false);
   });
 });

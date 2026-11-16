@@ -1,4 +1,4 @@
-// TALOS entry point. Decision IDs: ADR-0002, ADR-0020.
+// TALOS entry point. Decision IDs: ADR-0002, ADR-0020, ADR-0039.
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles/tokens.css';
@@ -6,6 +6,7 @@ import { App } from './app/App';
 import { renderBootError } from './app/bootError';
 import { TALOS_CONFIG, validateConfig } from './config';
 import { logger } from './shared/logger';
+import { installGlobalErrorLogging } from './app/globalErrorLogging';
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {
@@ -19,6 +20,7 @@ if (configErrors.length > 0) {
   });
   renderBootError(rootEl, configErrors);
 } else {
+  installGlobalErrorLogging(window, logger);
   logger.info('TALOS boot', ['ADR-0002']);
   createRoot(rootEl).render(
     <StrictMode>

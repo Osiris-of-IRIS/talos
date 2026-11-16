@@ -58,7 +58,8 @@ This directory contains asset data for the example organization "Recplast" migra
 
 | Asset Type | Target Object (Zielobjekt) | UUID |
 |------------|---------------------------|------|
-| client-pc, laptop | Endgeräte (End User Devices) | 837781a4-7b47-4695-9545-a3310eac7a66 |
+| client-pc | IT-Systeme (IT Systems) — see note below | 427da6dd-d744-4b2b-88b7-f0a695f21e14 |
+| laptop | Mobile Endgeräte (Mobile Devices) | 837781a4-7b47-4695-9545-a3310eac7a66 |
 | server | Hostsysteme (Host Systems) | 19c946fc-e991-44ee-87c5-7bbe5d5aaf55 |
 | application-office | Office-Anwendungen | b5f9e5ce-d90e-4da5-8ee7-32eae4829e55 |
 | application-server, application-database, application-business | Anwendungen (Applications) | 7e41ecf5-1831-4691-ad0c-4fc7bbc1b871 |
@@ -68,13 +69,26 @@ This directory contains asset data for the example organization "Recplast" migra
 | network-switch, network-firewall, network-recobs | Interne Netzsegmente (Internal Network Segments) | 8ef347e7-ea3f-4624-b0f3-2af728443301 |
 | network-wlan-ap | WLANs | 82a399a2-2fa7-4dd2-9850-89a7ee0505ea |
 | telecom-phone-system | TK-Anwendungen (Telecom Applications) | 67f74abf-162d-4e47-a24a-6ff53e9b124d |
-| telecom-fax | Faxe (Fax Machines) | 05df1662-903f-41ff-ba88-0fbe86050550 |
+| telecom-fax | Faxanwendungen (Fax Applications) | 05df1662-903f-41ff-ba88-0fbe86050550 |
 | building | Gebäude (Buildings) | 422401b2-2c71-4ea5-a71c-6f386ba16cfc |
 | room-office, room-production | Räume (Rooms) | 09517106-2c2c-411e-a06c-65736363286f |
 | room-server | Serverräume (Server Rooms) | 3a894eaa-7b42-4f59-9961-76c9a3ec2837 |
 | room-technical | Räume für technische Infrastruktur | 564530dd-29ce-4988-9192-3b4dbfef061c |
-| room-archive | Datenträgerarchiv (Media Archive) | dfd8e05b-a028-4403-9776-255b968cc4a6 |
+| room-archive | Archiv (Archive) | dfd8e05b-a028-4403-9776-255b968cc4a6 |
 | service-provider | Dienstleistungen (Services) | 04d5e0fa-7b1a-48d5-b87c-1ee0060a4c2d |
+
+### Upstream rename of 837781a4 (2026-11, ADR-0039)
+
+BSI renamed the target-object category with uuid `837781a4-7b47-4695-9545-a3310eac7a66` from
+**"Endgeräte"** (end-user devices) to **"Mobile Endgeräte"** (definition: *"Mobile IT-Systeme …
+In der Regel werden sie von natürlichen Personen verwendet"*, example *Notebooks*) — same uuid,
+narrower meaning. The current hierarchy has no category for stationary end-user devices.
+Keeping `client-pc` on that uuid would give the 18 Recplast desktop PCs mobile-device controls
+(e.g. loss/theft of mobile devices), so `client-pc` now maps to the parent category
+**IT-Systeme** (`427da6dd-…`), which carries the generic IT-system controls; `laptop` stays on
+"Mobile Endgeräte". Verified against the upstream snapshot in `tests/data/bsi/` by TEST-TOC-05.
+The titles in the table above are the current upstream titles (BSI `main` @ c3f3785); matching
+itself is by uuid.
 
 ## Security Sensitivity Levels
 
