@@ -2,7 +2,8 @@
  * BSI library browser page. Decision IDs: ADR-0001, ADR-0005, ADR-0010.
  * Covers TEST-LIB-01 (listing/badge/attribution), TEST-LIB-02 (adopt) and TEST-LIB-06 (new upstream
  * layout: profiles/mapping collections behind the advanced toggle, unsupported kinds never crash,
- * a 404 on adopt shows a localized, actionable error — ADR-0039).
+ * a 404 on adopt shows a localized, actionable error — ADR-0039) and TEST-LIB-07 (ADR-0007 version
+ * policy on adopt: localized warning for 1.0/1.1 library files, silent for 1.2.x).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
@@ -14,6 +15,7 @@ import { ArtifactRepository } from '@/data/artifactRepository';
 import { LibraryPage } from '@/features/library/LibraryPage';
 import { useLibraryStore } from '@/features/library/store';
 import { ToastProvider } from '@/shared/toast';
+import { I18nProvider } from '@/shared/i18n';
 import catalogDoc from '../data/catalog-minimal.json';
 import compDefDoc from '../data/component-definition-minimal.json';
 
@@ -148,5 +150,54 @@ describe('new upstream layout (TEST-LIB-06)', () => {
     expect(toast).toHaveTextContent(/HTTP 404/);
     expect(toast).toHaveTextContent(/reorganised/i);
     expect(await ArtifactRepository.forType('componentDefinition').getAll()).toHaveLength(0);
+  });
+});
+
+describe('ADR-0007 version policy on adopt (TEST-LIB-07)', () => {
+  function stubFetchWithVersion(version: string) {
+    const doc = structuredClone(compDefDoc) as unknown as { 'component-definition': { metadata: Record<string, unknown> } };
+    doc['component-definition'].metadata['oscal-version'] = version;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, status: 200, json: async () => doc })),
+    );
+  }
+
+  function renderLibraryDe() {
+    return render(
+      <I18nProvider language="de">
+        <ToastProvider>
+          <MemoryRouter>
+            <LibraryPage />
+          </MemoryRouter>
+        </ToastProvider>
+      </I18nProvider>,
+    );
+  }
+
+  it('shows a localized version warning when adopting a 1.1.x library file, and still adopts it', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    stubFetchWithVersion('1.1.2');
+    const user = userEvent.setup();
+    renderLibraryDe();
+    const item = screen.getByText('Passwortrichtlinie').closest('li')!;
+    await user.click(within(item).getByRole('button', { name: /Passwortrichtlinie/ }));
+    const toasts = await screen.findAllByTestId('toast');
+    const warning = toasts.find((t) => t.getAttribute('data-level') === 'warning');
+    expect(warning).toBeDefined();
+    expect(warning).toHaveTextContent('Als OSCAL 1.1.2 importiert; beim Export wird auf 1.2.3 normalisiert.');
+    expect(toasts.some((t) => t.getAttribute('data-level') === 'success')).toBe(true);
+    expect(await ArtifactRepository.forType('componentDefinition').getAll()).toHaveLength(1);
+  });
+
+  it('adopts a 1.2.2 library file without a version warning', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    stubFetchWithVersion('1.2.2');
+    const user = userEvent.setup();
+    renderLibraryDe();
+    const item = screen.getByText('Passwortrichtlinie').closest('li')!;
+    await user.click(within(item).getByRole('button', { name: /Passwortrichtlinie/ }));
+    const toasts = await screen.findAllByTestId('toast');
+    expect(toasts.map((t) => t.getAttribute('data-level'))).toEqual(['success']);
   });
 });

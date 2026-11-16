@@ -45,6 +45,36 @@ class RealCatalogTest(unittest.TestCase):
             self.assertTrue(r.decision_ids, msg=f"{r.check} has no decision_ids")
 
 
+class AuthoringVersionTest(unittest.TestCase):
+    """The golden-data oscal-version comes from src/models/oscalBase.ts (ADR-0007), not a copy."""
+
+    def test_reads_the_authoring_version_from_the_app_constant(self) -> None:
+        self.assertEqual(runner.read_authoring_version(REPO_ROOT), "1.2.3")
+
+    def test_missing_constant_is_a_clear_error(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            models = Path(tmp) / "src" / "models"
+            models.mkdir(parents=True)
+            (models / "oscalBase.ts").write_text("export const SOMETHING_ELSE = '1';\n")
+            with self.assertRaisesRegex(RuntimeError, "OSCAL_AUTHORING_VERSION"):
+                runner.read_authoring_version(Path(tmp))
+
+    def test_fixture_on_another_version_fails_golden_data(self) -> None:
+        cat = copy.deepcopy(runner.load_catalog(CATALOG_PATH))
+        cat["golden_data"].append(
+            {
+                "path": "tests/data/component-definition-v1_1.json",
+                "kind": "oscal-document",
+                "artifact_type": "component-definition",
+            }
+        )
+        results = runner.run_checks(cat, REPO_ROOT)
+        failed = [r for r in results if not r.passed and r.check == "golden-data"]
+        self.assertTrue(any("1.1.2 != 1.2.3" in r.message for r in failed), msg=[str(r) for r in failed])
+
+
 class DriftDetectionTest(unittest.TestCase):
     """Each mutation must be caught by a specific named check."""
 

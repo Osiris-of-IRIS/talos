@@ -4,11 +4,15 @@ import { Link } from 'react-router-dom';
 import { useProfilesStore } from './store';
 import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/toast';
+import { formatImportWarnings, importErrorMessage } from '@/shared/importMessages';
 import { downloadArtifactsAsZip } from '@/data/bulkExport';
 import { BulkActionsBar } from '@/features/shared/BulkActionsBar';
 
 export function ProfilesListPage() {
   const { t } = useI18n();
+  // Read through a ref so a re-created `t` never re-fires the import-warning toast effect.
+  const tRef = useRef(t);
+  tRef.current = t;
   const { showToast } = useToast();
   const { items, loading, error, warnings, selected, load, importFromText, remove, toggleSelected, selectAll, removeMany } =
     useProfilesStore();
@@ -23,7 +27,7 @@ export function ProfilesListPage() {
   }, [error, showToast]);
 
   useEffect(() => {
-    if (warnings.length > 0) showToast(warnings.join(' '), 'warning');
+    if (warnings.length > 0) showToast(formatImportWarnings(tRef.current, warnings), 'warning');
   }, [warnings, showToast]);
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -32,7 +36,7 @@ export function ProfilesListPage() {
     try {
       await importFromText(await file.text());
     } catch (err) {
-      showToast(err instanceof Error ? err.message : String(err), 'error');
+      showToast(importErrorMessage(t, err), 'error');
     } finally {
       e.target.value = '';
     }

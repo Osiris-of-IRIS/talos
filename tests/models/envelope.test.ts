@@ -46,7 +46,7 @@ describe('parseOscalDocument', () => {
   it('converts the body to the camelCase app model', () => {
     const { artifact } = parseOscalDocument<ComponentDefinition>(golden);
     expect(artifact.metadata.lastModified).toBe('2026-07-02T10:00:00Z');
-    expect(artifact.metadata.oscalVersion).toBe('1.2.2');
+    expect(artifact.metadata.oscalVersion).toBe('1.2.3');
     expect(artifact.metadata.responsibleParties?.[0]?.roleId).toBe('provider');
     expect(artifact.components?.[0]?.controlImplementations?.[0]?.implementedRequirements[0]?.controlId).toBe(
       'IA-5',

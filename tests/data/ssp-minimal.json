@@ -5,7 +5,7 @@
       "title": "Beispiel-SSP Webserver",
       "last-modified": "2026-07-02T10:00:00Z",
       "version": "1.0.0",
-      "oscal-version": "1.2.2"
+      "oscal-version": "1.2.3"
     },
     "import-profile": { "href": "#bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
     "system-characteristics": {

@@ -3,7 +3,7 @@
  * (control tailoring: import/select/exclude, merge strategy, parameter/control modification).
  * Decision IDs: ADR-0003, ADR-0032.
  *
- * Typed for lossless round-trip of the full NIST OSCAL v1.2.2 shape; fields the editor
+ * Typed for lossless round-trip of the full NIST OSCAL v1.2.3 shape; fields the editor
  * doesn't expose yet (`matching`, `merge.flat`/`merge.custom`, `modify.alters`) stay typed as
  * `unknown` passthrough rather than a fully-modeled-but-unused shape — the envelope codec
  * (envelope.ts) is generic key-casing only, so an `unknown` field round-trips exactly like a

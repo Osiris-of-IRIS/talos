@@ -1,8 +1,8 @@
 /**
  * BSI library loader — manifest, lazy fetch, cache-by-sha, offline fallback, adopt.
- * Decision IDs: ADR-0001, ADR-0005. Covers TEST-LIB-01, TEST-LIB-02, TEST-LIB-03.
+ * Decision IDs: ADR-0001, ADR-0005, ADR-0007. Covers TEST-LIB-01, TEST-LIB-02, TEST-LIB-03, TEST-LIB-07.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
 import { _resetDbForTests } from '@/data/db';
 import { ArtifactRepository } from '@/data/artifactRepository';
@@ -12,12 +12,19 @@ import {
   adoptLibraryArtifact,
   type LibraryManifestEntry,
 } from '@/data/libraryLoader';
+import { UpstreamLoadError } from '@/data/upstreamFetch';
+import { OscalVersionError } from '@/models/oscalBase';
+import { logger } from '@/shared/logger';
 import catalogDoc from './catalog-minimal.json';
 import compDefDoc from './component-definition-minimal.json';
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   _resetDbForTests();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 /** A mock fetch returning `doc` as JSON; optionally fails the first `failFirst` calls. */
@@ -142,5 +149,62 @@ describe('root "$schema" key (TEST-LIB-01, ADR-0039)', () => {
     expect(loaded.type).toBe('componentDefinition');
     const newUuid = await adoptLibraryArtifact(loaded);
     expect(await ArtifactRepository.forType('componentDefinition').get(newUuid)).toBeTruthy();
+  });
+});
+
+/** `doc` with its wrapper's metadata.oscal-version replaced (or removed when `version` is undefined). */
+function withOscalVersion<T extends object>(doc: T, version: string | undefined): T {
+  const copy = structuredClone(doc) as Record<string, { metadata: Record<string, unknown> }>;
+  const wrapper = Object.keys(copy)[0]!;
+  if (version === undefined) delete copy[wrapper]!.metadata['oscal-version'];
+  else copy[wrapper]!.metadata['oscal-version'] = version;
+  return copy as unknown as T;
+}
+
+describe('ADR-0007 version policy on library loads (TEST-LIB-07)', () => {
+  it('flags a 1.1.x library file with the same structured warning as an upload', async () => {
+    vi.spyOn(logger, 'warn').mockImplementation(() => ({}) as never);
+    const loaded = await loadLibraryArtifact(catalogEntry(), {
+      fetch: mockFetch(withOscalVersion(catalogDoc, '1.1.3')),
+      backoffMs: 0,
+    });
+    expect(loaded.versionWarnings).toHaveLength(1);
+    expect(loaded.versionWarnings[0]!.code).toBe('oscal-version-other');
+    expect(loaded.versionWarnings[0]!.params).toEqual({ version: '1.1.3', target: '1.2.3' });
+    // the upstream (offline/cache) warning channel is untouched
+    expect(loaded.warning).toBeUndefined();
+    expect(loaded.problem).toBeUndefined();
+  });
+
+  it('also applies the policy on a cache hit', async () => {
+    vi.spyOn(logger, 'warn').mockImplementation(() => ({}) as never);
+    const fetch = mockFetch(withOscalVersion(catalogDoc, '1.0.4'));
+    await loadLibraryArtifact(catalogEntry(), { fetch, backoffMs: 0 });
+    const second = await loadLibraryArtifact(catalogEntry(), { fetch, backoffMs: 0 });
+    expect(second.fromCache).toBe(true);
+    expect(second.versionWarnings.map((w) => w.code)).toEqual(['oscal-version-other']);
+  });
+
+  it('loads a 1.2.2 library file with no warning (info log only)', async () => {
+    const info = vi.spyOn(logger, 'info').mockImplementation(() => ({}) as never);
+    const loaded = await loadLibraryArtifact(compDefEntry(), {
+      fetch: mockFetch(withOscalVersion(compDefDoc, '1.2.2')),
+      backoffMs: 0,
+    });
+    expect(loaded.versionWarnings).toEqual([]);
+    expect(info).toHaveBeenCalledWith(
+      expect.stringMatching(/1\.2\.x/),
+      ['ADR-0007'],
+      expect.objectContaining({ source: 'library', version: '1.2.2', path: compDefEntry().path }),
+    );
+  });
+
+  it('rejects a non-1.x library file with a version error, not as an upstream outage', async () => {
+    const loading = loadLibraryArtifact(catalogEntry(), {
+      fetch: mockFetch(withOscalVersion(catalogDoc, '2.0.0')),
+      backoffMs: 0,
+    });
+    await expect(loading).rejects.toBeInstanceOf(OscalVersionError);
+    await expect(loading).rejects.not.toBeInstanceOf(UpstreamLoadError);
   });
 });

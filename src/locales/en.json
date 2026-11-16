@@ -473,5 +473,10 @@
   "dashboard_risk_status_full": "Fully covered",
   "dashboard_risk_totals_heading": "Average per SSP",
   "dashboard_risk_by_ssp_heading": "By SSP",
-  "dashboard_risk_chart_aria": "Average risk coverage per SSP, by category"
+  "dashboard_risk_chart_aria": "Average risk coverage per SSP, by category",
+
+  "import_warning_oscal_version_other": "Imported as OSCAL {version}; exporting will normalize to {target}.",
+  "import_warning_oscal_version_missing": "Document has no metadata.oscal-version; treating it as {target}. Export will write {target}.",
+  "import_error_oscal_version_unsupported": "Unsupported OSCAL version \"{version}\". TALOS imports OSCAL 1.x only (authoring/export is {target}).",
+  "import_error_oscal_version_unrecognized": "Unrecognized OSCAL version \"{version}\". TALOS imports OSCAL 1.x only."
 }

@@ -50,7 +50,10 @@ adr_coverage_required:
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
-#                           base fields + oscal-version 1.2.2 are asserted (ADR-0003/0007).
+#                           base fields + oscal-version == OSCAL_AUTHORING_VERSION (read by the
+#                           harness from src/models/oscalBase.ts, currently 1.2.3) are asserted
+#                           (ADR-0003/0007). Fixtures that deliberately test older-version import
+#                           (e.g. component-definition-v1_1.json, 1.1.2) are not registered here.
 #   kind: fragment       -> a bare sub-object (not a full document); only `id_field` asserted.
 golden_data:
   - path: tests/data/component-definition-minimal.json
@@ -385,13 +388,31 @@ suites:
     golden: [tests/data/catalog-minimal.json]
 
   - id: TEST-VER-01
-    title: Import OSCAL-version policy (accept 1.x with warning, reject non-1.x)
+    title: "Import OSCAL-version policy: authoring 1.2.3; other 1.2.x silent (info level); 1.0/1.1/other 1.x minors warn; missing warns; non-1.x/unparseable throw a structured OscalVersionError (ADR-0007 amendment 2026-11-16)"
     file: tests/models/oscalBase.test.ts
     type: unit
     runner: vitest
     status: implemented
     feature: PLAT-004
     adr_refs: [ADR-0001, ADR-0007]
+
+  - id: TEST-VER-02
+    title: "OSCAL_AUTHORING_VERSION is the single source of truth: blank SSP/profile/component-definition factories + runtime config use it; no OSCAL version literal elsewhere in src/ or tools/"
+    file: tests/models/oscalVersionSource.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0007, ADR-0002]
+
+  - id: TEST-IMPORTMSG-01
+    title: "Localized (de/en) OSCAL import version warnings and version errors from structured codes; upstream errors delegated, other errors passed through"
+    file: tests/shared/importMessages.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-004
+    adr_refs: [ADR-0001, ADR-0007, ADR-0012]
 
   - id: TEST-META-01
     title: "Shared MetadataEditor roles/parties/responsible-parties + referential integrity + party depth; title/version/remarks field layout (T-160 item 2)"
@@ -561,6 +582,15 @@ suites:
     feature: PLAT-002
     adr_refs: [ADR-0001, ADR-0005, ADR-0012, ADR-0039]
 
+  - id: TEST-LIB-07
+    title: "ADR-0007 version policy on library loads/adopt (same as upload): 1.0/1.1 library files flagged with a localized warning toast (fetch and cache-hit paths), 1.2.x silent with an info log, non-1.x rejected as a version error (not an upstream outage)"
+    file: tests/data/libraryLoader.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: PLAT-002
+    adr_refs: [ADR-0001, ADR-0005, ADR-0007, ADR-0012]
+
   # ---- Landing page (PLAT-001) ----------------------------------------------------
   - id: TEST-LAND-01
     title: Landing page links every feature with symbol, layer colours + counts
@@ -609,13 +639,14 @@ suites:
 
   # ---- Component-definitions (IMPL-001) -------------------------------------------
   - id: TEST-CDEF-01
-    title: "Component-definition store + list/detail pages (off-version warning + creator export gate); bulk selection (checkboxes, select-all, download-zip skip-warning, delete-with-confirm)"
+    title: "Component-definition store + list/detail pages (localized off-version warning, no warning for 1.2.x + creator export gate); bulk selection (checkboxes, select-all, download-zip skip-warning, delete-with-confirm)"
     file: tests/features/componentDefinitions.test.tsx
     type: component
     runner: vitest
     status: implemented
     feature: IMPL-001
-    adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0019, ADR-0027, ADR-0028]
+    adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0012, ADR-0019, ADR-0027, ADR-0028]
+
 
   - id: TEST-CDEF-02
     title: E2E upload component-definition -> list -> detail + landing link

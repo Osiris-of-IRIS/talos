@@ -4,19 +4,20 @@
  */
 import { parseOscalDocument, serializeOscalDocument } from '@/models/envelope';
 import {
-  checkImportOscalVersion,
   OSCAL_AUTHORING_VERSION,
+  type ImportWarning,
   type Metadata,
   type OscalArtifactType,
 } from '@/models/oscalBase';
+import { applyImportVersionPolicy } from './importVersionPolicy';
 import { validateCreator } from '@/models/creator';
 import type { Origin, StoredArtifact } from './db';
 
 export interface ParsedUpload<T = unknown> {
   type: OscalArtifactType;
   record: StoredArtifact<T>;
-  /** Non-blocking import warnings (e.g. off-version OSCAL, ADR-0007). */
-  warnings: string[];
+  /** Non-blocking import warnings (e.g. off-version OSCAL, ADR-0007); localized by the UI. */
+  warnings: ImportWarning[];
 }
 
 /** Parse uploaded OSCAL JSON text into a stored-artifact record (origin: imported). */
@@ -35,11 +36,9 @@ export function parseOscalUpload<T = unknown>(text: string, origin: Origin = 'im
   if (!a.metadata || typeof a.metadata.title !== 'string') {
     throw new Error('OSCAL document is missing metadata.title.');
   }
-  // ADR-0007: accept any 1.x (warn if off the authoring version); throw on non-1.x. The
-  // document is stored as-is, preserving its declared oscal-version.
-  const warnings: string[] = [];
-  const versionWarning = checkImportOscalVersion(a.metadata.oscalVersion);
-  if (versionWarning) warnings.push(versionWarning);
+  // ADR-0007: accept any 1.x (silent for 1.2.x patches, warn for other versions); throw on
+  // non-1.x. The document is stored as-is, preserving its declared oscal-version.
+  const warnings = applyImportVersionPolicy(a.metadata.oscalVersion, 'upload', { title: a.metadata.title });
   const ts = new Date().toISOString();
   return {
     type,
