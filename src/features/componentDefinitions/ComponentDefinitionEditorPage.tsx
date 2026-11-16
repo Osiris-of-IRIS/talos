@@ -7,7 +7,7 @@ import { BackMatterEditor } from '@/features/shared/BackMatterEditor';
 import { ControlImplementationsEditor } from './ControlImplementationsEditor';
 import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
 import { createBlankComponentDefinition } from './blank';
-import { COMPONENT_TYPES } from '@/models/componentTypes';
+import { componentTypeOptions } from '@/models/componentTypes';
 import { useI18n } from '@/shared/i18n';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { MarkupEditor } from '@/shared/MarkupEditor';
@@ -21,7 +21,6 @@ import { syncUnresolvedReferences } from '@/data/unresolvedReferences';
 import { useSeedDefaultCreator } from '@/features/shared/useSeedDefaultCreator';
 import type { ComponentDefinition, DefinedComponent } from '@/models/componentDefinition';
 
-const COMPONENT_TYPE_OPTIONS = COMPONENT_TYPES.map((ct) => ({ value: ct.value, label: ct.description }));
 
 const repo = () => ArtifactRepository.forType<ComponentDefinition>('componentDefinition');
 
@@ -363,7 +362,7 @@ export function ComponentDefinitionEditorPage() {
                     ariaLabel={t('cdef_component_type_aria')}
                     dataTestId="component-type"
                     listId={`component-type-options-${c.uuid}`}
-                    options={COMPONENT_TYPE_OPTIONS}
+                    options={componentTypeOptions(t)}
                     value={c.type}
                     onChange={(v) => patchComponent(i, (cc) => (cc.type = v))}
                   />

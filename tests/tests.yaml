@@ -83,6 +83,9 @@ golden_data:
   - path: tests/data/profile-minimal.json
     kind: oscal-document
     artifact_type: profile
+  - path: tests/data/oscal-1.2.3-component-types.json
+    kind: fragment
+    id_field: values
 
 suites:
   # ---- Shared platform (PLAT-004) -------------------------------------------------
@@ -647,6 +650,15 @@ suites:
     feature: IMPL-001
     adr_refs: [ADR-0001, ADR-0004, ADR-0007, ADR-0012, ADR-0019, ADR-0027, ADR-0028]
 
+  - id: TEST-COMPTYPE-01
+    title: "Component type suggestions = NIST OSCAL 1.2.3 allowed values (15, metaschema order, incl. region/zone/resource-container/network); descriptions are de/en locale keys, English = NIST wording"
+    file: tests/models/componentTypes.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: IMPL-001
+    adr_refs: [ADR-0001, ADR-0003, ADR-0007, ADR-0012]
+    golden: [tests/data/oscal-1.2.3-component-types.json]
 
   - id: TEST-CDEF-02
     title: E2E upload component-definition -> list -> detail + landing link
