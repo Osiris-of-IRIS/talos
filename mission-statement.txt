@@ -33,10 +33,10 @@ The Myth: Talos was a giant bronze automaton forged to protect the island of Cre
 	How many assessments have been done on SSPs with what coverage how recently and what were the findings?
 
 [1] OSCAL profile model
-https://pages.nist.gov/OSCAL-Reference/models/v1.2.2/profile/json-outline/
+https://pages.nist.gov/OSCAL-Reference/models/v1.2.3/profile/json-outline/
 
 [2] OSCAL component-definition model
-https://pages.nist.gov/OSCAL-Reference/models/v1.2.2/component-definition/json-outline/
+https://pages.nist.gov/OSCAL-Reference/models/v1.2.3/component-definition/json-outline/
 
 [3] OSCAL System Security Plan (SSP) model
 https://pages.nist.gov/OSCAL/learn/concepts/layer/implementation/ssp/
@@ -48,4 +48,4 @@ https://pages.nist.gov/OSCAL/learn/concepts/layer/assessment/assessment-plan/
 https://pages.nist.gov/OSCAL/learn/concepts/layer/assessment/assessment-results/
 
 [6] OSCAL Plan of Action and Milestones Model
-https://pages.nist.gov/OSCAL-Reference/models/v1.2.2/plan-of-action-and-milestones/json-outline/
+https://pages.nist.gov/OSCAL-Reference/models/v1.2.3/plan-of-action-and-milestones/json-outline/
