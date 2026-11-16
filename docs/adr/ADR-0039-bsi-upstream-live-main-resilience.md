@@ -157,6 +157,19 @@ hierarchy (e.g. a workspace catalog adopted before a rename). The golden recplas
 - Matching remains title-based for the last hop; a catalog/hierarchy rename mismatch is now
   *reported*, not *repaired*.
 
+## Product-owner decisions on review (2026-11-16)
+
+- **Golden data:** accepted — `client-pc` in `tests/data/golden/recplast/mappings.csv` maps to
+  "IT-Systeme" (`427da6dd`) now that BSI's `837781a4` is "Mobile Endgeräte" (no stationary
+  end-device category upstream).
+- **Library cache freshness:** approved as follow-up — revalidate cached library files against
+  upstream on adopt (conditional GET / ETag).
+- **Drift check:** approved as follow-up — a weekly scheduled, non-blocking CI job running
+  `npm run check:library -- --json`; never part of the deploy gate.
+- **Localization:** every user-facing string (including loader/bootstrap warnings that are still
+  English-only) must come from the central per-language translation files (`src/locales/de.json`,
+  `src/locales/en.json`, ADR-0012).
+
 ## References
 
 - PO decisions 2026-11-16 (Q1, Q11); workflow review T-01; OSCAL 1.2.3 review §1 item 5.
