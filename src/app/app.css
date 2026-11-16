@@ -787,7 +787,7 @@ section[data-layer='Dashboard'] .feature-card {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-width: 24rem;
+  max-width: min(24rem, calc(100vw - 2rem));
 }
 
 .toast {
@@ -801,6 +801,13 @@ section[data-layer='Dashboard'] .feature-card {
   border: 1px solid var(--color-border);
   box-shadow: 0 4px 12px var(--color-shadow);
   color: var(--color-text);
+}
+
+/* Long unbroken tokens (e.g. the URL in a BSI upstream error, ADR-0039) must wrap inside the
+ * toast instead of pushing it past the viewport edge. */
+.toast > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .toast--success {
