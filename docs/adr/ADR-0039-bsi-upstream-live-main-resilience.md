@@ -46,7 +46,11 @@ The product owner decided (Q1) that TALOS follows BSI's **live `main`**, not a p
   (`LIBRARY_RAW_BASE`); paths are percent-encoded per segment (BSI paths contain spaces and `+`).
 - The bundled `src/data/library-index.json` records `ref: "main"`, the upstream `commit` it was
   generated from and per-file git blob `sha`/`size`. These are **informational** (drift detection,
-  cache keys), not a content pin: a file that changed upstream is served as it is on `main`.
+  cache keys), not a content pin: the first fetch of a library file returns whatever is on `main`
+  at that moment. Caveat (unchanged ADR-0005 behaviour): the `libraryCache` entry is keyed by
+  path + *index* sha, so once a file is cached in a browser it is reused until a newer index ships;
+  namespace CSVs are re-fetched on every load. Revalidating cached library files against live
+  `main` (e.g. conditional GET with ETag) is a recorded follow-up.
 - Consequence accepted by the PO: upstream moves *will* recur; TALOS must make them visible
   and cheap to repair (sections 3–5) rather than impossible.
 
@@ -147,7 +151,7 @@ hierarchy (e.g. a workspace catalog adopted before a rename). The golden recplas
 
 **Negative / accepted risks**
 - Live `main` means content can change under a stable index; `sha` is no longer a freshness
-  guarantee (cache entries keyed by the *index* sha may hold newer upstream content).
+  guarantee: a browser's cached copy may be older or newer than the blob the index sha names.
 - A move still breaks the affected feature until someone regenerates and redeploys the index;
   TALOS cannot self-repair.
 - Matching remains title-based for the last hop; a catalog/hierarchy rename mismatch is now
