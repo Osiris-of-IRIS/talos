@@ -48,6 +48,9 @@ Engineering conventions for TALOS. Decision IDs referenced inline.
   **red** in console (toasts still T-035) `[ADR-0002]`.
 - Fail fast on invalid config at startup with a clear red error — `validateConfig()` in
   `src/config.ts`, wired in `main.tsx` (T-025).
+- Anything fetched from the BSI upstream goes through `fetchUpstream` (`src/data/upstreamFetch.ts`);
+  every such promise chain ends in a `.catch` that shows a toast formatted by
+  `src/shared/upstreamMessages.ts` — never a bare `.then` `[ADR-0039]`.
 
 ## Git & commits
 - Dedicated `talos` repo. Conventional-commit style (`feat:`, `fix:`, `docs:`, `test:`).

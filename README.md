@@ -33,6 +33,18 @@ npm run dev        # start the dev server (http://localhost:5173)
 | `npm run test:e2e` | End-to-end tests (Playwright) |
 | `npm run test:harness` | Traceability & golden-data gate (`tests/test_harness/runner.py`, requires `pip install -r tests/test_harness/requirements.txt`) |
 | `npm run check` | lint + typecheck + test |
+| `npm run check:library` | **Network, opt-in, not CI:** checks that every BSI library path and namespace CSV in `src/data/library-index.json` still resolves on BSI's live `main` |
+| `npm run gen:library-index` | Regenerate the BSI library index (`> src/data/library-index.json`; add `-- --clone <dir>` to use a local clone) |
+
+## BSI Stand-der-Technik-Bibliothek
+
+TALOS reads catalogs, profiles and component-definitions from the
+[BSI Stand-der-Technik-Bibliothek](https://github.com/BSI-Bund/Stand-der-Technik-Bibliothek)
+(content © BSI, licensed **CC-BY-SA-4.0**) directly from its live `main` branch, plus two
+namespace CSVs (target-object categories, elementary threats). If BSI moves files upstream, TALOS
+shows an error naming the file and URL instead of failing silently; maintainers run
+`npm run check:library` and regenerate the index (see [`docs/ops.md`](docs/ops.md) and ADR-0039).
+Mapping collections are listed but not supported yet.
 
 ## Project status
 

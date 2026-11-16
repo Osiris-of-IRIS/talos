@@ -9,7 +9,7 @@ the order decisions were made.
 | [ADR-0002](adr/ADR-0002-static-clientside-architecture.md) | Static Client-Side Architecture (React + Vite + TS, GitHub Pages) | Approved | ADR-0002 |
 | [ADR-0003](adr/ADR-0003-oscal-artifact-data-model.md) | Reusable OSCAL Artifact Data Model | Approved | ADR-0003 |
 | [ADR-0004](adr/ADR-0004-clientside-persistence.md) | Client-Side Persistence (IndexedDB + File I/O) | Approved | ADR-0004 |
-| [ADR-0005](adr/ADR-0005-bsi-library-integration.md) | BSI Stand-der-Technik-Bibliothek Integration | Approved | ADR-0005 |
+| [ADR-0005](adr/ADR-0005-bsi-library-integration.md) | BSI Stand-der-Technik-Bibliothek Integration | Approved — amended by ADR-0039 (layout, manifest semantics, refresh policy, errors) | ADR-0005 |
 | [ADR-0006](adr/ADR-0006-landing-page-navigation.md) | Landing Page & Feature Navigation Hub | Approved | ADR-0006 |
 | [ADR-0007](adr/ADR-0007-oscal-version-support.md) | OSCAL Version Support & Compatibility | Approved | ADR-0007 |
 | [ADR-0008](adr/ADR-0008-external-catalog-viewer.md) | Catalog & Control Viewing via External SdT-Viewer | Approved | ADR-0008 |
@@ -43,6 +43,7 @@ the order decisions were made.
 | [ADR-0036](adr/ADR-0036-component-definition-assistant.md) | Component-Definition Creation Assistant (Single Component) | Approved | ADR-0036 |
 | [ADR-0037](adr/ADR-0037-ssp-groups-apply-to-propagation.md) | SSP Groups & "Apply to..." Change Propagation | Approved | ADR-0037 |
 | [ADR-0038](adr/ADR-0038-profile-detail-control-filter.md) | Profile Detail Page Control Text Filter | Approved | ADR-0038 |
+| [ADR-0039](adr/ADR-0039-bsi-upstream-live-main-resilience.md) | BSI Upstream — Follow Live `main`, Layout-Aware Index, Non-Silent Failures (PO Q1) | Approved | ADR-0039 |
 
 ## Notes
 

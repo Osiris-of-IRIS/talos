@@ -46,6 +46,7 @@ adr_coverage_required:
   - ADR-0032 # profile CRUD, tailoring model (imports/merge/modify), Profile Creation Assistant
   - ADR-0034 # management dashboard page shell, Recharts, control coverage per-control aggregation
   - ADR-0035 # risk coverage: threat catalog loader, per-SSP bucket reduction, workspace averages
+  - ADR-0039 # BSI upstream: follow live main, layout-aware index, non-silent upstream errors
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -89,7 +90,7 @@ suites:
     runner: vitest
     status: implemented
     feature: PLAT-004
-    adr_refs: [ADR-0001, ADR-0003, ADR-0014, ADR-0032]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0014, ADR-0032, ADR-0039]
     golden:
       - tests/data/component-definition-minimal.json
       - tests/data/component-definition-referencing.json
@@ -418,7 +419,7 @@ suites:
     runner: vitest
     status: implemented
     feature: PLAT-005
-    adr_refs: [ADR-0001, ADR-0002]
+    adr_refs: [ADR-0001, ADR-0002, ADR-0039]
 
   - id: TEST-LOG-01
     title: Structured logger (decision_ids, app version, console styling, ring buffer)
@@ -513,7 +514,7 @@ suites:
     runner: vitest
     status: implemented
     feature: PLAT-002
-    adr_refs: [ADR-0001, ADR-0005, ADR-0004]
+    adr_refs: [ADR-0001, ADR-0005, ADR-0004, ADR-0039]
 
   - id: TEST-LIB-02
     title: Library items read-only with provenance badge; adopt copies with new uuid (origin user)
@@ -522,7 +523,7 @@ suites:
     runner: vitest
     status: implemented
     feature: PLAT-002
-    adr_refs: [ADR-0001, ADR-0005, ADR-0010]
+    adr_refs: [ADR-0001, ADR-0005, ADR-0010, ADR-0039]
 
   - id: TEST-LIB-03
     title: Graceful offline fallback to cached copy with warning; retry on transient failure
@@ -532,6 +533,33 @@ suites:
     status: implemented
     feature: PLAT-002
     adr_refs: [ADR-0001, ADR-0005]
+
+  - id: TEST-LIB-04
+    title: "BSI library layout classifier (control_layer/implementation_layer suffixes, profile-referenced catalogs = Quellkatalog, mapping collections) + bundled index integrity (real shas, new-layout paths, namespace CSV paths)"
+    file: tests/tools/libraryLayout.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-002
+    adr_refs: [ADR-0001, ADR-0005, ADR-0039]
+
+  - id: TEST-LIB-05
+    title: "Upstream resilience: shared fetch (404 not retried), structured UpstreamLoadError, decision_ids logging + counters, stale-cache reason; namespace URLs on the new layout"
+    file: tests/data/upstreamFetch.test.ts
+    type: integration
+    runner: vitest
+    status: implemented
+    feature: PLAT-002
+    adr_refs: [ADR-0001, ADR-0005, ADR-0035, ADR-0039]
+
+  - id: TEST-LIB-06
+    title: "Library page on the new layout: profiles/mapping collections behind the advanced toggle, unsupported kinds marked and not adoptable, localized actionable 404 toast on adopt"
+    file: tests/features/library.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-002
+    adr_refs: [ADR-0001, ADR-0005, ADR-0012, ADR-0039]
 
   # ---- Landing page (PLAT-001) ----------------------------------------------------
   - id: TEST-LAND-01
@@ -863,6 +891,25 @@ suites:
     adr_refs: [ADR-0001, ADR-0016, ADR-0026]
     golden: [tests/data/catalog-target-object-categories.json]
 
+  - id: TEST-TOC-04
+    title: "Category-tag robustness: comma-joined multi-category tags, whitespace/NFC normalization, unknown (renamed) category titles reported as a bootstrap warning"
+    file: tests/data/targetObjectHierarchy.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0026, ADR-0039]
+
+  - id: TEST-TOC-05
+    title: "Golden recplast mappings reference only upstream target-object categories (snapshot @ c3f3785); desktop PCs not mapped to Mobile Endgeräte"
+    file: tests/data/goldenTargetObjectMappings.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: ASST-002
+    adr_refs: [ADR-0001, ADR-0026, ADR-0039]
+    golden: [tests/data/bsi/target_object_categories.csv, tests/data/golden/recplast/mappings.csv]
+
   - id: TEST-BOOTSTRAP-01
     title: "NIST-style and BSI-style SSP generation (pure) against target-object-category-tagged fixtures; per-asset inventory-item generation with NIST asset-type alignment (ADR-0031)"
     file: tests/features/bootstrapGenerate.test.ts
@@ -870,7 +917,7 @@ suites:
     runner: vitest
     status: implemented
     feature: ASST-002
-    adr_refs: [ADR-0001, ADR-0003, ADR-0026, ADR-0031]
+    adr_refs: [ADR-0001, ADR-0003, ADR-0026, ADR-0031, ADR-0039]
     golden: [tests/data/catalog-target-object-categories.json]
 
   - id: TEST-BOOTSTRAP-02
@@ -927,6 +974,15 @@ suites:
     status: implemented
     feature: DASH-001
     adr_refs: [ADR-0001, ADR-0006, ADR-0011, ADR-0035]
+
+  - id: TEST-DASH-07
+    title: "Dashboard Risk Coverage when the threat catalog fails to load: handled rejection, error toast + inline Risk-tile note"
+    file: tests/features/dashboardThreatLoadError.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: DASH-001
+    adr_refs: [ADR-0001, ADR-0035, ADR-0039]
 
   - id: TEST-DASH-02
     title: Dashboard Control Coverage (per-control worst-status-wins reduction, workspace + per-SSP totals)
