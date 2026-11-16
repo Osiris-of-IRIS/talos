@@ -51,7 +51,9 @@ export function parseOscalDocument<T = Record<string, unknown>>(
   if (json === null || typeof json !== 'object' || Array.isArray(json)) {
     throw new Error('Not an OSCAL document: expected a JSON object with a single wrapper key.');
   }
-  const keys = Object.keys(json as Record<string, unknown>);
+  // A root "$schema" (JSON-Schema pointer, e.g. in BSI's ITGS mapping collection) is not part of
+  // the OSCAL model; ignore it rather than reject the document (ADR-0039). Not re-emitted on export.
+  const keys = Object.keys(json as Record<string, unknown>).filter((k) => k !== '$schema');
   if (keys.length !== 1) {
     throw new Error(
       `Not an OSCAL document: expected exactly one top-level wrapper key, found ${keys.length} (${keys.join(', ')}).`,
