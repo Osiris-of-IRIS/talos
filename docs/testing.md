@@ -13,7 +13,7 @@ Decision IDs: ADR-0001 (TDD), plus per-feature ADRs.
 |---|---|---|
 | Unit / component | Vitest + React Testing Library (jsdom) | codecs, validators, renderer, search, editors, stores |
 | Golden round-trip | Vitest + fixtures | `import(json) → model → export(json)` deep-equal per artifact type |
-| Contract / schema | Ajv + vendored NIST v1.2.2 schemas | every import/export validated |
+| Contract / schema | Ajv + vendored NIST v1.2.3 schemas (planned, backlog #3 — not implemented yet) | every import/export validated |
 | Integration | Vitest (fake-indexeddb) | persistence repositories, library loader, file I/O |
 | E2E | Playwright | one major user flow per feature (see E2E convention below) |
 | YAML harness | `tests/test_harness/runner.py` | reads `tests/tests.yaml`; **contract & traceability gate** (ADR-0018) — not a JS-runner wrapper; JSON logs + JUnit XML |
@@ -51,7 +51,9 @@ Draft, no file yet), so the catalog doubles as a test-side status board.
 *not* run the JS tests (Vitest/Playwright do). It enforces: catalog-structure, file-exists,
 traceability (`Covers TEST-*` headers ↔ catalog), feature-linkage, adr-coverage (every ADR in
 `adr_coverage_required` keeps ≥1 implemented test), and golden-data (fixtures parse + correct
-wrapper/base-fields/`oscal-version` 1.2.2). Full NIST JSON-Schema validation is deferred to
+wrapper/base-fields/`oscal-version` == `OSCAL_AUTHORING_VERSION`, read from
+`src/models/oscalBase.ts` — currently 1.2.3; fixtures that test older-version import, e.g.
+`component-definition-v1_1.json`, are deliberately not registered as golden documents). Full NIST JSON-Schema validation is deferred to
 T-030. It emits `test-results/harness-log.jsonl` + `test-results/harness-junit.xml`, exits
 non-zero on failure, and gates CI ahead of the JS suite.
 

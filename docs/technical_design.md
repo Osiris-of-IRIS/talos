@@ -69,7 +69,7 @@ flowchart TB
 | Build | Vite | `base: '/talos/'` for Pages |
 | Routing | React Router **HashRouter** | Static-host deep links `[ADR-0002]` |
 | State | **Zustand** | Light stores, IndexedDB-synced (Q5) |
-| Schema validation | **Ajv** (2020-12) | NIST OSCAL v1.2.2 schemas `[ADR-0003,0007]` |
+| Schema validation | **Ajv** (planned, backlog #3 — not wired yet; NIST schemas are draft-07) | NIST OSCAL v1.2.3 schemas `[ADR-0003,0007]` |
 | Persistence | **IndexedDB** (`idb` wrapper) | `[ADR-0004]` |
 | Zip (workspace bundle) | a small zip lib (e.g. `fflate`) | export/import-all (Q8) |
 | Markdown | dependency-free renderer (optionally `marked`+`DOMPurify`, constrained) | `[ADR-0009]` |
@@ -92,8 +92,13 @@ Shared **`OscalArtifact`** base (`uuid`, `metadata`, `back-matter`) extended per
 - **Shared sub-models & editors:** metadata (roles/parties/props/links/revisions/document-ids),
   back-matter (resources/rlinks/citations), props/links helpers, document-ids (bare-uuid scheme).
 - **Validation:** shared envelope validated once; body by the per-type schema. Import + export
-  both validate. Authoring/export = **v1.2.2**; import accepts any 1.x with a warning and no
-  auto-conversion `[ADR-0007]`.
+  both validate *(planned — schema validation is not implemented yet, backlog #3)*.
+  Authoring/export = **v1.2.3** (`OSCAL_AUTHORING_VERSION`, single source); import accepts any
+  1.x without auto-conversion: other 1.2.x patches silently (info log), 1.0/1.1/other minors and a
+  missing version with a localized warning, non-1.x rejected. Upload and library adopt share one
+  policy helper (`src/data/importVersionPolicy.ts`, outcome counters) `[ADR-0007 amended 2026-11-16]`.
+  Component-type suggestions follow the NIST 1.2.3 list (15 values) with localized descriptions
+  (`src/models/componentTypes.ts`).
 - **Control references:** IDs resolved to titles when the catalog is cached; full viewing is
   offloaded to the external viewer `[ADR-0008]`.
 - **Composition:** component-definitions compose others via `import-component-definition` —
@@ -266,7 +271,7 @@ interface TalosConfig {
   };
   viewerUrl: string;                // Stand-der-Technik-Viewer base
   defaultLanguage: 'de' | 'en';     // 'de'
-  oscalVersion: string;             // must equal OSCAL_AUTHORING_VERSION ('1.2.2')
+  oscalVersion: string;             // must equal OSCAL_AUTHORING_VERSION ('1.2.3')
   backMatter: {
     maxEmbeddedFileBytes: number;   // hard limit for base64-embedded files (default 5 MiB, ADR-0015)
   };
@@ -300,7 +305,7 @@ warn/error paths (e.g. `fileIo`'s import warnings) are not yet retrofitted — f
 - **Unit/component** (Vitest + RTL): codecs, validators, renderer, search, editors.
 - **Golden round-trip:** `import(json) → model → export(json)` deep-equals, per artifact type,
   fixtures in `tests/data/` (incl. sanitized BSI samples with attribution).
-- **Contract/schema:** Ajv against vendored NIST v1.2.2 schemas.
+- **Contract/schema:** Ajv against vendored NIST v1.2.3 schemas (planned, backlog #3).
 - **E2E** (Playwright): landing → adopt-from-library → edit component-def/SSP → download.
 - **YAML harness** (`tests/test_harness/runner.py`): executes `tests/tests.yaml`, validates
   golden/schema, emits JSON logs + JUnit XML.
@@ -323,7 +328,7 @@ to Pages (`actions/deploy-pages`). `404.html` = `index.html` copy for non-hash f
    mirrors the target-object-category namespace CSV loader (item 4 below).
 2. **External viewer deep-linking** — no per-control URL API today; revisit if the viewer adds
    one `[ADR-0008]`.
-3. **Multi-version OSCAL conversion** — deferred; revisit if BSI/user files diverge from 1.2.2
+3. **Multi-version OSCAL conversion** — deferred; revisit if BSI/user files diverge from 1.2.3
    materially `[ADR-0007]`.
 4. ~~**Assistant SSP-bootstrap input format**~~ — **Resolved (ADR-0026, T-301):** 3-file CSV asset
    list matching the golden `recplast` shape; target-object-category hierarchy live-fetched from
