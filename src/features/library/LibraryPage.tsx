@@ -1,29 +1,35 @@
-// BSI library browser: list read-only library artifacts, adopt into the workspace.
-// Decision IDs: ADR-0005, ADR-0006, ADR-0010, ADR-0012.
+// BSI library browser: list read-only library artifacts, adopt into the workspace. Kinds TALOS
+// cannot open yet (mapping collections, PO Q11) are listed as "not supported yet", never adopted.
+// Decision IDs: ADR-0005, ADR-0006, ADR-0010, ADR-0012, ADR-0039.
 import { Link } from 'react-router-dom';
 import { LIBRARY_LICENSE } from '@/config';
-import { getLibraryManifest, type LibraryManifestEntry } from '@/data/libraryLoader';
+import {
+  DEFAULT_LIBRARY_CATEGORIES,
+  getLibraryManifest,
+  isAdoptableLibraryEntry,
+  type LibraryManifestEntry,
+} from '@/data/libraryLoader';
 import { useLibraryStore } from './store';
 import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/toast';
-
-const DEFAULT_CATEGORIES = new Set(['Anwenderkatalog', 'Komponente']);
+import { formatUpstreamProblem, upstreamErrorMessage } from '@/shared/upstreamMessages';
 
 export function LibraryPage() {
   const { t } = useI18n();
   const { showToast } = useToast();
   const { items, showAdvanced, busyPath, toggleAdvanced, adopt } = useLibraryStore();
   const manifest = getLibraryManifest();
-  const visible = items.filter((e) => showAdvanced || DEFAULT_CATEGORIES.has(e.category));
+  const visible = items.filter((e) => showAdvanced || DEFAULT_LIBRARY_CATEGORIES.has(e.category));
 
   async function onAdopt(entry: LibraryManifestEntry) {
     await adopt(entry);
-    const { error, warning, adoptedTitle } = useLibraryStore.getState();
+    const { error, errorCause, warning, warningProblem, adoptedTitle } = useLibraryStore.getState();
     if (error) {
-      showToast(error, 'error');
+      showToast(upstreamErrorMessage(t, errorCause ?? new Error(error)), 'error');
       return;
     }
-    if (warning) showToast(warning, 'warning');
+    if (warningProblem) showToast(formatUpstreamProblem(t, warningProblem, true), 'warning');
+    else if (warning) showToast(warning, 'warning');
     if (adoptedTitle) showToast(t('library_adopted_status', { title: adoptedTitle }), 'success');
   }
 
@@ -56,27 +62,42 @@ export function LibraryPage() {
       </label>
 
       <ul data-testid="library-list">
-        {visible.map((e) => (
-          <li key={e.path} data-testid="library-item">
-            <strong>{e.title}</strong> <small>[{e.artifactType}]</small>{' '}
-            <span
-              data-testid="library-badge"
-              style={{ color: 'var(--color-impl-muted, #6b7f6b)' }}
-              title={t('library_badge_title')}
-            >
-              📚 {t('library_readonly')}
-            </span>{' '}
-            <small>({e.category})</small>{' '}
-            <button
-              type="button"
-              aria-label={t('library_adopt_aria', { title: e.title })}
-              disabled={busyPath === e.path}
-              onClick={() => void onAdopt(e)}
-            >
-              {busyPath === e.path ? '…' : `⭳ ${t('library_adopt_button')}`}
-            </button>
-          </li>
-        ))}
+        {visible.map((e) => {
+          const adoptable = isAdoptableLibraryEntry(e);
+          return (
+            <li key={e.path} data-testid="library-item">
+              <strong>{e.title}</strong> <small>[{e.artifactType}]</small>{' '}
+              <span
+                data-testid="library-badge"
+                style={{ color: 'var(--color-impl-muted, #6b7f6b)' }}
+                title={t('library_badge_title')}
+              >
+                📚 {t('library_readonly')}
+              </span>{' '}
+              <small>({e.category})</small>{' '}
+              {!adoptable && (
+                <>
+                  <small
+                    data-testid="library-unsupported"
+                    style={{ color: 'var(--color-text-muted)' }}
+                    title={t('library_unsupported_title')}
+                  >
+                    {t('library_unsupported_badge')}
+                  </small>{' '}
+                </>
+              )}
+              <button
+                type="button"
+                aria-label={t('library_adopt_aria', { title: e.title })}
+                title={adoptable ? undefined : t('library_unsupported_title')}
+                disabled={!adoptable || busyPath === e.path}
+                onClick={() => void onAdopt(e)}
+              >
+                {busyPath === e.path ? '…' : `⭳ ${t('library_adopt_button')}`}
+              </button>
+            </li>
+          );
+        })}
       </ul>
       {visible.length === 0 && <p data-testid="library-empty">{t('library_empty')}</p>}
     </main>

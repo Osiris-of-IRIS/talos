@@ -36,7 +36,9 @@ export interface ThreatCatalogDeps extends UpstreamFetchDeps {
  * Load the elementary-threats catalog: fetch + parse + cache, falling back to the last cached
  * copy (with a warning) on failure, and only throwing when nothing is cached.
  */
-export async function loadThreatCatalog(deps: ThreatCatalogDeps = {}): Promise<LoadedThreatCatalog> {
+export async function loadThreatCatalog(
+  deps: ThreatCatalogDeps = {},
+): Promise<LoadedThreatCatalog> {
   const now = deps.now ?? (() => new Date().toISOString());
   const db = await getDb();
 

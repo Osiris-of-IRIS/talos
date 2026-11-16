@@ -7,7 +7,10 @@
  * logged with decision_ids and raised as `UpstreamLoadError` when nothing is cached (ADR-0039).
  */
 import { getDb } from './db';
-import { parseTargetObjectCategoriesCsv, type TargetObjectCategory } from '@/models/targetObjectCategory';
+import {
+  parseTargetObjectCategoriesCsv,
+  type TargetObjectCategory,
+} from '@/models/targetObjectCategory';
 import { TARGET_OBJECT_CATEGORIES_URL } from '@/config';
 import {
   fetchUpstream,
@@ -48,7 +51,11 @@ export async function loadTargetObjectCategories(
     await db.put('targetObjectCategoryCache', { key: CACHE_KEY, fetchedAt: now(), rows });
     return { rows, fromCache: false };
   } catch (fetchErr) {
-    const problem = toUpstreamProblem('target-object-categories', TARGET_OBJECT_CATEGORIES_URL, fetchErr);
+    const problem = toUpstreamProblem(
+      'target-object-categories',
+      TARGET_OBJECT_CATEGORIES_URL,
+      fetchErr,
+    );
     const cached = await db.get('targetObjectCategoryCache', CACHE_KEY);
     if (cached) {
       const withCache = { ...problem, cachedAt: cached.fetchedAt };

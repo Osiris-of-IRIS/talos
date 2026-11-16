@@ -10,6 +10,7 @@ import { useSspsStore } from '@/features/ssps/store';
 import { useCatalogsStore } from '@/features/catalogs/store';
 import { CollapsibleSection } from '@/shared/CollapsibleSection';
 import { loadThreatCatalog } from '@/data/threatCatalogLoader';
+import { upstreamErrorMessage, upstreamWarningMessage } from '@/shared/upstreamMessages';
 import type { ThreatCatalogEntry } from '@/models/threatCatalog';
 import { computeControlCoverage, COVERAGE_BUCKETS, type CoverageBucket } from './controlCoverage';
 import { computeRiskCoverage, RISK_BUCKETS, type RiskBucket } from './riskCoverage';
@@ -98,6 +99,8 @@ export function DashboardPage() {
   const { items: ssps, loading: sspsLoading, load: loadSsps } = useSspsStore();
   const { items: catalogs, load: loadCatalogs } = useCatalogsStore();
   const [threats, setThreats] = useState<ThreatCatalogEntry[]>([]);
+  // Non-silent failure (ADR-0039): an empty Risk chart must say *why* it is empty.
+  const [threatLoadFailed, setThreatLoadFailed] = useState(false);
   const [controlBySspOpen, setControlBySspOpen] = useState(false);
   const [riskBySspOpen, setRiskBySspOpen] = useState(false);
 
@@ -107,10 +110,16 @@ export function DashboardPage() {
   }, [loadSsps, loadCatalogs]);
 
   useEffect(() => {
-    void loadThreatCatalog().then((loaded) => {
-      setThreats(loaded.rows);
-      if (loaded.warning) showToast(loaded.warning, 'warning');
-    });
+    void loadThreatCatalog()
+      .then((loaded) => {
+        setThreats(loaded.rows);
+        const warning = upstreamWarningMessage(t, loaded);
+        if (warning) showToast(warning, 'warning');
+      })
+      .catch((e: unknown) => {
+        setThreatLoadFailed(true);
+        showToast(upstreamErrorMessage(t, e), 'error');
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -141,6 +150,12 @@ export function DashboardPage() {
       <section>
         <h2>{t('dashboard_risk_heading')}</h2>
         <p>{t('dashboard_risk_desc')}</p>
+
+        {threatLoadFailed && (
+          <p data-testid="dashboard-risk-load-error" role="alert" style={{ color: 'var(--color-error)' }}>
+            ⚠ {t('dashboard_risk_load_error')}
+          </p>
+        )}
 
         {sspsLoading && <p>{t('common_loading')}</p>}
 

@@ -7,13 +7,18 @@
  */
 import type { Logger } from '@/shared/logger';
 
-export function installGlobalErrorLogging(target: Pick<Window, 'addEventListener'>, log: Logger): void {
+export function installGlobalErrorLogging(
+  target: Pick<Window, 'addEventListener'>,
+  log: Logger,
+): void {
   target.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
     const reason: unknown = event.reason;
     log.error('Unhandled promise rejection', ['ADR-0039', 'ADR-0002'], {
       name: reason instanceof Error ? reason.name : typeof reason,
       message: reason instanceof Error ? reason.message : String(reason),
-      ...(reason && typeof reason === 'object' && 'problem' in reason ? { problem: (reason as { problem: unknown }).problem } : {}),
+      ...(reason && typeof reason === 'object' && 'problem' in reason
+        ? { problem: (reason as { problem: unknown }).problem }
+        : {}),
     });
   });
 }

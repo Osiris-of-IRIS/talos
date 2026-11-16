@@ -6,7 +6,7 @@
  * <TargetObjectPicker> — the assistant's own contribution is the guided flow and the
  * target-object inclusion mode, not a second implementation of anything the editor already has.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
 import { MetadataEditor } from '@/features/shared/MetadataEditor';
@@ -20,6 +20,7 @@ import { resolveProfileEffectiveControls } from '@/data/profileImportResolution'
 import { getSettings } from '@/data/settingsRepository';
 import { applyDefaultCreator } from '@/data/defaultCreator';
 import { loadTargetObjectCategories } from '@/data/targetObjectCategoryLoader';
+import { upstreamErrorMessage, upstreamWarningMessage } from '@/shared/upstreamMessages';
 import { categoryTitlesInChain } from '@/data/targetObjectHierarchy';
 import { ControlSelectionChecklist } from './ControlSelectionChecklist';
 import { TargetObjectPicker, matchedControlIds } from './TargetObjectPicker';
@@ -37,6 +38,10 @@ type InclusionMode = 'all' | 'byId' | 'targetObject';
 
 export function ProfileCreationAssistantPage() {
   const { t } = useI18n();
+  // `t` is not memoized (I18nProvider): read it via a ref so the one-shot namespace load
+  // effect below does not re-fire on every render (ADR-0039 localized upstream errors).
+  const tRef = useRef(t);
+  tRef.current = t;
   const { showToast } = useToast();
   const navigate = useNavigate();
   const workspaceCatalogs = useWorkspaceCatalogs();
@@ -55,9 +60,10 @@ export function ProfileCreationAssistantPage() {
     void loadTargetObjectCategories()
       .then((loaded) => {
         setCategoryRows(loaded.rows);
-        if (loaded.warning) showToast(loaded.warning, 'warning');
+        const warning = upstreamWarningMessage(tRef.current, loaded);
+        if (warning) showToast(warning, 'warning');
       })
-      .catch((e) => showToast(e instanceof Error ? e.message : String(e), 'error'));
+      .catch((e: unknown) => showToast(upstreamErrorMessage(tRef.current, e), 'error'));
   }, [showToast]);
 
   // The assistant's draft is always a brand-new document (no edit mode) — seed the global

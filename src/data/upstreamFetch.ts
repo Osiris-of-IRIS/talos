@@ -71,8 +71,16 @@ function isRetriableStatus(status: number): boolean {
   return status >= 500 || status === 408 || status === 429;
 }
 
-export async function fetchUpstream(url: string, as: 'json', deps?: UpstreamFetchDeps): Promise<unknown>;
-export async function fetchUpstream(url: string, as: 'text', deps?: UpstreamFetchDeps): Promise<string>;
+export async function fetchUpstream(
+  url: string,
+  as: 'json',
+  deps?: UpstreamFetchDeps,
+): Promise<unknown>;
+export async function fetchUpstream(
+  url: string,
+  as: 'text',
+  deps?: UpstreamFetchDeps,
+): Promise<string>;
 export async function fetchUpstream(
   url: string,
   as: 'json' | 'text',
@@ -96,7 +104,8 @@ export async function fetchUpstream(
         return as === 'json' ? ((await res.json()) as unknown) : await res.text();
       }
     } catch (e) {
-      if (e instanceof UpstreamFetchError && e.status !== undefined && !isRetriableStatus(e.status)) throw e;
+      if (e instanceof UpstreamFetchError && e.status !== undefined && !isRetriableStatus(e.status))
+        throw e;
       lastErr =
         e instanceof UpstreamFetchError
           ? e
@@ -173,7 +182,11 @@ export function reportUpstreamFailure(problem: UpstreamProblem, servedFromCache:
     failuresSoFar: stats.failures,
   };
   if (servedFromCache) {
-    logger.warn('BSI upstream resource unavailable — serving cached copy', UPSTREAM_DECISION_IDS, context);
+    logger.warn(
+      'BSI upstream resource unavailable — serving cached copy',
+      UPSTREAM_DECISION_IDS,
+      context,
+    );
   } else {
     logger.error('BSI upstream resource could not be loaded', UPSTREAM_DECISION_IDS, context);
   }

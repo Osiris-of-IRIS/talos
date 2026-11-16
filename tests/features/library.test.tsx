@@ -1,6 +1,8 @@
 /**
  * BSI library browser page. Decision IDs: ADR-0001, ADR-0005, ADR-0010.
- * Covers TEST-LIB-01 (listing/badge/attribution) and TEST-LIB-02 (adopt).
+ * Covers TEST-LIB-01 (listing/badge/attribution), TEST-LIB-02 (adopt) and TEST-LIB-06 (new upstream
+ * layout: profiles/mapping collections behind the advanced toggle, unsupported kinds never crash,
+ * a 404 on adopt shows a localized, actionable error — ADR-0039).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
@@ -42,7 +44,7 @@ describe('listing + attribution (TEST-LIB-01)', () => {
     );
     expect(screen.getByText('Grundschutz++')).toBeInTheDocument(); // Anwenderkatalog
     expect(screen.getByText('Passwortrichtlinie')).toBeInTheDocument(); // Komponente
-    expect(screen.queryByText('Kernel (Quellkatalog)')).not.toBeInTheDocument(); // hidden
+    expect(screen.queryByText('BSI Stand der Technik Kernel')).not.toBeInTheDocument(); // Quellkatalog, hidden
     // provenance badge + licence attribution present
     expect(screen.getAllByTestId('library-badge').length).toBeGreaterThan(0);
     expect(screen.getByTestId('library-attribution')).toHaveTextContent('CC-BY-SA-4.0');
@@ -58,7 +60,7 @@ describe('listing + attribution (TEST-LIB-01)', () => {
       </ToastProvider>,
     );
     await user.click(screen.getByTestId('library-advanced-toggle'));
-    expect(screen.getByText('Kernel (Quellkatalog)')).toBeInTheDocument();
+    expect(screen.getByText('BSI Stand der Technik Kernel')).toBeInTheDocument();
   });
 });
 
@@ -90,5 +92,61 @@ describe('adopt (TEST-LIB-02)', () => {
     const adopted = await ArtifactRepository.forType('componentDefinition').getAll();
     expect(adopted).toHaveLength(1);
     expect(adopted[0]!.origin).toBe('user');
+  });
+});
+
+function renderLibrary() {
+  return render(
+    <ToastProvider>
+      <MemoryRouter>
+        <LibraryPage />
+      </MemoryRouter>
+    </ToastProvider>,
+  );
+}
+
+describe('new upstream layout (TEST-LIB-06)', () => {
+  it('hides profiles and mapping collections by default, reveals them behind the advanced toggle', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    const listText = () => screen.getByTestId('library-list').textContent ?? '';
+    expect(listText()).not.toMatch(/\[profile\]/);
+    expect(listText()).not.toMatch(/\[mapping-collection\]/);
+    expect(screen.getByText('Keycloak')).toBeInTheDocument(); // new upstream component
+    await user.click(screen.getByTestId('library-advanced-toggle'));
+    expect(listText()).toMatch(/\[profile\]/);
+    expect(listText()).toMatch(/\[mapping-collection\]/);
+  });
+
+  it('marks mapping collections "not supported yet" with a disabled adopt button instead of crashing', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    await user.click(screen.getByTestId('library-advanced-toggle'));
+    const mappingItems = screen
+      .getAllByTestId('library-item')
+      .filter((li) => li.textContent?.includes('[mapping-collection]'));
+    expect(mappingItems.length).toBeGreaterThan(0);
+    for (const li of mappingItems) {
+      expect(within(li).getByTestId('library-unsupported')).toHaveTextContent(/not supported/i);
+      expect(within(li).getByRole('button')).toBeDisabled();
+    }
+  });
+
+  it('shows a localized, actionable error toast when the adopted file 404s upstream', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}), text: async () => '' })),
+    );
+    const user = userEvent.setup();
+    renderLibrary();
+    const item = screen.getByText('Keycloak').closest('li')!;
+    await user.click(within(item).getByRole('button', { name: /Adopt Keycloak/ }));
+    const toast = await screen.findByTestId('toast');
+    expect(toast).toHaveAttribute('data-level', 'error');
+    expect(toast).toHaveTextContent('Keycloak');
+    expect(toast).toHaveTextContent(/HTTP 404/);
+    expect(toast).toHaveTextContent(/reorganised/i);
+    expect(await ArtifactRepository.forType('componentDefinition').getAll()).toHaveLength(0);
   });
 });

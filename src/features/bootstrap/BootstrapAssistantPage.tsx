@@ -1,5 +1,5 @@
 // SSP Bootstrap Assistant: generate/update SSPs from an uploaded asset list. Decision IDs: ADR-0026, ADR-0006.
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/toast';
@@ -7,6 +7,7 @@ import { useAssetsStore } from '@/features/assets/store';
 import { useCatalogsStore } from '@/features/catalogs/store';
 import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
 import { loadTargetObjectCategories } from '@/data/targetObjectCategoryLoader';
+import { upstreamErrorMessage, upstreamWarningMessage } from '@/shared/upstreamMessages';
 import type { TargetObjectCategory } from '@/models/targetObjectCategory';
 import { generateNist } from './generateNist';
 import { generateBsi } from './generateBsi';
@@ -19,6 +20,10 @@ type Methodology = 'nist' | 'bsi' | 'single-system';
 
 export function BootstrapAssistantPage() {
   const { t } = useI18n();
+  // `t` is not memoized (I18nProvider): read it via a ref so the one-shot namespace load
+  // effect below does not re-fire on every render (ADR-0039 localized upstream errors).
+  const tRef = useRef(t);
+  tRef.current = t;
   const { showToast } = useToast();
   const { assets, assetTypes, loading: assetsLoading, load: loadAssets } = useAssetsStore();
   const { items: catalogs, loading: catalogsLoading, load: loadCatalogs } = useCatalogsStore();
@@ -38,9 +43,10 @@ export function BootstrapAssistantPage() {
     void loadTargetObjectCategories()
       .then((loaded) => {
         setCategoryRows(loaded.rows);
-        if (loaded.warning) showToast(loaded.warning, 'warning');
+        const warning = upstreamWarningMessage(tRef.current, loaded);
+        if (warning) showToast(warning, 'warning');
       })
-      .catch((e) => showToast(e instanceof Error ? e.message : String(e), 'error'));
+      .catch((e: unknown) => showToast(upstreamErrorMessage(tRef.current, e), 'error'));
   }, [loadAssets, loadCatalogs, showToast]);
 
   function resolveSingleSystemSource(): SingleSystemSource | undefined {
