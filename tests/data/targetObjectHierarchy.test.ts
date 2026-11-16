@@ -2,7 +2,7 @@
  * Target-object-category ancestor-chain matching against catalog controls (ADR-0026). UUIDs and
  * the Anwendungen -> Webserver -> Webanwendungen chain are the real BSI values, verified against
  * the live target_object_categories.csv namespace file.
- * Covers TEST-TOC-03.
+ * Covers TEST-TOC-03, TEST-TOC-04.
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -13,6 +13,7 @@ import {
   controlMatchesAnyTitle,
   controlMatchesCategoryOrAncestor,
   hasNoTargetObjectCategory,
+  unknownCategoryTitles,
 } from '@/data/targetObjectHierarchy';
 import type { TargetObjectCategory } from '@/models/targetObjectCategory';
 import type { Control } from '@/models/control';
@@ -166,5 +167,46 @@ describe('controlMatchesCategoryOrAncestor', () => {
   it('does not match a control with no target_object_categories tag', () => {
     const byUuid = buildCategoryIndex(ROWS);
     expect(controlMatchesCategoryOrAncestor(findControl('ISMS.1.1.1'), webanwendungenUuid, byUuid)).toBe(false);
+  });
+});
+
+// ---- TEST-TOC-04: robustness against real upstream tag shapes (ADR-0039) -----------------------
+
+function controlWithTag(value: string): Control {
+  return {
+    id: 'X.1',
+    title: 'X',
+    parts: [{ id: 'X.1_stm', name: 'statement', props: [{ name: 'target_object_categories', value }] }],
+  } as unknown as Control;
+}
+
+describe('multi-category tags (TEST-TOC-04)', () => {
+  it('splits a comma-joined tag ("Nutzende, Webbrowser") into its category titles', () => {
+    // 48 of 636 tags in the live GS++ resolved catalog @ c3f3785 are comma-joined like this.
+    expect(controlTargetCategories(controlWithTag('Nutzende, Webanwendungen'))).toEqual(['Nutzende', 'Webanwendungen']);
+  });
+
+  it('matches an asset category that appears as the second title of a comma-joined tag', () => {
+    const byUuid = buildCategoryIndex(ROWS);
+    expect(
+      controlMatchesCategoryOrAncestor(controlWithTag('Nutzende, Webanwendungen'), webanwendungenUuid, byUuid),
+    ).toBe(true);
+    expect(controlMatchesAnyTitle(controlWithTag('Nutzende, Webanwendungen'), new Set(['Webanwendungen']))).toBe(true);
+  });
+
+  it('tolerates surrounding whitespace and Unicode normalization differences', () => {
+    const decomposed = 'Endgeräte'; // "Endgeräte" with a combining diaeresis
+    expect(controlMatchesAnyTitle(controlWithTag(`  ${decomposed} `), new Set(['Endgeräte']))).toBe(true);
+  });
+});
+
+describe('unknownCategoryTitles (TEST-TOC-04)', () => {
+  it('reports tag titles that the loaded hierarchy does not know (e.g. a renamed category)', () => {
+    const controls = [controlWithTag('Endgeräte'), controlWithTag('Nutzende, Webserver'), controlWithTag('Webserver')];
+    expect(unknownCategoryTitles(controls, ROWS)).toEqual(['Endgeräte', 'Nutzende']);
+  });
+
+  it('is empty when every tag resolves', () => {
+    expect(unknownCategoryTitles([controlWithTag('Webserver, Anwendungen')], ROWS)).toEqual([]);
   });
 });

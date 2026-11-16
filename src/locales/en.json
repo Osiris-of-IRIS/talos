@@ -393,7 +393,7 @@
   "bootstrap_no_catalogs_hint_mid": " page, or adopt one from the",
   "bootstrap_step_methodology_heading": "1. Generation methodology",
   "bootstrap_methodology_nist_label": "NIST-style",
-  "bootstrap_methodology_nist_hint": "One SSP per system-typed asset (Endgeräte/Hostsysteme/…), each with the full catalog as its control-implementation.",
+  "bootstrap_methodology_nist_hint": "One SSP per system-typed asset (IT-Systeme/Hostsysteme/Mobile Endgeräte/…), each with the full catalog as its control-implementation.",
   "bootstrap_methodology_bsi_label": "BSI-style",
   "bootstrap_methodology_bsi_hint": "One ISMS-wide SSP for controls with no target-object-category, plus one SSP per mapped asset, filtered to its category or ancestors.",
   "bootstrap_methodology_single_label": "Single System",

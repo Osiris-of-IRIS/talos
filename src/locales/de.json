@@ -393,7 +393,7 @@
   "bootstrap_no_catalogs_hint_mid": " hoch, oder übernehmen Sie einen aus der",
   "bootstrap_step_methodology_heading": "1. Generierungsmethodik",
   "bootstrap_methodology_nist_label": "NIST-Stil",
-  "bootstrap_methodology_nist_hint": "Ein SSP pro system-artigem Asset (Endgeräte/Hostsysteme/…), jeweils mit dem gesamten Katalog als Control-Umsetzung.",
+  "bootstrap_methodology_nist_hint": "Ein SSP pro system-artigem Asset (IT-Systeme/Hostsysteme/Mobile Endgeräte/…), jeweils mit dem gesamten Katalog als Control-Umsetzung.",
   "bootstrap_methodology_bsi_label": "BSI-Stil",
   "bootstrap_methodology_bsi_hint": "Ein ISMS-weiter SSP für Controls ohne Zielobjektkategorie, plus ein SSP je zugeordnetem Asset, gefiltert auf dessen Kategorie oder deren übergeordnete Kategorien.",
   "bootstrap_methodology_single_label": "Einzelnes System",

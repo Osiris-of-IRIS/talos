@@ -6,6 +6,17 @@
  *
  * Example from the BSI hierarchy: an asset mapped to "Webanwendungen" also pulls in controls
  * tagged "Webserver" or "Anwendungen" — its ancestors via `ChildOfUUID`.
+ *
+ * Why titles and not uuids (ADR-0039): assets reach their category by uuid (asset type ->
+ * `targetobj_class_uuid`), and the ancestor chain is walked by uuid; only the last hop — category
+ * -> catalog controls — is by title, because BSI's catalogs carry nothing but the title (checked
+ * for all 636 tags of the GS++ resolved catalog @ c3f3785). Robustness measures here:
+ *  - a tag may list several categories, comma-joined ("Nutzende, Mobile Endgeräte": 48 of 636
+ *    upstream tags) — split before matching (no category title contains a comma);
+ *  - titles are compared trimmed and Unicode-NFC-normalised;
+ *  - `unknownCategoryTitles` reports tags the loaded hierarchy does not know (e.g. a workspace
+ *    catalog adopted before BSI renamed a category), so callers can warn instead of silently
+ *    dropping those controls.
  */
 import type { Control, Part } from '@/models/control';
 import type { TargetObjectCategory } from '@/models/targetObjectCategory';
@@ -13,7 +24,9 @@ import type { TargetObjectCategory } from '@/models/targetObjectCategory';
 const TARGET_OBJECT_CATEGORIES_PROP = 'target_object_categories';
 
 /** Index target-object-categories by uuid for ancestor-chain lookups. */
-export function buildCategoryIndex(rows: TargetObjectCategory[]): Map<string, TargetObjectCategory> {
+export function buildCategoryIndex(
+  rows: TargetObjectCategory[],
+): Map<string, TargetObjectCategory> {
   return new Map(rows.map((r) => [r.uuid, r]));
 }
 
@@ -21,7 +34,10 @@ export function buildCategoryIndex(rows: TargetObjectCategory[]): Map<string, Ta
  * The category's own uuid followed by every ancestor's uuid, walking `parentUuid` to the root.
  * Guards against a malformed cycle by stopping once a uuid repeats.
  */
-export function ancestorChain(categoryUuid: string, byUuid: Map<string, TargetObjectCategory>): string[] {
+export function ancestorChain(
+  categoryUuid: string,
+  byUuid: Map<string, TargetObjectCategory>,
+): string[] {
   const chain: string[] = [];
   const seen = new Set<string>();
   let current: string | undefined = categoryUuid;
@@ -33,18 +49,35 @@ export function ancestorChain(categoryUuid: string, byUuid: Map<string, TargetOb
   return chain;
 }
 
+/** Canonical form for comparing category titles: trimmed, Unicode NFC. */
+export function normalizeCategoryTitle(title: string): string {
+  return title.normalize('NFC').trim();
+}
+
+/** Split one `target_object_categories` prop value into its (normalised) category titles. */
+export function splitCategoryTag(value: string): string[] {
+  return value
+    .split(',')
+    .map(normalizeCategoryTitle)
+    .filter((title) => title.length > 0);
+}
+
 /** `ancestorChain`, resolved to the German titles controls actually tag themselves with. */
-export function categoryTitlesInChain(categoryUuid: string, byUuid: Map<string, TargetObjectCategory>): string[] {
+export function categoryTitlesInChain(
+  categoryUuid: string,
+  byUuid: Map<string, TargetObjectCategory>,
+): string[] {
   return ancestorChain(categoryUuid, byUuid)
     .map((uuid) => byUuid.get(uuid)?.title)
-    .filter((title): title is string => Boolean(title));
+    .filter((title): title is string => Boolean(title))
+    .map(normalizeCategoryTitle);
 }
 
 function partTargetCategories(parts: Part[] | undefined): string[] {
   const out: string[] = [];
   for (const part of parts ?? []) {
     for (const prop of part.props ?? []) {
-      if (prop.name === TARGET_OBJECT_CATEGORIES_PROP) out.push(prop.value);
+      if (prop.name === TARGET_OBJECT_CATEGORIES_PROP) out.push(...splitCategoryTag(prop.value));
     }
     out.push(...partTargetCategories(part.parts));
   }
@@ -59,8 +92,27 @@ function partTargetCategories(parts: Part[] | undefined): string[] {
 export function controlTargetCategories(control: Control): string[] {
   const ownProps = (control.props ?? [])
     .filter((p) => p.name === TARGET_OBJECT_CATEGORIES_PROP)
-    .map((p) => p.value);
+    .flatMap((p) => splitCategoryTag(p.value));
   return [...ownProps, ...partTargetCategories(control.parts)];
+}
+
+/**
+ * Distinct tagged category titles (sorted) that do not occur in the loaded hierarchy. Controls
+ * carrying only such tags can never match an asset — typically a catalog older (or newer) than the
+ * live namespace CSV after a BSI rename (ADR-0039).
+ */
+export function unknownCategoryTitles(
+  controls: Iterable<Control>,
+  rows: TargetObjectCategory[],
+): string[] {
+  const known = new Set(rows.map((r) => normalizeCategoryTitle(r.title)));
+  const unknown = new Set<string>();
+  for (const control of controls) {
+    for (const title of controlTargetCategories(control)) {
+      if (!known.has(title)) unknown.add(title);
+    }
+  }
+  return [...unknown].sort((a, b) => a.localeCompare(b, 'de'));
 }
 
 /** True when a control carries no `target_object_categories` tag at all — BSI-style ISMS scope. */

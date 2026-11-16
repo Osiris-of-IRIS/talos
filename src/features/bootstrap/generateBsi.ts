@@ -2,12 +2,20 @@
  * BSI-style SSP bootstrap (ADR-0026): a single SSP for the ISMS as a whole, holding every catalog
  * control with no `target_object_categories` tag; plus one SSP per mapped asset, holding every
  * control tagged with the asset's target-object-category or one of its ancestors in the BSI
- * hierarchy.
+ * hierarchy. Controls whose tags name categories the loaded hierarchy does not know (e.g. a
+ * catalog adopted before a BSI rename) are reported as a warning, never dropped silently (ADR-0039).
  */
 import type { Asset, AssetType } from '@/models/asset';
 import type { TargetObjectCategory } from '@/models/targetObjectCategory';
 import type { Catalog } from '@/models/catalog';
-import { buildCategoryIndex, categoryTitlesInChain, hasNoTargetObjectCategory, controlMatchesAnyTitle } from '@/data/targetObjectHierarchy';
+import {
+  buildCategoryIndex,
+  categoryTitlesInChain,
+  hasNoTargetObjectCategory,
+  controlMatchesAnyTitle,
+  unknownCategoryTitles,
+} from '@/data/targetObjectHierarchy';
+import { logger } from '@/shared/logger';
 import { ISMS_CORRELATION_KEY, assetCorrelationKey } from './bootstrapProvenance';
 import {
   buildAssetInventoryItem,
@@ -35,6 +43,21 @@ export function generateBsi(params: GenerateBsiParams): GenerateResult {
   const byUuid = buildCategoryIndex(categoryRows);
   const controls = uniqueCatalogControls(catalog);
   const warnings: string[] = [];
+
+  const unknownTitles = unknownCategoryTitles(controls, categoryRows);
+  if (unknownTitles.length > 0) {
+    warnings.push(
+      `Catalog "${catalog.metadata.title}" tags controls with target-object categories that are not in the current BSI hierarchy: ${unknownTitles.join(', ')}. Those controls cannot be matched to any asset. The catalog may be older or newer than the live hierarchy — re-adopt it from the library.`,
+    );
+    logger.warn(
+      'Catalog uses target-object categories unknown to the BSI hierarchy',
+      ['ADR-0039', 'ADR-0026'],
+      {
+        catalog: catalog.metadata.title,
+        unknownTitles,
+      },
+    );
+  }
 
   const plans: BootstrapSspPlan[] = [
     {
