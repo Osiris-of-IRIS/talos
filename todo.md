@@ -57,7 +57,7 @@ Effort: S / M / L
   - Move every TALOS-specific prop (`source-*`, `bootstrap-source`, `groups`, …) into a TALOS namespace.
   - No backward-compatible reading of the old form; we're still in development.
 - **PO decisions:** Q5.
-- **Open:** the namespace URI. Proposal: `https://osiris-of-iris.github.io/talos/ns`.
+- **Namespace URI (PO, 2026-11-18):** `https://osiris-of-iris.github.io/talos/ns`.
 - **ADRs:** new ADR.
 
 ### [ ] #7 Bootstrap: real baseline and safe re-runs (M)
@@ -120,6 +120,7 @@ Each ticket generates from SSP + catalog and adds a table editor (PO Q10). Each 
 | 2026-11-16 | Schema errors at export | Validate on export; drafts can be downloaded with a warning naming the non-compliant fields; only compliant artifacts feed later workflow steps | #3 |
 | 2026-11-18 | `$schema` in exports | Yes | #3 |
 | 2026-11-16 | implementation-status | Native OSCAL field, TALOS namespace for props, no old form | #6 |
+| 2026-11-18 | TALOS namespace URI | `https://osiris-of-iris.github.io/talos/ns` | #6 |
 | 2026-11-16 | Bootstrap re-run | Ask: create from scratch or update existing SSPs | #7 |
 | 2026-11-16 | Bootstrap profile | BSI-style generates per-category profiles; NIST-style picks a profile | #7 |
 | 2026-11-16 | Portable references | Yes | #8 |
