@@ -25,7 +25,6 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
-todo.md
 
 # Python bytecode
 __pycache__/
