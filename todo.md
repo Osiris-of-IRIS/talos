@@ -1,6 +1,5 @@
 # TALOS backlog
 
-Owner: product owner (Christoph). Maintained by the lead engineer.
 Each ticket is implemented on its own branch with tests first (CodeCraft), reviewed by the lead and merged by the product owner.
 Every product-owner decision becomes, or amends, an ADR in the ticket that implements it ("Decided by: product owner").
 
