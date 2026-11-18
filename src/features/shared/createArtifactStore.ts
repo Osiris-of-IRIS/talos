@@ -6,7 +6,7 @@ import { create, type StoreApi, type UseBoundStore } from 'zustand';
 import { ArtifactRepository } from '@/data/artifactRepository';
 import { parseOscalUpload } from '@/data/fileIo';
 import type { StoredArtifact } from '@/data/db';
-import type { OscalArtifactType } from '@/models/oscalBase';
+import type { ImportWarning, OscalArtifactType } from '@/models/oscalBase';
 import { createSelectionSlice, type SelectionSlice } from './selectionSlice';
 
 /** Minimal shape every OSCAL artifact model satisfies (via OscalArtifact). */
@@ -19,8 +19,9 @@ export interface ArtifactStoreState<T extends ArtifactLike> extends SelectionSli
   items: StoredArtifact<T>[];
   loading: boolean;
   error: string | null;
-  /** Non-blocking warnings from the most recent import (e.g. off-version OSCAL, ADR-0007). */
-  warnings: string[];
+  /** Non-blocking warnings from the most recent import (e.g. off-version OSCAL, ADR-0007);
+   *  structured so the list page can localize them (ADR-0012, src/shared/importMessages.ts). */
+  warnings: ImportWarning[];
   load: () => Promise<void>;
   /** Import from OSCAL JSON text; returns the stored uuid (import-as-copy on collision, Q7). */
   importFromText: (text: string) => Promise<string>;

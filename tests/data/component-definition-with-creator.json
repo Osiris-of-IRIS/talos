@@ -5,7 +5,7 @@
       "title": "Verschluesselungsrichtlinie",
       "last-modified": "2026-07-08T10:00:00Z",
       "version": "1.0.0",
-      "oscal-version": "1.2.2",
+      "oscal-version": "1.2.3",
       "roles": [{ "id": "creator", "title": "Creator" }],
       "parties": [
         {

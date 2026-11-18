@@ -16,10 +16,12 @@ Checks
                         feature's `linked_test_ids` exists in the catalog.
   - adr-coverage      : each ADR in `adr_coverage_required` has >=1 implemented suite.
   - golden-data       : golden OSCAL fixtures parse, have the right wrapper + base
-                        fields + oscal-version 1.2.2 (documents) or an id (fragments).
+                        fields + oscal-version == the app's OSCAL_AUTHORING_VERSION
+                        (read from src/models/oscalBase.ts, ADR-0007; currently 1.2.3)
+                        (documents) or an id (fragments).
 
-Full NIST v1.2.2 JSON-Schema validation of the fixtures is deferred until the schemas
-are vendored (T-030); see ADR-0018.
+Full NIST JSON-Schema validation of the fixtures is deferred until the schemas are
+vendored (T-030); see ADR-0018.
 
 Usage
   python3 tests/test_harness/runner.py [--catalog PATH] [--junit PATH] [--log-json PATH]
@@ -54,7 +56,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 _TEST_ID_RE = re.compile(r"\bTEST-[A-Z0-9]+(?:-[A-Z0-9]+)*\b")
 _REQUIRED_SUITE_KEYS = ("id", "title", "type", "status", "feature", "adr_refs")
 _VALID_STATUS = {"implemented", "planned"}
-_OSCAL_VERSION = "1.2.2"
+_AUTHORING_VERSION_RE = re.compile(r"""export const OSCAL_AUTHORING_VERSION\s*=\s*['"]([^'"]+)['"]""")
 _REQUIRED_METADATA_FIELDS = ("title", "last-modified", "version", "oscal-version")
 
 
@@ -76,6 +78,15 @@ class CheckResult:
 
 
 # --------------------------------------------------------------------------- IO
+
+def read_authoring_version(repo_root: Path) -> str:
+    """The OSCAL version TALOS authors/exports -- single source: src/models/oscalBase.ts (ADR-0007)."""
+    src = repo_root / "src" / "models" / "oscalBase.ts"
+    match = _AUTHORING_VERSION_RE.search(src.read_text(encoding="utf-8")) if src.is_file() else None
+    if not match:
+        raise RuntimeError(f"could not read OSCAL_AUTHORING_VERSION from {src}")
+    return match.group(1)
+
 
 def load_catalog(path) -> dict:
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
@@ -240,6 +251,7 @@ def _check_adr_coverage(catalog: dict) -> list[CheckResult]:
 
 def _check_golden(catalog: dict, repo_root: Path) -> list[CheckResult]:
     out: list[CheckResult] = []
+    authoring_version = read_authoring_version(repo_root)
     for gd in catalog.get("golden_data", []) or []:
         rel = gd.get("path", "<missing path>")
         did = ["ADR-0001", "ADR-0003"]
@@ -280,8 +292,8 @@ def _check_golden(catalog: dict, repo_root: Path) -> list[CheckResult]:
         for mf in _REQUIRED_METADATA_FIELDS:
             if meta.get(mf) in (None, ""):
                 problems.append(f"metadata.{mf} missing")
-        if meta.get("oscal-version") not in (None, _OSCAL_VERSION):
-            problems.append(f"oscal-version {meta.get('oscal-version')} != {_OSCAL_VERSION}")
+        if meta.get("oscal-version") not in (None, authoring_version):
+            problems.append(f"oscal-version {meta.get('oscal-version')} != {authoring_version}")
         if problems:
             out.append(CheckResult("golden-data", False, f"{rel}: " + "; ".join(problems),
                                    decision_ids=did))

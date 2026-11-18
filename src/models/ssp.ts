@@ -86,7 +86,7 @@ export interface SystemUser {
 /** A component implemented within a given inventory item (ADR-0031). Generation never populates
  * this — it would need an asset↔component mapping TALOS doesn't have (ADR-0026 scopes
  * system-implementation components as a manual, post-bootstrap step) — but the type is complete
- * per the OSCAL v1.2.2 `inventory-item/implemented-components` assembly. */
+ * per the OSCAL v1.2.3 `inventory-item/implemented-components` assembly. */
 export interface ImplementedComponentRef {
   componentUuid: string;
   props?: Prop[];
@@ -95,7 +95,7 @@ export interface ImplementedComponentRef {
   remarks?: MarkupMultiline;
 }
 
-/** A single managed inventory item (ADR-0031), mirroring OSCAL v1.2.2's `inventory-item`
+/** A single managed inventory item (ADR-0031), mirroring OSCAL v1.2.3's `inventory-item`
  * assembly. `uuid` must be a real RFC4122 UUID (OSCAL's own cross-reference id) — an asset's
  * human tracking code becomes a `props[name="asset-id"]` entry instead, never this uuid. */
 export interface InventoryItem {

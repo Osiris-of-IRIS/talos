@@ -473,5 +473,26 @@
   "dashboard_risk_status_full": "Fully covered",
   "dashboard_risk_totals_heading": "Average per SSP",
   "dashboard_risk_by_ssp_heading": "By SSP",
-  "dashboard_risk_chart_aria": "Average risk coverage per SSP, by category"
+  "dashboard_risk_chart_aria": "Average risk coverage per SSP, by category",
+
+  "import_warning_oscal_version_other": "Imported as OSCAL {version}; exporting will normalize to {target}.",
+  "import_warning_oscal_version_missing": "Document has no metadata.oscal-version; treating it as {target}. Export will write {target}.",
+  "import_error_oscal_version_unsupported": "Unsupported OSCAL version \"{version}\". TALOS imports OSCAL 1.x only (authoring/export is {target}).",
+  "import_error_oscal_version_unrecognized": "Unrecognized OSCAL version \"{version}\". TALOS imports OSCAL 1.x only.",
+
+  "component_type_desc_interconnection": "A connection to something outside this system.",
+  "component_type_desc_software": "Any software, operating system, or firmware.",
+  "component_type_desc_hardware": "A physical device.",
+  "component_type_desc_service": "A service that may provide APIs.",
+  "component_type_desc_policy": "An enforceable policy.",
+  "component_type_desc_physical": "A tangible asset used to provide physical protections or countermeasures.",
+  "component_type_desc_process_procedure": "A list of steps or actions to take to achieve some end result.",
+  "component_type_desc_plan": "An applicable plan.",
+  "component_type_desc_guidance": "Any guideline or recommendation.",
+  "component_type_desc_standard": "Any organizational or industry standard.",
+  "component_type_desc_validation": "An external assessment performed on some other component, that has been validated by a third-party.",
+  "component_type_desc_region": "An isolated geographic area where a cloud service provider (CSP) operates a cluster of data centers.",
+  "component_type_desc_zone": "A fault-isolated cloud computing data center group within a region, connected by low-latency links.",
+  "component_type_desc_resource_container": "A logical administrative, governance, billing, or resource-scoping boundary used to organize cloud resources.",
+  "component_type_desc_network": "A physical or virtual capability that provides connectivity, segmentation, routing, traffic distribution, name resolution, or network boundary control."
 }

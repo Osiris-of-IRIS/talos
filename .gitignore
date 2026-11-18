@@ -26,3 +26,7 @@ npm-debug.log*
 .env.local
 .env.*.local
 todo.md
+
+# Python bytecode
+__pycache__/
+*.pyc

@@ -22,7 +22,8 @@ import {
   type UpstreamProblem,
 } from './upstreamFetch';
 import { parseOscalDocument } from '@/models/envelope';
-import { OSCAL_WRAPPER_KEYS, type OscalArtifactType } from '@/models/oscalBase';
+import { OSCAL_WRAPPER_KEYS, type ImportWarning, type OscalArtifactType } from '@/models/oscalBase';
+import { applyImportVersionPolicy } from './importVersionPolicy';
 import { libraryRawUrl } from '@/config';
 import manifestJson from './library-index.json';
 
@@ -91,6 +92,11 @@ export interface LoadedLibraryArtifact {
   warning?: string;
   /** structured reason for `warning` (ADR-0039). */
   problem?: UpstreamProblem;
+  /**
+   * ADR-0007 version-policy warnings, identical to a file upload's (e.g. a BSI 1.1.3 catalog);
+   * empty for the authoring version and other 1.2.x patches. Localized by the UI.
+   */
+  versionWarnings: ImportWarning[];
 }
 
 export interface LibraryDeps extends UpstreamFetchDeps {
@@ -121,12 +127,23 @@ function parseAndCheck(entry: LibraryManifestEntry, document: unknown) {
 /**
  * Load a library artifact: cache hit by path+sha, else fetch + validate + cache. On a fetch
  * failure, fall back to any cached copy (even a stale sha) with a warning; only throw when there
- * is nothing cached.
+ * is nothing cached. Then apply the same ADR-0007 version policy as a file upload — outside the
+ * fetch error handling, so an unsupported version is reported as such, never as an outage.
  */
 export async function loadLibraryArtifact(
   entry: LibraryManifestEntry,
   deps: LibraryDeps = {},
 ): Promise<LoadedLibraryArtifact> {
+  const loaded = await loadLibraryArtifactBody(entry, deps);
+  const metadata = (loaded.artifact as { metadata?: { oscalVersion?: unknown } }).metadata;
+  const versionWarnings = applyImportVersionPolicy(metadata?.oscalVersion, 'library', { path: entry.path });
+  return { ...loaded, versionWarnings };
+}
+
+async function loadLibraryArtifactBody(
+  entry: LibraryManifestEntry,
+  deps: LibraryDeps,
+): Promise<Omit<LoadedLibraryArtifact, 'versionWarnings'>> {
   const now = deps.now ?? (() => new Date().toISOString());
   if (!isAdoptableLibraryEntry(entry)) {
     throw new Error(`TALOS does not support "${entry.artifactType}" library files yet.`);

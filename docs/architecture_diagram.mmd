@@ -30,7 +30,7 @@ flowchart TB
         subgraph Domain["Domain — src/models"]
             Base["OscalArtifact base: metadata + back-matter (ADR-0003)"]:::domain
             Types["Per-type models + codecs"]:::domain
-            Valid["Ajv validators — OSCAL v1.2.2 (ADR-0007)"]:::domain
+            Valid["Version policy + (planned) Ajv validators — OSCAL v1.2.3 (ADR-0007)"]:::domain
         end
 
         subgraph DataL["Data — src/data + src/stores"]

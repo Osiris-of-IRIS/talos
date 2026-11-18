@@ -12,7 +12,8 @@ import {
 import { useLibraryStore } from './store';
 import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/toast';
-import { formatUpstreamProblem, upstreamErrorMessage } from '@/shared/upstreamMessages';
+import { formatUpstreamProblem } from '@/shared/upstreamMessages';
+import { formatImportWarnings, importErrorMessage } from '@/shared/importMessages';
 
 export function LibraryPage() {
   const { t } = useI18n();
@@ -23,13 +24,16 @@ export function LibraryPage() {
 
   async function onAdopt(entry: LibraryManifestEntry) {
     await adopt(entry);
-    const { error, errorCause, warning, warningProblem, adoptedTitle } = useLibraryStore.getState();
+    const { error, errorCause, warning, warningProblem, versionWarnings, adoptedTitle } =
+      useLibraryStore.getState();
     if (error) {
-      showToast(upstreamErrorMessage(t, errorCause ?? new Error(error)), 'error');
+      showToast(importErrorMessage(t, errorCause ?? new Error(error)), 'error');
       return;
     }
     if (warningProblem) showToast(formatUpstreamProblem(t, warningProblem, true), 'warning');
     else if (warning) showToast(warning, 'warning');
+    // ADR-0007: same version policy and wording as a file upload.
+    if (versionWarnings.length > 0) showToast(formatImportWarnings(t, versionWarnings), 'warning');
     if (adoptedTitle) showToast(t('library_adopted_status', { title: adoptedTitle }), 'success');
   }
 

@@ -1,7 +1,8 @@
 /**
  * BSI library browser store. Lists the bundled manifest (read at startup) and adopts items into
  * the workspace on demand. Keeps the thrown error itself (not just its text) so the page can
- * localize upstream failures (ADR-0039). Decision IDs: ADR-0005, ADR-0004, ADR-0010, ADR-0039.
+ * localize upstream failures (ADR-0039) and version-policy warnings (ADR-0007).
+ * Decision IDs: ADR-0005, ADR-0004, ADR-0007, ADR-0010, ADR-0039.
  */
 import { create } from 'zustand';
 import {
@@ -11,6 +12,7 @@ import {
   type LibraryManifestEntry,
 } from '@/data/libraryLoader';
 import type { UpstreamProblem } from '@/data/upstreamFetch';
+import type { ImportWarning } from '@/models/oscalBase';
 
 export interface LibraryState {
   items: LibraryManifestEntry[];
@@ -20,6 +22,8 @@ export interface LibraryState {
   warning: string | null;
   /** structured reason for `warning`, for a localized toast (ADR-0039). */
   warningProblem: UpstreamProblem | null;
+  /** ADR-0007 version-policy warnings of the last adopted file (localized by the page). */
+  versionWarnings: ImportWarning[];
   error: string | null;
   /** the error as thrown (e.g. `UpstreamLoadError`), for a localized toast (ADR-0039). */
   errorCause: unknown;
@@ -34,6 +38,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   busyPath: null,
   warning: null,
   warningProblem: null,
+  versionWarnings: [],
   error: null,
   errorCause: null,
   adoptedTitle: null,
@@ -47,6 +52,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
       errorCause: null,
       warning: null,
       warningProblem: null,
+      versionWarnings: [],
       adoptedTitle: null,
     });
     try {
@@ -57,6 +63,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
         adoptedTitle: entry.title,
         warning: loaded.warning ?? null,
         warningProblem: loaded.problem ?? null,
+        versionWarnings: loaded.versionWarnings,
       });
     } catch (e) {
       set({ busyPath: null, error: e instanceof Error ? e.message : String(e), errorCause: e });

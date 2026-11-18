@@ -1,23 +1,45 @@
 /**
- * OSCAL component `type` allowed values (component-definition defined-component). The list is
- * suggested, not closed — custom values are permitted (allow-other). Source: NIST OSCAL v1.2.2
- * metaschema `allowed-values-component-type`. Decision IDs: ADR-0003.
+ * OSCAL component `type` allowed values (component-definition defined-component and SSP
+ * system-component share the list since 1.2.3). The list is suggested, not closed — custom values
+ * are permitted (allow-other). Source: NIST OSCAL v1.2.3 metaschema
+ * `shared-constraints/allowed-values-component-type.ent`, in its order.
+ *
+ * Descriptions are UI copy (datalist labels), so they live in the locale catalogs under
+ * `labelKey` (ADR-0012); the English catalog carries NIST's wording verbatim (TEST-COMPTYPE-01).
+ * Decision IDs: ADR-0003, ADR-0007, ADR-0012.
  */
 export interface ComponentTypeOption {
   value: string;
-  description: string;
+  /** i18n key of the human-readable description, e.g. `component_type_desc_network`. */
+  labelKey: string;
 }
 
-export const COMPONENT_TYPES: ComponentTypeOption[] = [
-  { value: 'interconnection', description: 'A connection to something outside this system.' },
-  { value: 'software', description: 'Any software, operating system, or firmware.' },
-  { value: 'hardware', description: 'A physical device.' },
-  { value: 'service', description: 'A service that may provide APIs.' },
-  { value: 'policy', description: 'An enforceable policy.' },
-  { value: 'physical', description: 'A tangible asset used to provide physical protections or countermeasures.' },
-  { value: 'process-procedure', description: 'A list of steps or actions to take to achieve some end result.' },
-  { value: 'plan', description: 'An applicable plan.' },
-  { value: 'guidance', description: 'Any guideline or recommendation.' },
-  { value: 'standard', description: 'Any organizational or industry standard.' },
-  { value: 'validation', description: 'An external assessment performed on some other component, validated by a third-party.' },
+function option(value: string): ComponentTypeOption {
+  return { value, labelKey: `component_type_desc_${value.replace(/-/g, '_')}` };
+}
+
+export const COMPONENT_TYPES: readonly ComponentTypeOption[] = [
+  option('interconnection'),
+  option('software'),
+  option('hardware'),
+  option('service'),
+  option('policy'),
+  option('physical'),
+  option('process-procedure'),
+  option('plan'),
+  option('guidance'),
+  option('standard'),
+  option('validation'),
+  // added to the shared list in OSCAL 1.2.3 (network was SSP-only before)
+  option('region'),
+  option('zone'),
+  option('resource-container'),
+  option('network'),
 ];
+
+/** Datalist options (`value` + localized description) for the component-type pickers. */
+export function componentTypeOptions(
+  t: (key: string) => string,
+): { value: string; label: string }[] {
+  return COMPONENT_TYPES.map((ct) => ({ value: ct.value, label: t(ct.labelKey) }));
+}

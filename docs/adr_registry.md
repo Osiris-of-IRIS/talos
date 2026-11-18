@@ -11,7 +11,7 @@ the order decisions were made.
 | [ADR-0004](adr/ADR-0004-clientside-persistence.md) | Client-Side Persistence (IndexedDB + File I/O) | Approved | ADR-0004 |
 | [ADR-0005](adr/ADR-0005-bsi-library-integration.md) | BSI Stand-der-Technik-Bibliothek Integration | Approved — amended by ADR-0039 (layout, manifest semantics, refresh policy, errors) | ADR-0005 |
 | [ADR-0006](adr/ADR-0006-landing-page-navigation.md) | Landing Page & Feature Navigation Hub | Approved | ADR-0006 |
-| [ADR-0007](adr/ADR-0007-oscal-version-support.md) | OSCAL Version Support & Compatibility | Approved | ADR-0007 |
+| [ADR-0007](adr/ADR-0007-oscal-version-support.md) | OSCAL Version Support & Compatibility | Approved — amended 2026-11-16 by the product owner (authoring/export 1.2.3; 1.2.x imports silent; library loads use the same policy) | ADR-0007 |
 | [ADR-0008](adr/ADR-0008-external-catalog-viewer.md) | Catalog & Control Viewing via External SdT-Viewer | Approved | ADR-0008 |
 | [ADR-0009](adr/ADR-0009-oscal-markdown-rendering.md) | OSCAL Markdown Rendering Strategy | Approved | ADR-0009 |
 | [ADR-0010](adr/ADR-0010-color-palette.md) | Color Palette (OSCAL layers) | Approved | ADR-0010 |

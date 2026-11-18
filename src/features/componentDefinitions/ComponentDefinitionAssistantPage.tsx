@@ -24,7 +24,7 @@ import {
 import { getSettings } from '@/data/settingsRepository';
 import { applyDefaultCreator } from '@/data/defaultCreator';
 import { ensureArtifactResource } from '@/models/backMatter';
-import { COMPONENT_TYPES } from '@/models/componentTypes';
+import { componentTypeOptions } from '@/models/componentTypes';
 import { DatalistInput } from '@/shared/DatalistInput';
 import { MarkupEditor } from '@/shared/MarkupEditor';
 import { EntitySearchField } from '@/shared/EntitySearchField';
@@ -37,7 +37,6 @@ import { viewerHref } from '@/config';
 import { useI18n } from '@/shared/i18n';
 import type { ComponentDefinition, DefinedComponent, ImplementedRequirement } from '@/models/componentDefinition';
 
-const COMPONENT_TYPE_OPTIONS = COMPONENT_TYPES.map((ct) => ({ value: ct.value, label: ct.description }));
 
 const repo = () => ArtifactRepository.forType<ComponentDefinition>('componentDefinition');
 
@@ -160,7 +159,7 @@ export function ComponentDefinitionAssistantPage() {
             ariaLabel={t('cdef_component_type_aria')}
             dataTestId="cdefa-component-type"
             listId="cdefa-component-type-options"
-            options={COMPONENT_TYPE_OPTIONS}
+            options={componentTypeOptions(t)}
             value={componentType}
             onChange={setComponentType}
           />

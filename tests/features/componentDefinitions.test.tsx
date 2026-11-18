@@ -12,6 +12,7 @@ import { useComponentDefinitionsStore } from '@/features/componentDefinitions/st
 import { ComponentDefinitionsListPage } from '@/features/componentDefinitions/ComponentDefinitionsListPage';
 import { ComponentDefinitionDetailPage } from '@/features/componentDefinitions/ComponentDefinitionDetailPage';
 import { ToastProvider } from '@/shared/toast';
+import { I18nProvider } from '@/shared/i18n';
 import golden from '../data/component-definition-minimal.json';
 import offVersion from '../data/component-definition-v1_1.json';
 
@@ -42,7 +43,7 @@ function renderDetailAt(uuid: string) {
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
   _resetDbForTests();
-  useComponentDefinitionsStore.setState({ items: [], loading: false, error: null, selected: new Set() });
+  useComponentDefinitionsStore.setState({ items: [], loading: false, error: null, warnings: [], selected: new Set() });
 });
 
 describe('store', () => {
@@ -114,8 +115,38 @@ describe('list page', () => {
     expect(useComponentDefinitionsStore.getState().warnings).toHaveLength(1);
     const toast = await screen.findByTestId('toast');
     expect(toast).toHaveAttribute('data-level', 'warning');
-    expect(toast).toHaveTextContent(/1\.1\.2.*1\.2\.2/);
+    expect(toast).toHaveTextContent('Imported as OSCAL 1.1.2; exporting will normalize to 1.2.3.');
     expect(screen.getByText('Legacy-Komponente (OSCAL 1.1.2)')).toBeInTheDocument();
+  });
+
+  it('shows the off-version warning in the UI language (de), not the English log text (ADR-0012)', async () => {
+    render(
+      <I18nProvider language="de">
+        <ToastProvider>
+          <MemoryRouter>
+            <ComponentDefinitionsListPage />
+          </MemoryRouter>
+        </ToastProvider>
+      </I18nProvider>,
+    );
+    await act(async () => {
+      await useComponentDefinitionsStore.getState().importFromText(JSON.stringify(offVersion));
+    });
+    const toast = await screen.findByTestId('toast');
+    expect(toast).toHaveAttribute('data-level', 'warning');
+    expect(toast).toHaveTextContent('Als OSCAL 1.1.2 importiert; beim Export wird auf 1.2.3 normalisiert.');
+  });
+
+  it('imports a 1.2.2 file (another 1.2.x patch) without any warning toast (ADR-0007 amendment)', async () => {
+    renderListPage();
+    const doc = structuredClone(golden) as unknown as { 'component-definition': { metadata: Record<string, unknown> } };
+    doc['component-definition'].metadata['oscal-version'] = '1.2.2';
+    await act(async () => {
+      await useComponentDefinitionsStore.getState().importFromText(JSON.stringify(doc));
+    });
+    await waitFor(() => expect(screen.getByText('Passwortrichtlinie')).toBeInTheDocument());
+    expect(useComponentDefinitionsStore.getState().warnings).toEqual([]);
+    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 });
 

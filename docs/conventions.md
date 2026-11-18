@@ -21,7 +21,13 @@ Engineering conventions for TALOS. Decision IDs referenced inline.
   (`src/shared/MarkupView.tsx`), not `<Markup>` directly — it truncates long content to a
   consistent size and offers a modal expand. `<ControlDisplay>`'s own statement/param
   truncation is the one exception `[ADR-0022, ADR-0016]`.
-- Author/export **v1.2.2**; import any 1.x with a warning `[ADR-0007]`.
+- Author/export **v1.2.3** — always via `OSCAL_AUTHORING_VERSION` (`src/models/oscalBase.ts`),
+  never a literal (TEST-VER-02). Import any 1.x: other 1.2.x silently (info log), 1.0/1.1/other
+  minors with a warning; upload and library adopt both go through `applyImportVersionPolicy`
+  `[ADR-0007]`.
+- Data-layer import warnings/errors are **structured** (`ImportWarning`, `OscalVersionError`:
+  code + params); the UI renders them with `src/shared/importMessages.ts` — never toast the
+  English `message` `[ADR-0007, ADR-0012]`.
 - Preserve unknown-but-allowed fields; keep unresolved refs verbatim `[ADR-0003, ADR-0014]`.
 - All entity pickers use the shared entity-search `[ADR-0013]`.
 

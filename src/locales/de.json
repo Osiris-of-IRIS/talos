@@ -473,5 +473,26 @@
   "dashboard_risk_status_full": "Vollständig abgedeckt",
   "dashboard_risk_totals_heading": "Durchschnitt je SSP",
   "dashboard_risk_by_ssp_heading": "Nach SSP",
-  "dashboard_risk_chart_aria": "Durchschnittliche Risikoabdeckung je SSP, nach Kategorie"
+  "dashboard_risk_chart_aria": "Durchschnittliche Risikoabdeckung je SSP, nach Kategorie",
+
+  "import_warning_oscal_version_other": "Als OSCAL {version} importiert; beim Export wird auf {target} normalisiert.",
+  "import_warning_oscal_version_missing": "Das Dokument hat keine metadata.oscal-version; es wird als {target} behandelt. Der Export schreibt {target}.",
+  "import_error_oscal_version_unsupported": "Nicht unterstützte OSCAL-Version „{version}“. TALOS importiert nur OSCAL 1.x (Erstellung/Export: {target}).",
+  "import_error_oscal_version_unrecognized": "Unbekannte OSCAL-Version „{version}“. TALOS importiert nur OSCAL 1.x.",
+
+  "component_type_desc_interconnection": "Eine Verbindung zu etwas außerhalb dieses Systems.",
+  "component_type_desc_software": "Jegliche Software, jedes Betriebssystem oder jede Firmware.",
+  "component_type_desc_hardware": "Ein physisches Gerät.",
+  "component_type_desc_service": "Ein Dienst, der APIs bereitstellen kann.",
+  "component_type_desc_policy": "Eine durchsetzbare Richtlinie.",
+  "component_type_desc_physical": "Ein greifbares Asset, das physische Schutz- oder Gegenmaßnahmen bereitstellt.",
+  "component_type_desc_process_procedure": "Eine Abfolge von Schritten oder Handlungen, um ein bestimmtes Ergebnis zu erreichen.",
+  "component_type_desc_plan": "Ein anwendbarer Plan.",
+  "component_type_desc_guidance": "Jegliche Leitlinie oder Empfehlung.",
+  "component_type_desc_standard": "Jeglicher organisationsinterne oder branchenweite Standard.",
+  "component_type_desc_validation": "Eine externe Prüfung, die an einer anderen Komponente durchgeführt und von einer dritten Partei validiert wurde.",
+  "component_type_desc_region": "Ein abgegrenztes geografisches Gebiet, in dem ein Cloud-Service-Provider (CSP) einen Verbund von Rechenzentren betreibt.",
+  "component_type_desc_zone": "Eine fehlerisolierte Gruppe von Cloud-Rechenzentren innerhalb einer Region, verbunden über Leitungen mit geringer Latenz.",
+  "component_type_desc_resource_container": "Eine logische Grenze für Administration, Governance, Abrechnung oder Ressourcenzuordnung, mit der Cloud-Ressourcen organisiert werden.",
+  "component_type_desc_network": "Eine physische oder virtuelle Funktion für Konnektivität, Segmentierung, Routing, Lastverteilung, Namensauflösung oder die Kontrolle von Netzgrenzen."
 }

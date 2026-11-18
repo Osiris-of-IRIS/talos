@@ -2,14 +2,20 @@
  * File I/O tests. Decision IDs: ADR-0001, ADR-0004, ADR-0007.
  * Covers TEST-FILE-01 (feature_registry PLAT-003).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { parseOscalUpload, serializeArtifact, defaultFilename, validateForExport, downloadArtifact } from '@/data/fileIo';
 import { parseOscalDocument } from '@/models/envelope';
+import { getImportVersionStats } from '@/data/importVersionPolicy';
+import { logger } from '@/shared/logger';
 import type { StoredArtifact } from '@/data/db';
 import golden from './component-definition-minimal.json';
 import offVersion from './component-definition-v1_1.json';
 
 const goldenText = JSON.stringify(golden);
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 function withCreator(record: StoredArtifact): StoredArtifact {
   const artifact = structuredClone(record.artifact) as {
@@ -50,15 +56,39 @@ describe('parseOscalUpload', () => {
     expect(() => parseOscalUpload(bad)).toThrow(/metadata\.title/);
   });
 
-  // ADR-0007 import version policy.
-  it('has no warnings for the authoring version (1.2.2)', () => {
+  // ADR-0007 import version policy (amended 2026-11-16: 1.2.x patch versions import silently).
+  it('has no warnings for the authoring version (1.2.3)', () => {
     expect(parseOscalUpload(goldenText).warnings).toEqual([]);
   });
 
-  it('imports an off-version 1.x document with a normalize warning, storing it as-is', () => {
+  it('imports another 1.2.x patch version (1.2.2) with no warning, logging it at info level only', () => {
+    const info = vi.spyOn(logger, 'info').mockImplementation(() => ({}) as never);
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => ({}) as never);
+    const before = getImportVersionStats().info;
+    const doc = structuredClone(golden) as unknown as { 'component-definition': { metadata: Record<string, unknown> } };
+    doc['component-definition'].metadata['oscal-version'] = '1.2.2';
+    const { record, warnings } = parseOscalUpload(JSON.stringify(doc));
+    expect(warnings).toEqual([]);
+    expect(info).toHaveBeenCalledWith(
+      expect.stringMatching(/1\.2\.x/),
+      ['ADR-0007'],
+      expect.objectContaining({ source: 'upload', version: '1.2.2', target: '1.2.3' }),
+    );
+    expect(warn).not.toHaveBeenCalled();
+    expect(getImportVersionStats().info).toBe(before + 1);
+    // stored as-is, export still normalizes
+    expect((record.artifact as { metadata: { oscalVersion: string } }).metadata.oscalVersion).toBe('1.2.2');
+  });
+
+  it('imports an off-version 1.x document with a structured normalize warning, storing it as-is', () => {
+    vi.spyOn(logger, 'warn').mockImplementation(() => ({}) as never);
+    const before = getImportVersionStats().warning;
     const { record, warnings } = parseOscalUpload(JSON.stringify(offVersion));
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toMatch(/1\.1\.2.*1\.2\.2/);
+    expect(warnings[0]!.code).toBe('oscal-version-other');
+    expect(warnings[0]!.params).toEqual({ version: '1.1.2', target: '1.2.3' });
+    expect(warnings[0]!.message).toMatch(/1\.1\.2.*1\.2\.3/);
+    expect(getImportVersionStats().warning).toBe(before + 1);
     // stored as-is: the declared version is preserved, not rewritten on import
     expect((record.artifact as { metadata: { oscalVersion: string } }).metadata.oscalVersion).toBe('1.1.2');
   });
@@ -78,12 +108,12 @@ describe('serializeArtifact', () => {
     expect(parseOscalDocument(JSON.parse(out))).toEqual(parseOscalDocument(golden));
   });
 
-  it('normalizes oscal-version to 1.2.2 on export without mutating the stored artifact (ADR-0007)', () => {
+  it('normalizes oscal-version to 1.2.3 on export without mutating the stored artifact (ADR-0007)', () => {
     const { record } = parseOscalUpload(JSON.stringify(offVersion));
     const out = JSON.parse(serializeArtifact(record)) as {
       'component-definition': { metadata: { 'oscal-version': string } };
     };
-    expect(out['component-definition'].metadata['oscal-version']).toBe('1.2.2');
+    expect(out['component-definition'].metadata['oscal-version']).toBe('1.2.3');
     // the stored record keeps its imported version (draft-friendly)
     expect((record.artifact as { metadata: { oscalVersion: string } }).metadata.oscalVersion).toBe('1.1.2');
   });
