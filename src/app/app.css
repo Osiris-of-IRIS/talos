@@ -835,3 +835,45 @@ section[data-layer='Dashboard'] .feature-card {
   line-height: 1;
   padding: 0;
 }
+
+/* ------------------------------------------------------------- OSCAL compliance (ADR-0040) */
+.compliance-badge {
+  border-radius: 999px;
+  padding: 0.05rem 0.6rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.compliance-badge--compliant {
+  border-color: var(--color-ok);
+  color: var(--color-ok);
+}
+
+.compliance-badge--non-compliant {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  cursor: pointer;
+}
+
+.compliance-badge:disabled {
+  opacity: 1;
+}
+
+.compliance-issue-list {
+  max-height: 22rem;
+  overflow-y: auto;
+  padding-left: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.input-blocked-notice {
+  border: 1px solid var(--color-error);
+  border-left-width: 4px;
+  border-radius: var(--radius-lg);
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  background: var(--color-bg-elevated);
+}

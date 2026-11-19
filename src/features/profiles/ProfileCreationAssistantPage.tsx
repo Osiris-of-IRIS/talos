@@ -6,6 +6,7 @@
  * <TargetObjectPicker> — the assistant's own contribution is the guided flow and the
  * target-object inclusion mode, not a second implementation of anything the editor already has.
  */
+import { useGatedSelection } from '@/features/shared/compliance/useInputGate';
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
@@ -55,6 +56,8 @@ export function ProfileCreationAssistantPage() {
   const [productSpecOnly, setProductSpecOnly] = useState(false);
   const [categoryRows, setCategoryRows] = useState<TargetObjectCategory[]>([]);
   const [saving, setSaving] = useState(false);
+  // Compliance gate (ADR-0040, G4): only an OSCAL-compliant catalog/profile can be the source.
+  const sourceGate = useGatedSelection([...workspaceCatalogs, ...workspaceProfiles], sourcePick, 'profile-assistant-source');
 
   useEffect(() => {
     void loadTargetObjectCategories()
@@ -90,8 +93,13 @@ export function ProfileCreationAssistantPage() {
   }
 
   const sourceSearchItems: SearchItem[] = [
-    ...workspaceCatalogs.map((c): SearchItem => ({ id: c.uuid, title: c.artifact.metadata.title, badge: c.origin })),
-    ...workspaceProfiles.map((p): SearchItem => ({ id: p.uuid, title: p.artifact.metadata.title, badge: p.origin })),
+    ...[...workspaceCatalogs, ...workspaceProfiles].map(
+      (r): SearchItem => ({
+        id: r.uuid,
+        title: r.artifact.metadata.title,
+        badge: [r.origin, sourceGate.markerFor(r.uuid)].filter(Boolean).join(' · '),
+      }),
+    ),
   ];
 
   // byId/targetObject need a resolved control universe to pick from (a catalog directly, or a
@@ -112,7 +120,7 @@ export function ProfileCreationAssistantPage() {
   }, [sourcePick]);
 
   async function onCreate() {
-    if (!draft.metadata.title.trim() || !sourcePick) return;
+    if (!draft.metadata.title.trim() || !sourcePick || !sourceGate.usable) return;
     const target = sourceCatalog ?? sourceProfile;
     if (!target) return;
     setSaving(true);
@@ -137,7 +145,7 @@ export function ProfileCreationAssistantPage() {
     }
   }
 
-  const canCreate = !!draft.metadata.title.trim() && !!sourcePick;
+  const canCreate = !!draft.metadata.title.trim() && !!sourcePick && sourceGate.usable;
 
   return (
     <main data-testid="profile-assistant">
@@ -166,9 +174,11 @@ export function ProfileCreationAssistantPage() {
             onChange={setSourcePick}
           />
         </label>
+        {sourceGate.pending && <small> {t('gate_checking')}</small>}
+        {sourceGate.notice}
       </fieldset>
 
-      {sourcePick && (
+      {sourcePick && sourceGate.usable && (
         <fieldset>
           <legend>{t('profile_assistant_step_inclusion')}</legend>
           <label>

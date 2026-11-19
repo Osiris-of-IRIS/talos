@@ -49,10 +49,10 @@ async function seedComponentDefinition() {
     origin: 'user',
     artifact: {
       uuid: cdUuid,
-      metadata: { title: 'nginx CD', version: '1.0.0', oscalVersion: '1.2.2' },
+      metadata: { title: 'nginx CD', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
       components: [
         {
-          uuid: 'comp-nginx',
+          uuid: 'c0c0c0c0-0000-4000-8000-00000000c0c0',
           type: 'software',
           title: 'nginx',
           description: 'Reverse proxy and web server.',
@@ -71,20 +71,20 @@ async function seedComponentDefinitionWithRequirement() {
     origin: 'user',
     artifact: {
       uuid: cdUuid,
-      metadata: { title: 'nginx CD', version: '1.0.0', oscalVersion: '1.2.2' },
+      metadata: { title: 'nginx CD', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
       components: [
         {
-          uuid: 'comp-nginx',
+          uuid: 'c0c0c0c0-0000-4000-8000-00000000c0c0',
           type: 'software',
           title: 'nginx',
           description: 'Reverse proxy and web server.',
           controlImplementations: [
             {
-              uuid: 'ci-1',
+              uuid: 'c1c1c1c1-0000-4000-8000-00000000c1c1',
               source: '#cat',
               description: 'impl',
               implementedRequirements: [
-                { uuid: 'ir-1', controlId: 'IA-5', description: 'nginx enforces password policy for admin access.' },
+                { uuid: 'c2c2c2c2-0000-4000-8000-00000000c2c2', controlId: 'IA-5', description: 'nginx enforces password policy for admin access.' },
               ],
             },
           ],
@@ -169,7 +169,7 @@ describe('system implementation — import components from component-definitions
     await waitFor(() => expect(screen.getByTestId('si-cd-select')).toBeInTheDocument());
     await user.selectOptions(screen.getByTestId('si-cd-select'), 'nginx CD');
     await waitFor(() => expect(within(screen.getByTestId('si-component-select')).getByText('nginx')).toBeInTheDocument());
-    await user.selectOptions(screen.getByTestId('si-component-select'), 'comp-nginx');
+    await user.selectOptions(screen.getByTestId('si-component-select'), 'c0c0c0c0-0000-4000-8000-00000000c0c0');
     await user.click(screen.getByTestId('si-import'));
 
     const summaries = screen.getAllByTestId('si-component-summary');
@@ -192,7 +192,7 @@ describe('system implementation — import components from component-definitions
     renderAt('/ssps/new');
     await waitFor(() => expect(screen.getByTestId('si-cd-select')).toBeInTheDocument());
     await user.selectOptions(screen.getByTestId('si-cd-select'), 'nginx CD');
-    await user.selectOptions(screen.getByTestId('si-component-select'), 'comp-nginx');
+    await user.selectOptions(screen.getByTestId('si-component-select'), 'c0c0c0c0-0000-4000-8000-00000000c0c0');
     await user.click(screen.getByTestId('si-import'));
 
     expect(screen.queryByTestId('si-component-stale-badge')).not.toBeInTheDocument();
@@ -209,7 +209,7 @@ describe('control implementation — requirements, by-components, status', () =>
     // import a component first so it's available to the by-components picker
     await waitFor(() => expect(screen.getByTestId('si-cd-select')).toBeInTheDocument());
     await user.selectOptions(screen.getByTestId('si-cd-select'), 'nginx CD');
-    await user.selectOptions(screen.getByTestId('si-component-select'), 'comp-nginx');
+    await user.selectOptions(screen.getByTestId('si-component-select'), 'c0c0c0c0-0000-4000-8000-00000000c0c0');
     await user.click(screen.getByTestId('si-import'));
 
     await user.click(screen.getByTestId('ci-add-requirement'));
@@ -241,7 +241,7 @@ describe('control implementation — requirements, by-components, status', () =>
 
     await waitFor(() => expect(screen.getByTestId('si-cd-select')).toBeInTheDocument());
     await user.selectOptions(screen.getByTestId('si-cd-select'), 'nginx CD');
-    await user.selectOptions(screen.getByTestId('si-component-select'), 'comp-nginx');
+    await user.selectOptions(screen.getByTestId('si-component-select'), 'c0c0c0c0-0000-4000-8000-00000000c0c0');
     await user.click(screen.getByTestId('si-import'));
 
     await user.click(screen.getByTestId('ci-add-requirement'));
@@ -263,7 +263,7 @@ describe('control implementation — requirements, by-components, status', () =>
     renderAt('/ssps/new');
     await waitFor(() => expect(screen.getByTestId('si-cd-select')).toBeInTheDocument());
     await user.selectOptions(screen.getByTestId('si-cd-select'), 'nginx CD');
-    await user.selectOptions(screen.getByTestId('si-component-select'), 'comp-nginx');
+    await user.selectOptions(screen.getByTestId('si-component-select'), 'c0c0c0c0-0000-4000-8000-00000000c0c0');
     await user.click(screen.getByTestId('si-import'));
 
     await user.click(screen.getByTestId('ci-add-requirement'));
@@ -295,7 +295,7 @@ describe('control implementation — requirements, by-components, status', () =>
     await user.type(screen.getByTestId('md-title'), 'Cascade SSP');
     await waitFor(() => expect(screen.getByTestId('si-cd-select')).toBeInTheDocument());
     await user.selectOptions(screen.getByTestId('si-cd-select'), 'nginx CD');
-    await user.selectOptions(screen.getByTestId('si-component-select'), 'comp-nginx');
+    await user.selectOptions(screen.getByTestId('si-component-select'), 'c0c0c0c0-0000-4000-8000-00000000c0c0');
     await user.click(screen.getByTestId('si-import'));
 
     await user.click(screen.getByTestId('ci-add-requirement'));
@@ -318,7 +318,7 @@ describe('import-profile picker — resolution + apply-time "add all controls" o
       origin: 'user',
       artifact: {
         uuid: catalogUuid,
-        metadata: { title: 'Source Catalog', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Source Catalog', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         controls: [
           { id: 'CTRL-1', title: 'Control One' },
           { id: 'CTRL-2', title: 'Control Two' },
@@ -335,7 +335,7 @@ describe('import-profile picker — resolution + apply-time "add all controls" o
       origin: 'user',
       artifact: {
         uuid: profileUuid,
-        metadata: { title, version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title, version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         imports,
       },
     });
@@ -386,7 +386,9 @@ describe('import-profile picker — resolution + apply-time "add all controls" o
   });
 
   it('does not prompt when the picked profile has no resolvable controls', async () => {
-    await seedProfile('Empty Profile', []);
+    // An empty `imports` would be non-compliant (ADR-0040 gate); a dangling import is compliant but
+    // resolves to no controls.
+    await seedProfile('Empty Profile', [{ href: '#does-not-exist', includeAll: {} }]);
     let confirmCalls = 0;
     globalThis.confirm = () => {
       confirmCalls += 1;
@@ -427,7 +429,7 @@ describe('loaded (existing) SSP — sections and rows collapsed by default', () 
 
   it('collapses all sections and rows on load, and reflects staleness for a changed source component', async () => {
     const cdUuid = await seedComponentDefinition();
-    const compUuid = 'comp-nginx';
+    const compUuid = 'c0c0c0c0-0000-4000-8000-00000000c0c0';
     const scUuid = 'sc-imported-1';
     await sspRepo().create({
       uuid,
@@ -435,7 +437,7 @@ describe('loaded (existing) SSP — sections and rows collapsed by default', () 
       origin: 'user',
       artifact: {
         uuid,
-        metadata: { title: 'Loaded SSP', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Loaded SSP', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         importProfile: { href: '' },
         systemCharacteristics: {
           systemIds: [],
@@ -523,7 +525,7 @@ describe('group membership (T-512, ADR-0037)', () => {
       origin: 'user',
       artifact: {
         uuid,
-        metadata: { title: 'Bootstrapped SSP', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Bootstrapped SSP', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         importProfile: { href: '' },
         systemCharacteristics: {
           systemIds: [{ id: 'sys-1' }],
@@ -572,16 +574,16 @@ describe('apply to... propagation (T-512, ADR-0037)', () => {
     authorizationBoundary: { description: 'x' },
   };
 
-  const definedComponent = { uuid: 'comp-1', type: 'software', title: 'Shared Firewall', description: 'x' };
+  const definedComponent = { uuid: 'cdcdcdcd-0000-4000-8000-00000000c001', type: 'software', title: 'Shared Firewall', description: 'x' };
 
   async function seedComponentDefinition() {
     await cdRepo().create({
-      uuid: 'cd-1',
+      uuid: 'cdcdcdcd-0000-4000-8000-00000000cd01',
       type: 'componentDefinition',
       origin: 'user',
       artifact: {
-        uuid: 'cd-1',
-        metadata: { title: 'Shared CD', version: '1.0.0', oscalVersion: '1.2.2' },
+        uuid: 'cdcdcdcd-0000-4000-8000-00000000cd01',
+        metadata: { title: 'Shared CD', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         components: [definedComponent],
       },
     });
@@ -591,7 +593,7 @@ describe('apply to... propagation (T-512, ADR-0037)', () => {
     await createSspGroup({ uuid: 'g1', title: 'Berlin Site' });
     await seedComponentDefinition();
 
-    const sourceSc = importComponentFromDefinition('cd-1', definedComponent);
+    const sourceSc = importComponentFromDefinition('cdcdcdcd-0000-4000-8000-00000000cd01', definedComponent);
     const sourceUuid = 'ssp-source';
     const source: SystemSecurityPlan = {
       uuid: sourceUuid,
@@ -614,7 +616,7 @@ describe('apply to... propagation (T-512, ADR-0037)', () => {
     };
     await sspRepo().create({ uuid: sourceUuid, type: 'systemSecurityPlan', origin: 'user', artifact: source });
 
-    const targetSc = importComponentFromDefinition('cd-1', definedComponent);
+    const targetSc = importComponentFromDefinition('cdcdcdcd-0000-4000-8000-00000000cd01', definedComponent);
     const targetUuid = 'ssp-target';
     const target: SystemSecurityPlan = {
       uuid: targetUuid,
@@ -649,7 +651,7 @@ describe('apply to... propagation (T-512, ADR-0037)', () => {
     await createSspGroup({ uuid: 'g1', title: 'Berlin Site' });
     await seedComponentDefinition();
 
-    const sourceSc = importComponentFromDefinition('cd-1', definedComponent);
+    const sourceSc = importComponentFromDefinition('cdcdcdcd-0000-4000-8000-00000000cd01', definedComponent);
     const sourceUuid = 'ssp-source-2';
     const source: SystemSecurityPlan = {
       uuid: sourceUuid,

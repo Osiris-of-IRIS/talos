@@ -2,14 +2,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
-import { downloadArtifact } from '@/data/fileIo';
 import { MarkupView } from '@/shared/MarkupView';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
 import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
 import { resolveControl } from '@/data/catalogResolution';
 import { viewerHref } from '@/config';
 import { useI18n } from '@/shared/i18n';
-import { useToast } from '@/shared/toast';
+import { useExportDownload } from '@/features/shared/compliance/useExportDownload';
+import { useRecordCompliance } from '@/features/shared/compliance/useCompliance';
+import { ComplianceBadge } from '@/features/shared/compliance/ComplianceBadge';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
 import { buildImportTree, unresolvedImportHrefs } from '@/data/componentImportResolution';
@@ -24,20 +25,15 @@ function requirementCount(c: DefinedComponent): number {
 export function ComponentDefinitionDetailPage() {
   const { uuid = '' } = useParams();
   const { t } = useI18n();
-  const { showToast } = useToast();
   const catalogIndex = useCatalogIndex();
   const [record, setRecord] = useState<StoredArtifact<ComponentDefinition> | null | undefined>(undefined);
+  // Validate on export + compliance status (ADR-0040).
+  const { requestDownload, dialog: exportDialog } = useExportDownload();
+  const compliance = useRecordCompliance(record);
   // Every component starts collapsed (item 3): a scannable list first, full detail on click.
   const expanded = useExpandedSet();
   const workspaceComponentDefs = useWorkspaceComponentDefinitions();
 
-  function onDownload(r: StoredArtifact<ComponentDefinition>) {
-    try {
-      downloadArtifact(r);
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : String(e), 'error');
-    }
-  }
 
   useEffect(() => {
     let active = true;
@@ -88,9 +84,11 @@ export function ComponentDefinitionDetailPage() {
           ✎ {t('common_edit')}
         </Link>
       )}{' '}
-      <button type="button" onClick={() => onDownload(record)}>
+      <button type="button" data-testid="download-artifact" onClick={() => void requestDownload(record)}>
         ⭳ {t('common_download')}
-      </button>
+      </button>{' '}
+      <ComplianceBadge report={compliance} title={record.artifact.metadata.title} />
+      {exportDialog}
       {unresolvedCount > 0 && (
         <p role="status" data-testid="cdef-detail-unresolved-banner" style={{ color: 'var(--color-warning, #a15c00)' }}>
           ⚠️ {t('cdef_imports_unresolved_detail_banner', { count: unresolvedCount })}

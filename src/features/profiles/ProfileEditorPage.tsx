@@ -1,4 +1,7 @@
 // Profile editor (create + edit). Decision IDs: ADR-0003, ADR-0032 (feature CTRL-001, T-200/T-201).
+import { useDraftCompliance } from '@/features/shared/compliance/useCompliance';
+import { ComplianceBadge } from '@/features/shared/compliance/ComplianceBadge';
+import { useInputGate } from '@/features/shared/compliance/useInputGate';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
@@ -69,6 +72,10 @@ export function ProfileEditorPage() {
   const workspaceProfiles = useWorkspaceProfiles();
   const catalogControlsByUuid = useCatalogControlsByUuid(workspaceCatalogs);
   useSeedDefaultCreator(isNew, setDraft);
+  // Live OSCAL compliance of the unsaved draft, debounced (ADR-0040) — never blocks editing or saving.
+  const draftCompliance = useDraftCompliance('profile', draft);
+  // Compliance gate (ADR-0040, G3): a profile imports only OSCAL-compliant catalogs/profiles.
+  const importGate = useInputGate([...workspaceCatalogs, ...workspaceProfiles], 'profile-import');
 
   useEffect(() => {
     if (isNew || !uuid) return;
@@ -118,7 +125,7 @@ export function ProfileEditorPage() {
 
   /** Add an import of the picked workspace catalog/profile (ADR-0032 §2): rejects a profile-import
    * cycle before committing, then references the target via a back-matter resource. */
-  function addImport() {
+  async function addImport() {
     const targetUuid = importPick.trim();
     if (!targetUuid) return;
     if (wouldCreateProfileCycle(draftUuid, targetUuid, workspaceProfiles)) {
@@ -129,6 +136,7 @@ export function ProfileEditorPage() {
     const profile = workspaceProfiles.find((p) => p.uuid === targetUuid);
     const target = catalog ?? profile;
     if (!target) return;
+    if (!(await importGate.admit(target))) return;
     setDraft((prev) => {
       if (!prev) return prev;
       const next = structuredClone(prev);
@@ -231,10 +239,14 @@ export function ProfileEditorPage() {
 
   const imports = draft.imports;
   const importSearchItems: SearchItem[] = [
-    ...workspaceCatalogs.map((c): SearchItem => ({ id: c.uuid, title: c.artifact.metadata.title, badge: c.origin })),
+    ...workspaceCatalogs.map(
+      (c): SearchItem => ({ id: c.uuid, title: c.artifact.metadata.title, badge: [c.origin, importGate.markerFor(c.uuid)].filter(Boolean).join(' · ') }),
+    ),
     ...workspaceProfiles
       .filter((p) => p.uuid !== draftUuid && !wouldCreateProfileCycle(draftUuid, p.uuid, workspaceProfiles))
-      .map((p): SearchItem => ({ id: p.uuid, title: p.artifact.metadata.title, badge: p.origin })),
+      .map(
+        (p): SearchItem => ({ id: p.uuid, title: p.artifact.metadata.title, badge: [p.origin, importGate.markerFor(p.uuid)].filter(Boolean).join(' · ') }),
+      ),
   ];
   const unresolvedCount = unresolvedProfileImportHrefs(imports, draft.backMatter, workspaceCatalogs, workspaceProfiles).length;
   const setParameters = draft.modify?.setParameters ?? [];
@@ -380,7 +392,7 @@ export function ProfileEditorPage() {
             onChange={setImportPick}
           />
         </label>{' '}
-        <button type="button" data-testid="profile-import-add" onClick={addImport}>
+        <button type="button" data-testid="profile-import-add" onClick={() => void addImport()}>
           ➕ {t('profile_imports_add_label')}
         </button>
         {importError && (
@@ -388,6 +400,7 @@ export function ProfileEditorPage() {
             ⚠️ {importError}
           </p>
         )}
+        {importGate.notice}
       </fieldset>
 
       <fieldset>
@@ -424,6 +437,10 @@ export function ProfileEditorPage() {
           💾 {t('common_save')}
         </button>{' '}
         {!draft.metadata.title.trim() && <small>{t('profile_title_required')}</small>}
+              <p data-testid="compliance-panel">
+          <ComplianceBadge report={draftCompliance} title={draft.metadata.title} />{' '}
+          <small>{t('compliance_panel_draft_note')}</small>
+        </p>
       </div>
     </main>
   );

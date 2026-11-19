@@ -1,6 +1,7 @@
 // BSI library browser: list read-only library artifacts, adopt into the workspace. Kinds TALOS
 // cannot open yet (mapping collections, PO Q11) are listed as "not supported yet", never adopted.
 // Decision IDs: ADR-0005, ADR-0006, ADR-0010, ADR-0012, ADR-0039.
+import { useImportComplianceWarning } from '@/features/shared/compliance/useCompliance';
 import { Link } from 'react-router-dom';
 import { LIBRARY_LICENSE } from '@/config';
 import {
@@ -18,13 +19,14 @@ import { formatImportWarnings, importErrorMessage } from '@/shared/importMessage
 export function LibraryPage() {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const warnImportCompliance = useImportComplianceWarning();
   const { items, showAdvanced, busyPath, toggleAdvanced, adopt } = useLibraryStore();
   const manifest = getLibraryManifest();
   const visible = items.filter((e) => showAdvanced || DEFAULT_LIBRARY_CATEGORIES.has(e.category));
 
   async function onAdopt(entry: LibraryManifestEntry) {
     await adopt(entry);
-    const { error, errorCause, warning, warningProblem, versionWarnings, adoptedTitle } =
+    const { error, errorCause, warning, warningProblem, versionWarnings, adoptedTitle, adoptedRef } =
       useLibraryStore.getState();
     if (error) {
       showToast(importErrorMessage(t, errorCause ?? new Error(error)), 'error');
@@ -35,6 +37,9 @@ export function LibraryPage() {
     // ADR-0007: same version policy and wording as a file upload.
     if (versionWarnings.length > 0) showToast(formatImportWarnings(t, versionWarnings), 'warning');
     if (adoptedTitle) showToast(t('library_adopted_status', { title: adoptedTitle }), 'success');
+    // Upstream content that fails the OSCAL schema (e.g. BSI Lieferkettensicherheit) is adopted and
+    // flagged, never rejected (ADR-0040).
+    if (adoptedRef) await warnImportCompliance(adoptedRef.type, adoptedRef.uuid);
   }
 
   return (

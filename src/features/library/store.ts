@@ -4,6 +4,7 @@
  * localize upstream failures (ADR-0039) and version-policy warnings (ADR-0007).
  * Decision IDs: ADR-0005, ADR-0004, ADR-0007, ADR-0010, ADR-0039.
  */
+import type { OscalArtifactType } from '@/models/oscalBase';
 import { create } from 'zustand';
 import {
   getLibraryManifest,
@@ -28,6 +29,8 @@ export interface LibraryState {
   /** the error as thrown (e.g. `UpstreamLoadError`), for a localized toast (ADR-0039). */
   errorCause: unknown;
   adoptedTitle: string | null;
+  /** Workspace type + uuid of the last adopted copy (for the compliance warning, ADR-0040). */
+  adoptedRef: { type: OscalArtifactType; uuid: string } | null;
   toggleAdvanced: () => void;
   adopt: (entry: LibraryManifestEntry) => Promise<void>;
 }
@@ -42,6 +45,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   error: null,
   errorCause: null,
   adoptedTitle: null,
+  adoptedRef: null,
 
   toggleAdvanced: () => set((s) => ({ showAdvanced: !s.showAdvanced })),
 
@@ -54,13 +58,15 @@ export const useLibraryStore = create<LibraryState>((set) => ({
       warningProblem: null,
       versionWarnings: [],
       adoptedTitle: null,
+      adoptedRef: null,
     });
     try {
       const loaded = await loadLibraryArtifact(entry);
-      await adoptLibraryArtifact(loaded);
+      const uuid = await adoptLibraryArtifact(loaded);
       set({
         busyPath: null,
         adoptedTitle: entry.title,
+        adoptedRef: { type: loaded.type, uuid },
         warning: loaded.warning ?? null,
         warningProblem: loaded.problem ?? null,
         versionWarnings: loaded.versionWarnings,

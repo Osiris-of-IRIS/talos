@@ -1,4 +1,8 @@
 // SSP editor (create + edit). Decision IDs: ADR-0003, ADR-0017, ADR-0019, ADR-0023, ADR-0032 (feature IMPL-002, T-111, T-204).
+import { useDraftCompliance, useRecordsCompliance } from '@/features/shared/compliance/useCompliance';
+import { useInputGate } from '@/features/shared/compliance/useInputGate';
+import { gateDecision } from '@/models/compliance';
+import { ComplianceBadge } from '@/features/shared/compliance/ComplianceBadge';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
@@ -54,6 +58,13 @@ export function SspEditorPage() {
   // but auto-expanded for a brand-new one so authoring can start immediately.
   const sections = useExpandedSet(isNew ? SECTION_IDS : []);
   useSeedDefaultCreator(isNew, setDraft);
+  // Live OSCAL compliance of the unsaved draft, debounced (ADR-0040) — never blocks editing or saving.
+  const draftCompliance = useDraftCompliance('systemSecurityPlan', draft);
+  // Compliance gate (ADR-0040): only an OSCAL-compliant profile can become the SSP's baseline (G1);
+  // only compliant component-definitions feed by-component description prefill (G2).
+  const profileGate = useInputGate(workspaceProfiles, 'ssp-import-profile');
+  const componentDefReports = useRecordsCompliance(workspaceComponentDefs);
+  const compliantComponentDefs = workspaceComponentDefs.filter((r) => gateDecision(componentDefReports.get(r.uuid)).usable);
 
   useEffect(() => {
     if (isNew || !uuid) return;
@@ -92,7 +103,7 @@ export function SspEditorPage() {
    * implemented-requirement — skipping any control-id already present, so re-picking the same
    * profile later only ever tops up what's missing rather than duplicating rows. Free text that
    * doesn't match a workspace profile passes through unchanged (manual/legacy hrefs keep working). */
-  function setImportProfile(typed: string) {
+  async function setImportProfile(typed: string) {
     const current = draft;
     if (!current) return;
     const matched = workspaceProfiles.find((p) => p.uuid === typed);
@@ -100,6 +111,8 @@ export function SspEditorPage() {
       update({ ...current, importProfile: { ...current.importProfile, href: typed } });
       return;
     }
+    // G1: a non-compliant profile is refused; the notice says why and which fields to fix.
+    if (!(await profileGate.admit(matched))) return;
     const next = structuredClone(current);
     const resourceUuid = ensureArtifactResource(next, matched.uuid, matched.artifact.metadata.title);
     next.importProfile.href = `#${resourceUuid}`;
@@ -199,7 +212,7 @@ export function SspEditorPage() {
   const importProfileSearchItems: SearchItem[] = workspaceProfiles.map((p) => ({
     id: p.uuid,
     title: p.artifact.metadata.title,
-    badge: p.origin,
+    badge: [p.origin, profileGate.markerFor(p.uuid)].filter(Boolean).join(' · '),
   }));
   const resolvedImportSource = resolveProfileImportSource(draft.importProfile, draft.backMatter, workspaceCatalogs, workspaceProfiles);
   const resolvedImportProfile = resolvedImportSource?.type === 'profile' ? resolvedImportSource.item : undefined;
@@ -225,9 +238,10 @@ export function SspEditorPage() {
             value={draft.importProfile.href}
             placeholder={t('ssp_import_profile_placeholder')}
             items={importProfileSearchItems}
-            onChange={setImportProfile}
+            onChange={(v) => void setImportProfile(v)}
           />
         </label>
+        {profileGate.notice}
         {resolvedImportProfile ? (
           <small data-testid="ssp-import-profile-resolved"> ✓ {resolvedImportProfile.artifact.metadata.title}</small>
         ) : (
@@ -306,7 +320,7 @@ export function SspEditorPage() {
           onChange={(ci) => update({ ...draft, controlImplementation: ci })}
           systemComponents={draft.systemImplementation.components}
           catalogIndex={catalogIndex}
-          workspaceComponentDefs={workspaceComponentDefs}
+          workspaceComponentDefs={compliantComponentDefs}
           applyToScopes={applyToScopes}
           onApplyByComponentField={applyByComponentField}
         />
@@ -319,6 +333,10 @@ export function SspEditorPage() {
           💾 {t('common_save')}
         </button>{' '}
         {!draft.metadata.title.trim() && <small>{t('cdef_title_required')}</small>}
+              <p data-testid="compliance-panel">
+          <ComplianceBadge report={draftCompliance} title={draft.metadata.title} />{' '}
+          <small>{t('compliance_panel_draft_note')}</small>
+        </p>
       </div>
     </main>
   );

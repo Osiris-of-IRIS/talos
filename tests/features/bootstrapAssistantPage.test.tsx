@@ -184,12 +184,12 @@ describe('BootstrapAssistantPage', () => {
       await seedAsset();
       await seedCatalog();
       await ArtifactRepository.forType<Profile>('profile').create({
-        uuid: 'profile-1',
+        uuid: '9f9f9f9f-0000-4000-8000-000000000001',
         type: 'profile',
         origin: 'user',
         artifact: {
-          uuid: 'profile-1',
-          metadata: { title: 'Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+          uuid: '9f9f9f9f-0000-4000-8000-000000000001',
+          metadata: { title: 'Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
           imports: [{ href: `#${catalogDoc.catalog.uuid}`, includeAll: {} }],
         } as Profile,
       });
@@ -207,7 +207,7 @@ describe('BootstrapAssistantPage', () => {
     await waitFor(() =>
       expect(screen.getByTestId('bootstrap-single-source-select')).toHaveTextContent('Baseline Profile'),
     );
-    await user.selectOptions(screen.getByTestId('bootstrap-single-source-select'), 'profile-1');
+    await user.selectOptions(screen.getByTestId('bootstrap-single-source-select'), '9f9f9f9f-0000-4000-8000-000000000001');
     await user.click(screen.getByTestId('bootstrap-generate'));
 
     await waitFor(() => expect(screen.getByTestId('bootstrap-result')).toBeInTheDocument());

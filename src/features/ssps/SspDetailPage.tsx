@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
-import { downloadArtifact } from '@/data/fileIo';
 import { MarkupView } from '@/shared/MarkupView';
 import { CollapsibleSection } from '@/shared/CollapsibleSection';
 import { useExpandedSet } from '@/shared/useExpandedSet';
 import { useI18n } from '@/shared/i18n';
-import { useToast } from '@/shared/toast';
+import { useExportDownload } from '@/features/shared/compliance/useExportDownload';
+import { useRecordCompliance } from '@/features/shared/compliance/useCompliance';
+import { ComplianceBadge } from '@/features/shared/compliance/ComplianceBadge';
 import { useWorkspaceComponentDefinitions } from '@/features/shared/useWorkspaceComponentDefinitions';
 import { componentStaleness, getImplementationStatus } from './componentImport';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
@@ -20,9 +21,11 @@ import type { SystemSecurityPlan } from '@/models/ssp';
 export function SspDetailPage() {
   const { uuid = '' } = useParams();
   const { t } = useI18n();
-  const { showToast } = useToast();
   const catalogIndex = useCatalogIndex();
   const [record, setRecord] = useState<StoredArtifact<SystemSecurityPlan> | null | undefined>(undefined);
+  // Validate on export + compliance status (ADR-0040).
+  const { requestDownload, dialog: exportDialog } = useExportDownload();
+  const compliance = useRecordCompliance(record);
   const workspaceComponentDefs = useWorkspaceComponentDefinitions();
   // Every section and component starts collapsed (supervisor note: SSPs can be large) — a
   // scannable outline first, full detail on click. Requirements are not individually collapsible
@@ -31,13 +34,6 @@ export function SspDetailPage() {
   const sections = useExpandedSet();
   const componentsExpanded = useExpandedSet();
 
-  function onDownload(r: StoredArtifact<SystemSecurityPlan>) {
-    try {
-      downloadArtifact(r);
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : String(e), 'error');
-    }
-  }
 
   useEffect(() => {
     let active = true;
@@ -86,9 +82,11 @@ export function SspDetailPage() {
           ✎ {t('common_edit')}
         </Link>
       )}{' '}
-      <button type="button" onClick={() => onDownload(record)}>
+      <button type="button" data-testid="download-artifact" onClick={() => void requestDownload(record)}>
         ⭳ {t('common_download')}
-      </button>
+      </button>{' '}
+      <ComplianceBadge report={compliance} title={record.artifact.metadata.title} />
+      {exportDialog}
 
       <CollapsibleSection
         testId="ssp-section-characteristics"

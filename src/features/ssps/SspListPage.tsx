@@ -5,7 +5,9 @@ import { useSspsStore } from './store';
 import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/toast';
 import { formatImportWarnings, importErrorMessage } from '@/shared/importMessages';
-import { downloadArtifactsAsZip } from '@/data/bulkExport';
+import { useBulkExportDownload } from '@/features/shared/compliance/useExportDownload';
+import { useImportComplianceWarning, useRecordsCompliance } from '@/features/shared/compliance/useCompliance';
+import { ComplianceBadge } from '@/features/shared/compliance/ComplianceBadge';
 import { BulkActionsBar } from '@/features/shared/BulkActionsBar';
 
 export function SspListPage() {
@@ -17,6 +19,10 @@ export function SspListPage() {
   const { items, loading, error, warnings, selected, load, importFromText, remove, toggleSelected, selectAll, removeMany } =
     useSspsStore();
   const fileInput = useRef<HTMLInputElement>(null);
+  // Per-row OSCAL compliance, validate-on-export, and the post-import compliance warning (ADR-0040).
+  const complianceByUuid = useRecordsCompliance(items);
+  const { requestBulkDownload, dialog: bulkExportDialog } = useBulkExportDownload();
+  const warnImportCompliance = useImportComplianceWarning();
 
   useEffect(() => {
     void load();
@@ -39,7 +45,8 @@ export function SspListPage() {
     if (!file) return;
     try {
       const text = await file.text();
-      await importFromText(text);
+      const uuid = await importFromText(text);
+      await warnImportCompliance('systemSecurityPlan', uuid);
     } catch (err) {
       showToast(importErrorMessage(t, err), 'error');
     } finally {
@@ -49,10 +56,7 @@ export function SspListPage() {
 
   function onDownloadSelected() {
     const records = items.filter((r) => selected.has(r.uuid));
-    const skipped = downloadArtifactsAsZip(records, `ssps-export-${Date.now()}.zip`);
-    if (skipped.length > 0) {
-      showToast(t('bulk_download_warning', { count: String(skipped.length), details: skipped.join('; ') }), 'warning');
-    }
+    void requestBulkDownload(records, `ssps-export-${Date.now()}.zip`);
   }
 
   async function onDeleteSelected() {
@@ -125,6 +129,7 @@ export function SspListPage() {
               data-testid="ssp-select-item"
             />{' '}
             <Link to={`/ssps/${r.uuid}`}>{r.artifact.metadata.title}</Link> <small>({r.origin})</small>{' '}
+            <ComplianceBadge report={complianceByUuid.get(r.uuid)} title={r.artifact.metadata.title} />{' '}
             <button
               type="button"
               onClick={() => void remove(r.uuid)}
@@ -135,6 +140,7 @@ export function SspListPage() {
           </li>
         ))}
       </ul>
+      {bulkExportDialog}
     </main>
   );
 }
