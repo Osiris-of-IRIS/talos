@@ -1,4 +1,5 @@
 // App shell: HashRouter + sidebar + routes. Decision IDs: ADR-0002, ADR-0006, ADR-0020, ADR-0012, ADR-0029, ADR-0033.
+import { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { ThemeToggle } from '@/shared/ThemeToggle';
 import { LanguageSwitcher } from '@/shared/LanguageSwitcher';
@@ -24,8 +25,12 @@ import { LibraryPage } from '@/features/library/LibraryPage';
 import { AssetsListPage } from '@/features/assets/AssetsListPage';
 import { SspGroupsPage } from '@/features/sspGroups/SspGroupsPage';
 import { BootstrapAssistantPage } from '@/features/bootstrap/BootstrapAssistantPage';
-import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import './app.css';
+
+// Route-level code splitting (docs/performance.md): the dashboard pulls in Recharts, the largest
+// dependency, and is not needed for any other route — load it on first visit. Keeps the app-shell
+// budget after the OSCAL compliance module was added to the shell (ADR-0040).
+const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 
 export function App() {
   return (
@@ -62,7 +67,14 @@ export function App() {
                 <Route path="/assets" element={<AssetsListPage />} />
                 <Route path="/bootstrap" element={<BootstrapAssistantPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <Suspense fallback={<main>{null}</main>}>
+                      <DashboardPage />
+                    </Suspense>
+                  }
+                />
               </Routes>
             </div>
           </div>
