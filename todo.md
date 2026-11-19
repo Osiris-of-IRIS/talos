@@ -85,6 +85,7 @@ Each ticket generates from SSP + catalog and adds a table editor (PO Q10). Each 
 
 ## Follow-ups and smaller items
 
+- [ ] **Gate tests G2c/G2d (S).** "Apply to…" propagation and by-component prefill are gated (ADR-0040 §6) but only code-reviewed; add dedicated tests.
 - [ ] **Localization sweep (S–M).** Move every remaining hard-coded user-facing string into `src/locales/de.json` / `en.json`, and add a harness check that fails on new ones. Known strings:
   - the store's type-mismatch message;
   - the `fileIo` errors (invalid JSON, missing uuid/title);
