@@ -18,10 +18,17 @@ Checks
   - golden-data       : golden OSCAL fixtures parse, have the right wrapper + base
                         fields + oscal-version == the app's OSCAL_AUTHORING_VERSION
                         (read from src/models/oscalBase.ts, ADR-0007; currently 1.2.3)
-                        (documents) or an id (fragments).
+                        (documents) or an id (fragments). A fixture marked
+                        `schema_verdict: invalid` deliberately violates the schema: its base
+                        fields are not asserted, but its golden `<name>.expected.json`
+                        compliance report must exist and list >= 1 issue (ADR-0040).
+  - schema-snapshot   : the vendored NIST OSCAL JSON schemas for the authoring version
+                        (schemas/oscal/<version>/MANIFEST.json) exist, match their recorded
+                        sha256 and carry the recorded $id of that version (ADR-0040).
 
-Full NIST JSON-Schema validation of the fixtures is deferred until the schemas are
-vendored (T-030); see ADR-0018.
+Full NIST JSON-Schema validation of the fixtures runs in Vitest (TEST-SCHEMA-02) with the
+same build-time generated validators the app uses -- one validator, no Python re-implementation
+of the \p{L} patterns (ADR-0040 amends ADR-0018).
 
 Usage
   python3 tests/test_harness/runner.py [--catalog PATH] [--junit PATH] [--log-json PATH]
@@ -31,6 +38,7 @@ Exit code 0 iff all checks pass (warnings do not fail unless --strict).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -58,6 +66,7 @@ _REQUIRED_SUITE_KEYS = ("id", "title", "type", "status", "feature", "adr_refs")
 _VALID_STATUS = {"implemented", "planned"}
 _AUTHORING_VERSION_RE = re.compile(r"""export const OSCAL_AUTHORING_VERSION\s*=\s*['"]([^'"]+)['"]""")
 _REQUIRED_METADATA_FIELDS = ("title", "last-modified", "version", "oscal-version")
+_VALID_SCHEMA_VERDICTS = {"valid", "invalid"}
 
 
 @dataclass
@@ -278,6 +287,12 @@ def _check_golden(catalog: dict, repo_root: Path) -> list[CheckResult]:
             continue
 
         # oscal-document
+        verdict = gd.get("schema_verdict", "valid")
+        if verdict not in _VALID_SCHEMA_VERDICTS:
+            out.append(CheckResult("golden-data", False,
+                                   f"{rel}: schema_verdict must be one of {sorted(_VALID_SCHEMA_VERDICTS)}, got {verdict!r}",
+                                   decision_ids=did + ["ADR-0040"]))
+            continue
         wrapper = gd.get("artifact_type")
         if not isinstance(doc, dict) or list(doc.keys()) != [wrapper]:
             out.append(CheckResult("golden-data", False,
@@ -285,6 +300,9 @@ def _check_golden(catalog: dict, repo_root: Path) -> list[CheckResult]:
                                    decision_ids=did))
             continue
         body = doc[wrapper]
+        if verdict == "invalid":
+            out.append(_check_expected_report(rel, path, did + ["ADR-0040"]))
+            continue
         problems = []
         if not body.get("uuid"):
             problems.append("missing uuid")
@@ -303,6 +321,73 @@ def _check_golden(catalog: dict, repo_root: Path) -> list[CheckResult]:
     return out
 
 
+def _check_expected_report(rel: str, path: Path, did: list) -> CheckResult:
+    """A deliberately invalid fixture must ship its golden compliance report (ADR-0040)."""
+    expected = path.with_name(path.stem + ".expected.json")
+    if not expected.is_file():
+        return CheckResult("golden-data", False, f"{rel}: invalid fixture needs {expected.name} (expected.json)",
+                           decision_ids=did)
+    try:
+        report = json.loads(expected.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        return CheckResult("golden-data", False, f"{rel}: {expected.name} invalid JSON ({e})", decision_ids=did)
+    issues = report.get("issues") if isinstance(report, dict) else None
+    if report.get("status") != "non-compliant" or not isinstance(issues, list) or not issues or not all(
+        isinstance(i, dict) and i.get("pointer", "").startswith("/") and i.get("code") for i in issues
+    ):
+        return CheckResult("golden-data", False,
+                           f"{rel}: {expected.name} must be non-compliant with >=1 {{pointer, code}} issue",
+                           decision_ids=did)
+    return CheckResult("golden-data", True, f"{rel}: invalid by design, {len(issues)} expected issue(s)",
+                       decision_ids=did)
+
+
+def _check_schema_snapshot(repo_root: Path) -> list[CheckResult]:
+    """Vendored NIST OSCAL schemas == the recorded release assets (sha256, $id) (ADR-0040)."""
+    did = ["ADR-0040", "ADR-0007"]
+    version = read_authoring_version(repo_root)
+    manifest_path = repo_root / "schemas" / "oscal" / version / "MANIFEST.json"
+    rel_manifest = manifest_path.relative_to(repo_root).as_posix()
+    if not manifest_path.is_file():
+        return [CheckResult("schema-snapshot", False, f"no vendored schemas for OSCAL {version}: {rel_manifest} missing",
+                            decision_ids=did)]
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    out: list[CheckResult] = []
+    if manifest.get("oscalVersion") != version:
+        out.append(CheckResult("schema-snapshot", False,
+                               f"{rel_manifest}: oscalVersion {manifest.get('oscalVersion')!r} != {version}",
+                               decision_ids=did))
+    schemas = manifest.get("schemas") or {}
+    if not schemas:
+        out.append(CheckResult("schema-snapshot", False, f"{rel_manifest}: no schemas listed", decision_ids=did))
+    for artifact_type, entry in schemas.items():
+        f = manifest_path.parent / entry.get("file", "")
+        rel = f.relative_to(repo_root).as_posix()
+        if not f.is_file():
+            out.append(CheckResult("schema-snapshot", False, f"{artifact_type}: {rel} missing", decision_ids=did))
+            continue
+        data = f.read_bytes()
+        digest = hashlib.sha256(data).hexdigest()
+        problems = []
+        if digest != entry.get("sha256"):
+            problems.append(f"sha256 {digest} != recorded {entry.get('sha256')}")
+        try:
+            schema_id = json.loads(data).get("$id")
+        except json.JSONDecodeError as e:
+            schema_id = None
+            problems.append(f"invalid JSON ({e})")
+        if schema_id != entry.get("id"):
+            problems.append(f"$id {schema_id!r} != recorded {entry.get('id')!r}")
+        if f"/{version}/" not in (entry.get("id") or ""):
+            problems.append(f"recorded $id is not an OSCAL {version} schema id")
+        if problems:
+            out.append(CheckResult("schema-snapshot", False, f"{rel}: " + "; ".join(problems), decision_ids=did))
+        else:
+            out.append(CheckResult("schema-snapshot", True, f"{rel}: OSCAL {version} {artifact_type} schema intact",
+                                   decision_ids=did))
+    return out
+
+
 def run_checks(catalog: dict, repo_root: Path) -> list[CheckResult]:
     """Run every check and return a flat, ordered list of results."""
     results: list[CheckResult] = []
@@ -312,6 +397,7 @@ def run_checks(catalog: dict, repo_root: Path) -> list[CheckResult]:
     results += _check_feature_linkage(catalog, repo_root)
     results += _check_adr_coverage(catalog)
     results += _check_golden(catalog, repo_root)
+    results += _check_schema_snapshot(repo_root)
     return results
 
 

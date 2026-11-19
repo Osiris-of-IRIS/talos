@@ -137,6 +137,63 @@ class DriftDetectionTest(unittest.TestCase):
         self.assertNotIn("file-exists", _failed_check_names(results))
 
 
+class SchemaSnapshotTest(unittest.TestCase):
+    """ADR-0040: the vendored NIST schemas are byte-identical to the recorded release assets."""
+
+    def _copy_repo_bits(self, tmp: Path) -> Path:
+        import shutil
+
+        root = Path(tmp)
+        (root / "src" / "models").mkdir(parents=True)
+        shutil.copy(REPO_ROOT / "src" / "models" / "oscalBase.ts", root / "src" / "models" / "oscalBase.ts")
+        shutil.copytree(REPO_ROOT / "schemas", root / "schemas")
+        return root
+
+    def test_real_snapshot_passes(self) -> None:
+        results = runner._check_schema_snapshot(REPO_ROOT)
+        self.assertTrue(results and all(r.passed for r in results), msg=[str(r) for r in results])
+        self.assertTrue(all("ADR-0040" in r.decision_ids for r in results))
+
+    def test_tampered_schema_fails(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_repo_bits(Path(tmp))
+            f = root / "schemas" / "oscal" / runner.read_authoring_version(REPO_ROOT) / "oscal_ssp_schema.json"
+            f.write_bytes(f.read_bytes() + b" ")
+            failed = [r for r in runner._check_schema_snapshot(root) if not r.passed]
+            self.assertTrue(any("sha256" in r.message for r in failed), msg=[str(r) for r in failed])
+
+    def test_missing_snapshot_for_authoring_version_fails(self) -> None:
+        import shutil
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._copy_repo_bits(Path(tmp))
+            shutil.rmtree(root / "schemas")
+            failed = [r for r in runner._check_schema_snapshot(root) if not r.passed]
+            self.assertTrue(any("MANIFEST.json" in r.message for r in failed), msg=[str(r) for r in failed])
+
+    def test_invalid_golden_fixture_needs_expected_report(self) -> None:
+        cat = copy.deepcopy(runner.load_catalog(CATALOG_PATH))
+        cat["golden_data"].append(
+            {
+                "path": "tests/data/ssp-minimal.json",
+                "kind": "oscal-document",
+                "artifact_type": "system-security-plan",
+                "schema_verdict": "invalid",
+            }
+        )
+        failed = [r for r in runner.run_checks(cat, REPO_ROOT) if not r.passed and r.check == "golden-data"]
+        self.assertTrue(any("expected.json" in r.message for r in failed), msg=[str(r) for r in failed])
+
+    def test_unknown_schema_verdict_fails_structure(self) -> None:
+        cat = copy.deepcopy(runner.load_catalog(CATALOG_PATH))
+        cat["golden_data"][0]["schema_verdict"] = "maybe"
+        failed = [r for r in runner.run_checks(cat, REPO_ROOT) if not r.passed and r.check == "golden-data"]
+        self.assertTrue(any("schema_verdict" in r.message for r in failed), msg=[str(r) for r in failed])
+
+
 class JUnitOutputTest(unittest.TestCase):
     def test_writes_junit_and_jsonl(self) -> None:
         import tempfile
