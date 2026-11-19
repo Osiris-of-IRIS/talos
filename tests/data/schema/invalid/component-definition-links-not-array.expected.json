@@ -1,0 +1,8 @@
+{
+  "note": "Mirrors BSI implementation_layer/Lieferkettensicherheit (links is an object, not an array; upstream main @ c3f3785) plus a missing required implemented-requirement description. Synthetic content. Decision IDs: ADR-0040.",
+  "status": "non-compliant",
+  "issues": [
+    { "pointer": "/component-definition/components/0/control-implementations/0/implemented-requirements/0/links", "code": "type" },
+    { "pointer": "/component-definition/components/0/control-implementations/0/implemented-requirements/1/description", "code": "required" }
+  ]
+}

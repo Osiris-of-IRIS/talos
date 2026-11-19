@@ -9,19 +9,20 @@
     },
     "components": [
       {
-        "uuid": "comp-ref-1",
+        "uuid": "abcabcab-2222-4222-8222-abcabcabcabc",
         "type": "policy",
         "title": "Zuweisungs-Policy",
         "description": "References a Kernel control.",
         "control-implementations": [
           {
-            "uuid": "ci-ref-1",
+            "uuid": "abcabcab-3333-4333-8333-abcabcabcabc",
             "source": "#cat",
             "description": "Implements asset assignment.",
             "implemented-requirements": [
               {
-                "uuid": "ir-ref-1",
+                "uuid": "abcabcab-4444-4444-8444-abcabcabcabc",
                 "control-id": "ASST.1.1.2",
+                "description": "Assets are assigned to the IT operations team.",
                 "set-parameters": [{ "param-id": "asst.1.1.2-prm1", "values": ["den IT-Betrieb"] }]
               }
             ]

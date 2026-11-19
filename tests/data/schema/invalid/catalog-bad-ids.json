@@ -1,0 +1,13 @@
+{
+  "catalog": {
+    "uuid": "not-a-uuid",
+    "metadata": {
+      "title": "Catalog with bad identifiers",
+      "version": "1.0.0",
+      "oscal-version": "1.2.3"
+    },
+    "controls": [
+      { "id": "1 bad id", "title": "Control with an invalid id", "class": "x", "unknown-field": true }
+    ]
+  }
+}

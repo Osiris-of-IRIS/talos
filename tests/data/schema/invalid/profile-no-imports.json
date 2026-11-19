@@ -1,0 +1,13 @@
+{
+  "profile": {
+    "uuid": "5c5c5c5c-0000-4000-8000-000000000001",
+    "metadata": {
+      "title": "Profile without imports",
+      "last-modified": "2026-11-19T10:00:00Z",
+      "version": " 1.0",
+      "oscal-version": "1.2.3"
+    },
+    "imports": [],
+    "merge": { "as-is": true }
+  }
+}

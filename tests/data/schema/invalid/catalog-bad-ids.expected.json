@@ -1,0 +1,10 @@
+{
+  "note": "Invalid uuid, missing metadata.last-modified, invalid control id token, an unknown field. Decision IDs: ADR-0040.",
+  "status": "non-compliant",
+  "issues": [
+    { "pointer": "/catalog/uuid", "code": "datatype" },
+    { "pointer": "/catalog/metadata/last-modified", "code": "required" },
+    { "pointer": "/catalog/controls/0/id", "code": "datatype" },
+    { "pointer": "/catalog/controls/0/unknown-field", "code": "unknown-field" }
+  ]
+}

@@ -7,6 +7,7 @@ import { parseOscalUpload, serializeArtifact, defaultFilename, validateForExport
 import { parseOscalDocument } from '@/models/envelope';
 import { getImportVersionStats } from '@/data/importVersionPolicy';
 import { logger } from '@/shared/logger';
+import { checkRecordCompliance } from '@/data/complianceCheck';
 import type { StoredArtifact } from '@/data/db';
 import golden from './component-definition-minimal.json';
 import offVersion from './component-definition-v1_1.json';
@@ -27,9 +28,9 @@ function withCreator(record: StoredArtifact): StoredArtifact {
   };
   artifact.metadata.roles = [{ id: 'creator', title: 'Creator' }];
   artifact.metadata.parties = [
-    { uuid: 'creator-1', type: 'person', name: 'Erika Mustermann', emailAddresses: ['erika@example.org'] },
+    { uuid: 'c4c4c4c4-0000-4000-8000-000000000001', type: 'person', name: 'Erika Mustermann', emailAddresses: ['erika@example.org'] },
   ];
-  artifact.metadata.responsibleParties = [{ roleId: 'creator', partyUuids: ['creator-1'] }];
+  artifact.metadata.responsibleParties = [{ roleId: 'creator', partyUuids: ['c4c4c4c4-0000-4000-8000-000000000001'] }];
   return { ...record, artifact };
 }
 
@@ -133,36 +134,30 @@ describe('validateForExport / export gate (ADR-0019)', () => {
   });
 });
 
-describe('validateForExport / required base fields (T-151)', () => {
-  it('blocks export when metadata.title is empty (draft-friendly editing can clear it)', () => {
+describe('validateForExport / required base fields (T-151, superseded by ADR-0040)', () => {
+  // Title and version are required OSCAL fields: since ADR-0040 they are reported by the schema
+  // compliance check (draft download with a warning naming them), no longer export *blockers*.
+  // Only the ADR-0019 creator rule blocks any download.
+  it('an empty title or version does not block export, but makes the artifact non-compliant', async () => {
     const { record } = parseOscalUpload(goldenText);
     const withCreatorRecord = withCreator(record);
-    const artifact = structuredClone(withCreatorRecord.artifact) as { metadata: { title: string } };
-    artifact.metadata.title = '   ';
-    const problems = validateForExport({ ...withCreatorRecord, artifact });
-    expect(problems.some((p) => /title/i.test(p))).toBe(true);
-    expect(() => downloadArtifact({ ...withCreatorRecord, artifact })).toThrow(/Cannot export.*title/i);
-  });
-
-  it('blocks export when metadata.version is empty', () => {
-    const { record } = parseOscalUpload(goldenText);
-    const withCreatorRecord = withCreator(record);
-    const artifact = structuredClone(withCreatorRecord.artifact) as { metadata: { version: string } };
-    artifact.metadata.version = '';
-    const problems = validateForExport({ ...withCreatorRecord, artifact });
-    expect(problems.some((p) => /version/i.test(p))).toBe(true);
-    expect(() => downloadArtifact({ ...withCreatorRecord, artifact })).toThrow(/Cannot export.*version/i);
-  });
-
-  it('reports every violation at once, not just the first', () => {
-    const { record } = parseOscalUpload(goldenText); // no creator either
-    const artifact = structuredClone(record.artifact) as { metadata: { title: string; version: string } };
+    const artifact = structuredClone(withCreatorRecord.artifact) as { metadata: { title: string; version: string } };
     artifact.metadata.title = '';
     artifact.metadata.version = '';
-    const problems = validateForExport({ ...record, artifact });
-    expect(problems.some((p) => /title/i.test(p))).toBe(true);
-    expect(problems.some((p) => /version/i.test(p))).toBe(true);
-    expect(problems.some((p) => /creator/i.test(p))).toBe(true);
+    const draft = { ...withCreatorRecord, artifact };
+    expect(validateForExport(draft)).toEqual([]);
+    const report = await checkRecordCompliance(draft);
+    expect(report.status).toBe('non-compliant');
+    expect(report.issues.map((i) => [i.pointer, i.code])).toEqual([
+      ['/component-definition/metadata/title', 'empty'],
+      ['/component-definition/metadata/version', 'empty'],
+    ]);
+  });
+
+  it('reports every creator problem at once, in English for logs', () => {
+    const { record } = parseOscalUpload(goldenText); // no creator
+    const problems = validateForExport(record);
+    expect(problems).toEqual(["No creator assigned. Assign a responsible party to the 'creator' role."]);
   });
 
   it('still allows export when title/version/creator are all present (unchanged happy path)', () => {
