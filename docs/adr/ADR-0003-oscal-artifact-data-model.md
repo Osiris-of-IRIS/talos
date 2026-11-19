@@ -73,6 +73,11 @@ Ajv validators are generated per type from the NIST OSCAL v1.2.2 JSON Schemas; t
 envelope is validated once, the body by the type schema. Import and export both validate;
 failures surface as structured errors (ADR-0002 logging).
 
+*Implemented by ADR-0040 (2026-11-19):* validators are generated **at build time** (Ajv standalone
+code, CSP) from the vendored **1.2.3** model schemas, which validate the whole document (envelope +
+body) in one pass; what is validated is the export document (`buildExportDocument`). Import never
+fails for schema reasons — the artifact is flagged and blocked as a workflow input instead.
+
 ### Serialization fidelity
 
 - Preserve unknown/round-trip fields where the spec allows extension (props, links, remarks).

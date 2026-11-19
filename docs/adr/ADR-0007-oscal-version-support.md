@@ -3,7 +3,7 @@
 - **Status:** Approved — **amended 2026-11-16** (see "Amendment 2026-11-16" below): authoring/export
   target is now **OSCAL v1.2.3**; other 1.2.x patch versions import without a warning; library loads
   apply the same policy as uploads. Where the original text and the amendment disagree, the
-  amendment wins.
+  amendment wins. Schema validation + bundling implemented by **ADR-0040** (2026-11-19).
 - **Date:** 2026-07-02 (amended 2026-11-16)
 - **Deciders:** Human supervisor (Q1 of technical-design clarification), engineering; amendment:
   product owner (backlog #2, PO decisions Q2 + Q3 of 2026-11-16)
@@ -81,10 +81,15 @@ loads (ADR-0005) never applied this policy at all, although the original text co
    `oscalVersion` (e.g. `1.2.2`); export normalizes to 1.2.3 as before. Detail pages show the stored
    value.
 
-**Unchanged / still open.** Body content is not up- or down-converted. The schema-validation and
-schema-bundling bullets above remain **unimplemented** (no Ajv validation and no vendored schemas
-exist yet); they are scheduled as backlog #3 (valid-by-construction export + schema check, PO Q4).
-Until then, an export stamped 1.2.3 is not validated against the 1.2.3 schemas.
+**Unchanged / still open.** Body content is not up- or down-converted. ~~The schema-validation and
+schema-bundling bullets above remain unimplemented~~ — **implemented by ADR-0040 (backlog #3,
+2026-11-19):** the NIST 1.2.3 JSON schemas are vendored (`schemas/oscal/1.2.3/`, sha256 in
+`MANIFEST.json`) and compiled to standalone validators at build time; every export, every
+workflow input (compliance gate) and every upload/adoption is checked against the 1.2.3 schema of
+its model. Only the authoring version's schemas are bundled: a 1.1.x import is validated as the
+1.2.3 document TALOS would export (the "validate against 1.2.x and warn" branch above); exact
+older-version validation stays a future option. Exports now also carry `"$schema"` (PO decision
+2026-11-18).
 
 **Consequences.** + NIST-current version claim; 1.2.x files from other tools (e.g. BSI mapping
 collections and component-definitions at 1.2.2) import silently. − Users adopting 1.1.x BSI

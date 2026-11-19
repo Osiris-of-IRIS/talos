@@ -46,6 +46,14 @@ shows an error naming the file and URL instead of failing silently; maintainers 
 `npm run check:library` and regenerate the index (see [`docs/ops.md`](docs/ops.md) and ADR-0039).
 Mapping collections are listed but not supported yet.
 
+## OSCAL compliance
+
+Files TALOS writes carry `"$schema"` and are validated against the official NIST OSCAL 1.2.3 JSON
+schemas, vendored in [`schemas/oscal/1.2.3/`](schemas/oscal/1.2.3/MANIFEST.json) (sha256-pinned) and
+compiled into validators at build time, so the page's Content-Security-Policy stays strict. A
+non-compliant artifact can still be downloaded as a draft after a warning that names every
+non-compliant field, but only compliant artifacts can be used as input to later steps (ADR-0040).
+
 ## Project status
 
 Implementation status is tracked per-feature in [`docs/feature_registry.yaml`](docs/feature_registry.yaml)

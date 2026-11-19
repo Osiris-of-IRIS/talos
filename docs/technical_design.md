@@ -36,7 +36,7 @@ flowchart TB
   subgraph Browser
     UI[React UI / HashRouter]
     Shared[Shared: markup render, entity-search, i18n, theme]
-    Models[OSCAL models + Ajv validators]
+    Models[OSCAL models + schema compliance\nbuild-time Ajv validators]
     Store[Persistence service]
     IDB[(IndexedDB)]
     UI --> Shared --> Models
@@ -54,7 +54,7 @@ flowchart TB
 |---|---|---|
 | **UI** | `src/features/*`, `src/app/` (shell, router, landing) | Views, editors, navigation `[ADR-0002,0006]` |
 | **Shared** | `src/shared/*` | markup render `[ADR-0009]`, entity-search `[ADR-0013]`, i18n `[ADR-0012]`, theme/tokens `[ADR-0010]`, symbols `[ADR-0011]`, logging |
-| **Domain** | `src/models/*` | OSCAL base + per-type models, codecs, Ajv validators `[ADR-0003,0007]` |
+| **Domain** | `src/models/*` | OSCAL base + per-type models, codecs, export document, compliance model + lazily loaded schema validators `[ADR-0003,0007,0040]` |
 | **Data** | `src/data/*` | IndexedDB repositories, file I/O, library loader `[ADR-0004,0005]` |
 | **State** | `src/stores/*` (Zustand) | UI/workspace state synced to repositories |
 
@@ -69,7 +69,7 @@ flowchart TB
 | Build | Vite | `base: '/talos/'` for Pages |
 | Routing | React Router **HashRouter** | Static-host deep links `[ADR-0002]` |
 | State | **Zustand** | Light stores, IndexedDB-synced (Q5) |
-| Schema validation | **Ajv** (planned, backlog #3 — not wired yet; NIST schemas are draft-07) | NIST OSCAL v1.2.3 schemas `[ADR-0003,0007]` |
+| Schema validation | **Ajv 8 standalone code**, generated at build time (`tools/oscalValidators.mjs`, Vite/Vitest plugin, `virtual:oscal-validator/<type>`) — no runtime compilation (CSP) | Vendored NIST OSCAL v1.2.3 JSON schemas (draft-07), `schemas/oscal/1.2.3/` + `MANIFEST.json` (sha256) `[ADR-0040]` |
 | Persistence | **IndexedDB** (`idb` wrapper) | `[ADR-0004]` |
 | Zip (workspace bundle) | a small zip lib (e.g. `fflate`) | export/import-all (Q8) |
 | Markdown | dependency-free renderer (optionally `marked`+`DOMPurify`, constrained) | `[ADR-0009]` |
@@ -91,8 +91,15 @@ Shared **`OscalArtifact`** base (`uuid`, `metadata`, `back-matter`) extended per
   model in one place.
 - **Shared sub-models & editors:** metadata (roles/parties/props/links/revisions/document-ids),
   back-matter (resources/rlinks/citations), props/links helpers, document-ids (bare-uuid scheme).
-- **Validation:** shared envelope validated once; body by the per-type schema. Import + export
-  both validate *(planned — schema validation is not implemented yet, backlog #3)*.
+- **Validation (ADR-0040):** one notion of "valid" — an artifact is *compliant* when its export
+  document (`buildExportDocument`: oscal-version normalized, empty arrays dropped, `"$schema"`
+  first) validates against the vendored NIST 1.2.3 JSON schema of its model (catalog, profile,
+  component-definition, SSP; other models are `unchecked`). `src/models/compliance.ts` turns Ajv
+  errors into issues (JSON pointer, OSCAL path with numbered items + hints, reason code + params),
+  `src/data/complianceCheck.ts` runs and memoizes checks, logs and counts them; the UI
+  (`src/features/shared/compliance/`) renders badges, issue lists, the draft-export dialog and the
+  blocked-input notice, all localized (`src/shared/complianceMessages.ts`). Uploads/adoptions are
+  validated but never rejected for schema reasons (flagged instead).
   Authoring/export = **v1.2.3** (`OSCAL_AUTHORING_VERSION`, single source); import accepts any
   1.x without auto-conversion: other 1.2.x patches silently (info log), 1.0/1.1/other minors and a
   missing version with a localized warning, non-1.x rejected. Upload and library adopt share one
@@ -120,9 +127,14 @@ Shared **`OscalArtifact`** base (`uuid`, `metadata`, `back-matter`) extended per
 **Flows**
 - *Create/edit* → Zustand store → repository `put` → IndexedDB (draft-friendly; validation is
   non-blocking, run on demand + before export, Q6).
-- *Upload* → envelope codec + Ajv → store as `origin: imported`; on `uuid` collision **prompt**
-  (overwrite / import-as-copy; default copy, Q7).
-- *Download* → serialize typed model → OSCAL JSON Blob; filename `<type>-<title-slug>-<uuid8>.json`.
+- *Upload* → envelope codec → store as `origin: imported` (uuid collision → import-as-copy) →
+  schema check; non-compliant → warning toast, badge, blocked as workflow input `[ADR-0040]`.
+- *Download* → export document (`$schema`, normalized version, no empty arrays) → creator rule
+  (blocks, ADR-0019) → schema check: compliant downloads at once, non-compliant only as a draft
+  after a dialog naming every non-compliant field; filename `<type>-<title-slug>-<uuid8>.json`.
+- *Use as input* (profile → SSP, catalog/profile → profile/assistants/bootstrap/component-definition
+  source, component-definition → SSP/component-definition) → **compliance gate**: only compliant
+  artifacts; consumption points G1–G8 in ADR-0040 §6.
 - *Export/Import all* → **zip + `manifest.json`**, each entry standalone OSCAL (Q8).
 - *Library* → loader fetches BSI content, caches in `libraryCache` (read-only) `[ADR-0005]`.
 
@@ -219,8 +231,10 @@ flowchart LR
 - **Logging:** structured (JSON-shaped) log records via a logging util, each including
   `decision_ids` (ADR IDs), with an in-app ring buffer for diagnostics; **warnings yellow,
   errors red** in console + toasts.
-- **Validation errors:** non-blocking inline validity panel per artifact; blocking only at
-  export with an explicit override path.
+- **Validation errors (ADR-0040):** non-blocking compliance badge + issue list per artifact (list
+  rows, detail pages, editors — drafts debounced); at export the draft dialog is the explicit
+  override path; the ADR-0019 creator rule is the only hard export blocker; workflow inputs are
+  gated (fail closed). Logged with `decision_ids: ["ADR-0040"]`, counted by `getComplianceStats()`.
 
 ---
 
@@ -248,8 +262,9 @@ flowchart LR
 | Open a large catalog/component-def render | ≤ 500 ms after fetch |
 | IndexedDB list query (typical workspace) | ≤ 50 ms |
 
-Techniques: route-level code splitting, virtualized long lists, memoized markup rendering,
-incremental search index. Tracked in `docs/performance.md` (T-016), verified T-503.
+Techniques: route-level code splitting (the dashboard route and the per-model schema validators
+are lazy chunks, ADR-0040), virtualized long lists, memoized markup rendering, incremental search
+index. Tracked in `docs/performance.md` (T-016; ADR-0040 bundle/validation figures), verified T-503.
 
 ---
 
@@ -305,7 +320,10 @@ warn/error paths (e.g. `fileIo`'s import warnings) are not yet retrofitted — f
 - **Unit/component** (Vitest + RTL): codecs, validators, renderer, search, editors.
 - **Golden round-trip:** `import(json) → model → export(json)` deep-equals, per artifact type,
   fixtures in `tests/data/` (incl. sanitized BSI samples with attribution).
-- **Contract/schema:** Ajv against vendored NIST v1.2.3 schemas (planned, backlog #3).
+- **Contract/schema (ADR-0040):** golden fixtures validated with the production validators
+  (TEST-SCHEMA-02: valid fixtures + deliberately invalid ones with golden `.expected.json`
+  compliance reports); valid-by-construction contract for every factory/assistant/editor path
+  (TEST-SCHEMA-06); harness `schema-snapshot` checks the vendored schemas' sha256 and `$id`.
 - **E2E** (Playwright): landing → adopt-from-library → edit component-def/SSP → download.
 - **YAML harness** (`tests/test_harness/runner.py`): executes `tests/tests.yaml`, validates
   golden/schema, emits JSON logs + JUnit XML.

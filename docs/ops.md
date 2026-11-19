@@ -34,6 +34,16 @@ Decision IDs: ADR-0002 (deploy), ADR-0005 (library), ADR-0001 (CI). TALOS is a s
 - **What to monitor post-deploy:** `BSI upstream resource could not be loaded` error records
   (context: `resource`, `url`, `status`) and `getUpstreamStats()` (`failures`, `notFound`,
   `servedFromCache`, `byResource`) — a rising `notFound` means BSI moved files; run the runbook.
+- **OSCAL compliance (ADR-0040):** `getComplianceStats()` (`checks`, `compliant`, `nonCompliant`,
+  `unchecked`, `totalMs`, `gateAllowed`, `gateBlocked`, `compliantExports`, `draftExports`) and the
+  `ADR-0040` log records ("not compliant" with type + issue count + first pointer + duration;
+  "Compliance gate: … refused"; "Exported … as a draft"). A rise in `nonCompliant` for
+  *library-adopted* artifacts means BSI published schema-invalid content; a rise in `draftExports`
+  means TALOS-authored output is not compliant often enough (an editor gap). A failed validator
+  chunk load (offline right after a deploy) is retried on the next check.
+- **Runbook — "new OSCAL release":** download the release's `oscal_{catalog,profile,component,ssp}_schema.json`
+  into `schemas/oscal/<version>/`, write its `MANIFEST.json` (url, sha256, `$id`), bump
+  `OSCAL_AUTHORING_VERSION` (ADR-0007), `npm run check` + harness (`schema-snapshot`).
 
 ## Failure modes & handling
 | Failure | Handling |
@@ -41,7 +51,7 @@ Decision IDs: ADR-0002 (deploy), ADR-0005 (library), ADR-0001 (CI). TALOS is a s
 | Library/namespace fetch fails / offline | Retry transient errors with backoff; serve cache with yellow warning; else red toast + `error` log `[ADR-0005, ADR-0039]` |
 | BSI moved a file upstream (HTTP 404) | No retry; toast names resource + URL and says the index needs an update; follow the runbook above `[ADR-0039]` |
 | IndexedDB quota exceeded | Warn + guide to export; never drop data `[ADR-0004]` |
-| Invalid uploaded OSCAL | Reject with clear error; nothing stored `[ADR-0003]` |
+| Invalid uploaded OSCAL | Unparseable / wrong type / non-1.x: reject with clear error, nothing stored `[ADR-0003, ADR-0007]`. Schema-invalid but parseable: stored, warning toast + badge, blocked as workflow input until fixed `[ADR-0040]` |
 | External viewer unavailable | Show catalog data inline (minimal) + notice `[ADR-0008]` |
 | Corrupt/incompatible stored record | Isolate record, surface error, allow export of the rest |
 
