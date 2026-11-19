@@ -1,0 +1,37 @@
+{
+  "oscalVersion": "1.2.3",
+  "source": "https://github.com/usnistgov/OSCAL/releases/tag/v1.2.3",
+  "retrieved": "2026-11-19",
+  "license": "Public domain (U.S. Government work; CC0 1.0 worldwide), source: National Institute of Standards and Technology (NIST) - see https://github.com/usnistgov/OSCAL/blob/v1.2.3/LICENSE.md",
+  "note": "Vendored verbatim (byte-identical to the release assets); do not edit. Verified by sha256 in the test harness (schema-snapshot check) and compiled to standalone Ajv validators at build time by tools/oscalValidators.mjs (ADR-0040).",
+  "schemas": {
+    "catalog": {
+      "file": "oscal_catalog_schema.json",
+      "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_catalog_schema.json",
+      "sha256": "ab95836e9e8dfeb6fde80007f6cc76fa3192f595d427c751a3f3923c3f474fc2",
+      "id": "http://csrc.nist.gov/ns/oscal/1.2.3/oscal-catalog-schema.json",
+      "rootKey": "catalog"
+    },
+    "profile": {
+      "file": "oscal_profile_schema.json",
+      "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_profile_schema.json",
+      "sha256": "7c5ff5a92683b6a80ce6a3474dea04e0ea8680a4ecb60702ffa08ebfc677e6cb",
+      "id": "http://csrc.nist.gov/ns/oscal/1.2.3/oscal-profile-schema.json",
+      "rootKey": "profile"
+    },
+    "componentDefinition": {
+      "file": "oscal_component_schema.json",
+      "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_component_schema.json",
+      "sha256": "95e76881151ececd5cb1a93ff0f70ad74b8cc1aa58771626ac8b262bf2c8e001",
+      "id": "http://csrc.nist.gov/ns/oscal/1.2.3/oscal-component-definition-schema.json",
+      "rootKey": "component-definition"
+    },
+    "systemSecurityPlan": {
+      "file": "oscal_ssp_schema.json",
+      "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_ssp_schema.json",
+      "sha256": "99b1bee2df5604a7d4f1faeab43148e0bd4c4a1f513cd0d2d0c7896aa216a1e7",
+      "id": "http://csrc.nist.gov/ns/oscal/1.2.3/oscal-ssp-schema.json",
+      "rootKey": "system-security-plan"
+    }
+  }
+}
