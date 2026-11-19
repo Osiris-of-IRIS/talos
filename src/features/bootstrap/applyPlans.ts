@@ -9,7 +9,7 @@ import { ArtifactRepository } from '@/data/artifactRepository';
 import type { StoredArtifact, TalosSettings } from '@/data/db';
 import { getSettings } from '@/data/settingsRepository';
 import { applyDefaultCreator } from '@/data/defaultCreator';
-import type { SystemSecurityPlan } from '@/models/ssp';
+import { uuidSystemId, type SystemCharacteristics, type SystemId, type SystemSecurityPlan } from '@/models/ssp';
 import { createBlankSsp } from '@/features/ssps/blank';
 import { findSspByCorrelationKey } from './bootstrapProvenance';
 import type { BootstrapSspPlan } from './planBuilders';
@@ -17,6 +17,14 @@ import type { BootstrapSspPlan } from './planBuilders';
 export interface ApplyResult {
   created: number;
   updated: number;
+}
+
+/** Plans carry no system id (they are pure and do not know the SSP's uuid). Keep the SSP's existing
+ * ids on a re-run — a system id must stay stable — or seed the SSP's uuid, so `system-ids` is never
+ * empty (valid by construction, ADR-0040). */
+function withSystemIds(sc: SystemCharacteristics, existing: SystemId[] | undefined, sspUuid: string): SystemCharacteristics {
+  if (sc.systemIds.length > 0) return sc;
+  return { ...sc, systemIds: existing && existing.length > 0 ? existing : [uuidSystemId(sspUuid)] };
 }
 
 /** Write one plan (create or update), returning which it did. Each plan targets a distinct SSP
@@ -38,7 +46,11 @@ async function applyOnePlan(
     await repo.update(match.uuid, {
       ...match.artifact,
       metadata: { ...match.artifact.metadata, title },
-      systemCharacteristics: plan.systemCharacteristics,
+      systemCharacteristics: withSystemIds(
+        plan.systemCharacteristics,
+        match.artifact.systemCharacteristics?.systemIds,
+        match.uuid,
+      ),
       controlImplementation: plan.controlImplementation,
       // inventoryItems is regenerated every run, same as system-characteristics/control-implementation
       // above; components/users are preserved (spread from the existing systemImplementation) since
@@ -55,7 +67,7 @@ async function applyOnePlan(
   const artifact: SystemSecurityPlan = {
     ...blank,
     metadata: { ...blank.metadata, title },
-    systemCharacteristics: plan.systemCharacteristics,
+    systemCharacteristics: withSystemIds(plan.systemCharacteristics, blank.systemCharacteristics.systemIds, blank.uuid),
     controlImplementation: plan.controlImplementation,
     systemImplementation: { ...blank.systemImplementation, inventoryItems: plan.inventoryItems },
   };

@@ -22,6 +22,14 @@ export interface SystemId {
   id: string;
 }
 
+/** OSCAL 1.2.3 allowed `identifier-type` for a UUID system id (the non-deprecated RFC 4122 value). */
+export const SYSTEM_ID_TYPE_UUID = 'http://datatracker.ietf.org/doc/html/rfc4122';
+
+/** A system id derived from a UUID — TALOS seeds one per SSP so `system-ids` is never empty (ADR-0040). */
+export function uuidSystemId(uuid: string): SystemId {
+  return { identifierType: SYSTEM_ID_TYPE_UUID, id: uuid };
+}
+
 export interface Information {
   uuid?: string;
   informationTypes: {
@@ -111,7 +119,8 @@ export interface InventoryItem {
 export interface SystemImplementation {
   props?: Prop[];
   links?: Link[];
-  users: SystemUser[];
+  /** Optional since OSCAL 1.2.0 (PR #2109); TALOS does not author users yet. */
+  users?: SystemUser[];
   components: SystemComponent[];
   inventoryItems?: InventoryItem[];
   remarks?: MarkupMultiline;

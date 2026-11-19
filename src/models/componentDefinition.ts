@@ -28,7 +28,8 @@ export interface Statement {
 export interface ImplementedRequirement {
   uuid: string;
   controlId: string;
-  description?: MarkupMultiline;
+  /** Required by OSCAL (markup-multiline; may be empty text). Always written (ADR-0040). */
+  description: MarkupMultiline;
   props?: Prop[];
   links?: Link[];
   setParameters?: SetParameter[];
