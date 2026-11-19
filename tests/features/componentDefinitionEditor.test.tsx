@@ -206,7 +206,7 @@ describe('source→catalog + param pickers (T-142)', () => {
       origin: 'user',
       artifact: {
         uuid: profileUuid,
-        metadata: { title: 'BSI Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'BSI Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         imports: [{ href: `#${catalogRecord.uuid}`, includeAll: {} }],
       },
     });
@@ -289,7 +289,7 @@ describe('edit', () => {
       uuid,
       type: 'componentDefinition',
       origin: 'user',
-      artifact: { uuid, metadata: { title: 'Old', version: '1.0.0', oscalVersion: '1.2.2' }, components: [] },
+      artifact: { uuid, metadata: { title: 'Old', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' }, components: [] },
     });
 
     const user = userEvent.setup();
@@ -315,13 +315,13 @@ describe('imports (ADR-0014)', () => {
       uuid: editorUuid,
       type: 'componentDefinition',
       origin: 'user',
-      artifact: { uuid: editorUuid, metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' } },
+      artifact: { uuid: editorUuid, metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' } },
     });
     await repo().create({
       uuid: otherUuid,
       type: 'componentDefinition',
       origin: 'user',
-      artifact: { uuid: otherUuid, metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2' } },
+      artifact: { uuid: otherUuid, metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' } },
     });
   }
 
@@ -365,7 +365,7 @@ describe('imports (ADR-0014)', () => {
       origin: 'user',
       artifact: {
         uuid: editorUuid,
-        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         importComponentDefinitions: [{ href: `#${otherUuid}` }],
       },
     });
@@ -373,7 +373,7 @@ describe('imports (ADR-0014)', () => {
       uuid: otherUuid,
       type: 'componentDefinition',
       origin: 'user',
-      artifact: { uuid: otherUuid, metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2' } },
+      artifact: { uuid: otherUuid, metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' } },
     });
 
     const user = userEvent.setup();
@@ -391,7 +391,7 @@ describe('imports (ADR-0014)', () => {
       origin: 'user',
       artifact: {
         uuid: editorUuid,
-        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         importComponentDefinitions: [{ href: '#nonexistent' }],
       },
     });
@@ -415,7 +415,7 @@ describe('imports (ADR-0014)', () => {
       origin: 'user',
       artifact: {
         uuid: editorUuid,
-        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         importComponentDefinitions: [{ href: '#nonexistent' }],
       },
     });
@@ -430,7 +430,7 @@ describe('imports (ADR-0014)', () => {
       origin: 'user',
       artifact: {
         uuid: editorUuid,
-        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         importComponentDefinitions: [{ href: '#nonexistent-1' }, { href: '#nonexistent-2' }],
       },
     });
@@ -445,7 +445,7 @@ describe('imports (ADR-0014)', () => {
       origin: 'user',
       artifact: {
         uuid: editorUuid,
-        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         importComponentDefinitions: [{ href: '#nonexistent', remarks: 'keep me' }],
       },
     });
@@ -453,7 +453,7 @@ describe('imports (ADR-0014)', () => {
       uuid: otherUuid,
       type: 'componentDefinition',
       origin: 'user',
-      artifact: { uuid: otherUuid, metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2' } },
+      artifact: { uuid: otherUuid, metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' } },
     });
 
     const user = userEvent.setup();
@@ -480,7 +480,7 @@ describe('imports (ADR-0014)', () => {
       origin: 'user',
       artifact: {
         uuid: editorUuid,
-        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         importComponentDefinitions: [{ href: '#nonexistent' }],
       },
     });
@@ -492,7 +492,7 @@ describe('imports (ADR-0014)', () => {
       origin: 'user',
       artifact: {
         uuid: otherUuid,
-        metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         importComponentDefinitions: [{ href: `#${editorUuid}` }],
       },
     });
@@ -514,7 +514,7 @@ describe('imports (ADR-0014)', () => {
       origin: 'user',
       artifact: {
         uuid: editorUuid,
-        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Editor Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
       },
     });
     // otherDef already imports editorDef — editorDef importing otherDef would close the loop.
@@ -524,7 +524,7 @@ describe('imports (ADR-0014)', () => {
       origin: 'user',
       artifact: {
         uuid: otherUuid,
-        metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Other Def', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         importComponentDefinitions: [{ href: `#${editorUuid}` }],
       },
     });
@@ -549,7 +549,7 @@ describe('component list — collapse/expand (item 2)', () => {
       origin: 'user',
       artifact: {
         uuid,
-        metadata: { title: 'Multi', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Multi', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         components: [
           {
             uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -562,8 +562,8 @@ describe('component list — collapse/expand (item 2)', () => {
                 source: '#cat-1',
                 description: 'ci',
                 implementedRequirements: [
-                  { uuid: 'r1', controlId: 'ASST.1.1.2' },
-                  { uuid: 'r2', controlId: 'ASST.1.1.3' },
+                  { uuid: 'r1', controlId: 'ASST.1.1.2', description: '' },
+                  { uuid: 'r2', controlId: 'ASST.1.1.3', description: '' },
                 ],
               },
             ],

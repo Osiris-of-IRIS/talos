@@ -37,7 +37,7 @@ async function seedCatalog() {
     origin: 'user',
     artifact: {
       uuid: catalogUuid,
-      metadata: { title: 'Grundschutz Test', version: '1.0.0', oscalVersion: '1.2.2' },
+      metadata: { title: 'Grundschutz Test', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
       controls: [
         { id: 'C1', title: 'No-param control' },
         { id: 'C2', title: 'Param control', params: [{ id: 'p1', label: 'Value' }] },
@@ -60,7 +60,7 @@ async function seedOtherCatalog() {
     origin: 'user',
     artifact: {
       uuid: otherCatalogUuid,
-      metadata: { title: 'Other Catalog', version: '1.0.0', oscalVersion: '1.2.2' },
+      metadata: { title: 'Other Catalog', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
       controls: [{ id: 'X1', title: 'Unrelated control' }],
     } as Catalog,
   });
@@ -122,7 +122,7 @@ describe('requirement generation', () => {
     expect(ci.implementedRequirements).toHaveLength(3);
     expect(ci.implementedRequirements.map((r) => r.controlId).sort()).toEqual(['C1', 'C2', 'C3']);
     expect(ci.implementedRequirements.find((r) => r.controlId === 'C1')?.description).toBe('Covers C1.');
-    expect(ci.implementedRequirements.find((r) => r.controlId === 'C2')?.description).toBeUndefined();
+    expect(ci.implementedRequirements.find((r) => r.controlId === 'C2')?.description).toBe(''); // OSCAL-required, written empty (ADR-0040)
 
     // source is back-matter-mediated (item 5, ADR-0024), not the catalog's own uuid directly.
     expect(ci.source.startsWith('#')).toBe(true);

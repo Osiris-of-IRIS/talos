@@ -1,0 +1,10 @@
+{
+  "note": "Compliance report TALOS shows for this file after upload (export pipeline: empty arrays dropped, oscal-version normalized, $schema added). Decision IDs: ADR-0040.",
+  "status": "non-compliant",
+  "issues": [
+    { "pointer": "/system-security-plan/system-characteristics/system-ids", "code": "required" },
+    { "pointer": "/system-security-plan/system-characteristics/system-name", "code": "empty" },
+    { "pointer": "/system-security-plan/system-characteristics/system-information/information-types", "code": "required" },
+    { "pointer": "/system-security-plan/system-implementation/components", "code": "required" }
+  ]
+}

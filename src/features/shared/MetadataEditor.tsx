@@ -1,7 +1,8 @@
 // Reusable metadata editor — used by every artifact type. Decision IDs: ADR-0003, ADR-0015, ADR-0017, ADR-0019, ADR-0012.
 import { useState } from 'react';
 import { externalizeLink, isExternalUrl } from '@/models/backMatter';
-import { validateCreator } from '@/models/creator';
+import { creatorProblems as getCreatorProblems } from '@/models/creator';
+import { formatCreatorProblem } from '@/shared/complianceMessages';
 import { useI18n } from '@/shared/i18n';
 import { MarkupEditor } from '@/shared/MarkupEditor';
 import type { OscalArtifact, Party } from '@/models/oscalBase';
@@ -157,7 +158,8 @@ export function MetadataEditor<T extends OscalArtifact>({ artifact, onChange }: 
   const roleTitleById = (id: string) => roles.find((r) => r.id === id)?.title ?? id;
   const partyNameByUuid = (uuid: string) => parties.find((p) => p.uuid === uuid)?.name ?? uuid;
   const organizations = parties.filter((p) => p.type === 'organization');
-  const creatorProblems = validateCreator(md); // ADR-0019: mandatory creator (name + email)
+  // ADR-0019: mandatory creator (name + email), localized (ADR-0012, ADR-0040).
+  const creatorProblems = getCreatorProblems(md).map((p) => formatCreatorProblem(t, p));
 
   function addLink() {
     const href = linkHref.trim();

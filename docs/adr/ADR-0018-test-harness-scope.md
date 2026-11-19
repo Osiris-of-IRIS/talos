@@ -60,6 +60,21 @@ is remaining work in T-030), so full schema validation of fixtures is not yet po
    (with its own stdlib `unittest` self-tests) *before* the JS suite. PyYAML is its only
    dependency (`tests/test_harness/requirements.txt`).
 
+## Amendment 2026-11-19 (ADR-0040, backlog #3)
+
+The NIST schemas are now vendored (`schemas/oscal/1.2.3/`). Decision 3's "extend the harness's
+golden-data check to Ajv-equivalent validation" is realised differently, on purpose:
+- the harness gains **`schema-snapshot`**: the vendored schemas for the authoring version exist,
+  match the sha256 and `$id` recorded in `MANIFEST.json`;
+- `golden_data` entries may carry `schema_verdict: invalid` — such fixtures deliberately violate
+  the schema, so their base fields are not asserted, but their golden `<name>.expected.json`
+  compliance report must exist and list ≥ 1 `{pointer, code}` issue;
+- the actual schema validation of every golden fixture runs in Vitest (TEST-SCHEMA-02) with the
+  **same build-time generated validators the app ships**. A Python `jsonschema` re-validation was
+  rejected: Python's `re` has no `\p{L}`/`\p{N}` (OSCAL token patterns), so a second validator
+  would need a different regex engine and could disagree with the app. PyYAML stays the only
+  harness dependency.
+
 ## Consequences
 
 **Positive**

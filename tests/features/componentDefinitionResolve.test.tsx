@@ -36,7 +36,7 @@ function compDefReferencing(controlId: string, irDescription?: string): Componen
               {
                 uuid: 'ir-1',
                 controlId,
-                ...(irDescription ? { description: irDescription } : {}),
+                description: irDescription ?? '',
                 setParameters: [{ paramId: 'asst.1.1.2-prm1', values: ['den IT-Betrieb'] }],
               },
             ],

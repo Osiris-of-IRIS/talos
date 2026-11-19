@@ -48,6 +48,14 @@ by validation; validity is surfaced non-blocking and **enforced at export**.
 5. **Referential integrity** (from ADR-0017) still holds: the creator can only reference a role
    and parties defined in the document, and deleting them cascades.
 
+### Amendment 2026-11-19 (ADR-0040, backlog #3)
+The creator rule remains the **only hard export blocker**, now reported as structured, localized
+problems (`creatorProblems`, `src/shared/complianceMessages.ts`). The T-151 title/version checks
+that `validateForExport` also enforced are required OSCAL fields and are now reported by the schema
+compliance check, so an artifact missing them downloads as a draft after a warning naming them
+(PO Q4) instead of being blocked. The creator rule is not part of OSCAL compliance and does not
+affect the compliance gate for workflow inputs (BSI catalogs carry no creator).
+
 ## Alternatives considered
 
 - **Block editing/saving without a creator:** violates the draft-friendly principle; rejected in

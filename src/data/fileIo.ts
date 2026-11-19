@@ -2,15 +2,12 @@
  * OSCAL file I/O — parse uploaded documents and serialize for download. Pure functions are
  * separated from the DOM download trigger for testability. Decision IDs: ADR-0004, ADR-0003.
  */
-import { parseOscalDocument, serializeOscalDocument } from '@/models/envelope';
-import {
-  OSCAL_AUTHORING_VERSION,
-  type ImportWarning,
-  type Metadata,
-  type OscalArtifactType,
-} from '@/models/oscalBase';
+import { parseOscalDocument } from '@/models/envelope';
+import { type ImportWarning, type OscalArtifactType } from '@/models/oscalBase';
+import { buildExportDocument } from '@/models/exportDocument';
+import { creatorProblemMessage } from '@/models/creator';
+import { exportBlockers } from './complianceCheck';
 import { applyImportVersionPolicy } from './importVersionPolicy';
-import { validateCreator } from '@/models/creator';
 import type { Origin, StoredArtifact } from './db';
 
 export interface ParsedUpload<T = unknown> {
@@ -48,22 +45,12 @@ export function parseOscalUpload<T = unknown>(text: string, origin: Origin = 'im
 }
 
 /**
- * On export, normalize `metadata.oscal-version` to the authoring version (ADR-0007). Returns a
- * shallow copy so the stored artifact keeps its imported version (draft-friendly); a no-op when
- * already at the authoring version.
+ * Serialize a stored artifact to the OSCAL JSON text TALOS downloads (pretty-printed): exactly the
+ * export document the compliance check validates (`buildExportDocument`: oscal-version normalized
+ * to the authoring version, empty arrays dropped, `"$schema"` first — ADR-0040, ADR-0007).
  */
-function normalizeExportVersion<T>(artifact: T): T {
-  const a = artifact as { metadata?: { oscalVersion?: string } };
-  if (a?.metadata && a.metadata.oscalVersion !== OSCAL_AUTHORING_VERSION) {
-    return { ...a, metadata: { ...a.metadata, oscalVersion: OSCAL_AUTHORING_VERSION } } as T;
-  }
-  return artifact;
-}
-
-/** Serialize a stored artifact back to spec-shaped OSCAL JSON text (pretty-printed). */
 export function serializeArtifact(record: StoredArtifact): string {
-  const artifact = normalizeExportVersion(record.artifact);
-  return JSON.stringify(serializeOscalDocument(record.type, artifact), null, 2);
+  return JSON.stringify(buildExportDocument(record.type, record.artifact), null, 2);
 }
 
 function slugify(title: string): string {
@@ -83,37 +70,21 @@ export function defaultFilename(record: StoredArtifact): string {
 }
 
 /**
- * Validity problems that must be resolved before an artifact can be exported (ADR-0019, and the
- * T-151 export-validity path). Draft-friendly: this gates *export*, never editing. Returns an
- * empty list when the artifact is exportable; collects every violation, not just the first, so
- * the caller can show them all at once.
- *
- * Scope is the shared base envelope only (uuid/metadata are always present by construction —
- * `blank.ts` seeds them and `parseOscalUpload` rejects a missing uuid/title — but `title` and
- * `version` are free-text fields a user can clear while editing, draft-friendly). `oscal-version`
- * is deliberately not checked here: `serializeArtifact`'s `normalizeExportVersion` unconditionally
- * rewrites it to the authoring version on every export, so no exported document can ever carry an
- * invalid one regardless of what's stored. Per-type field validation (e.g. SSP system
- * characteristics) and full NIST JSON-Schema validation are deferred to T-030.
+ * Problems that *block* any export, even as a draft (ADR-0019: mandatory creator with name +
+ * email), as English text for logs and the bulk-zip skip list. Draft-friendly: this gates export,
+ * never editing. OSCAL schema compliance is *not* checked here: a non-compliant artifact may still
+ * be downloaded as a draft after the user saw every non-compliant field (ADR-0040; the async check
+ * and the draft dialog live in src/data/complianceCheck.ts and src/features/shared/useExportDownload).
+ * Title, version and the other required OSCAL fields are therefore schema issues, not blockers.
  */
 export function validateForExport(record: StoredArtifact): string[] {
-  const metadata = (record.artifact as { metadata?: Metadata }).metadata;
-  if (!metadata) return ['Artifact has no metadata.'];
-
-  const problems: string[] = [];
-  if (typeof metadata.title !== 'string' || metadata.title.trim().length === 0) {
-    problems.push('metadata.title is required — give the artifact a title before exporting.');
-  }
-  if (typeof metadata.version !== 'string' || metadata.version.trim().length === 0) {
-    problems.push('metadata.version is required — give the artifact a version before exporting.');
-  }
-  problems.push(...validateCreator(metadata));
-  return problems;
+  return exportBlockers(record).map(creatorProblemMessage);
 }
 
 /**
- * Trigger a browser download of the artifact as OSCAL JSON (thin DOM wrapper). Throws when the
- * artifact is not exportable (e.g. missing a valid creator, ADR-0019) so the caller can surface it.
+ * Trigger a browser download of the artifact as OSCAL JSON (thin DOM wrapper). Throws when an
+ * export blocker applies (missing a valid creator, ADR-0019) so the caller can surface it. Callers
+ * decide about drafts first (ADR-0040, `useExportDownload`).
  */
 export function downloadArtifact(record: StoredArtifact, filename?: string): void {
   const problems = validateForExport(record);

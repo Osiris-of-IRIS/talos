@@ -29,6 +29,19 @@ Engineering conventions for TALOS. Decision IDs referenced inline.
   code + params); the UI renders them with `src/shared/importMessages.ts` — never toast the
   English `message` `[ADR-0007, ADR-0012]`.
 - Preserve unknown-but-allowed fields; keep unresolved refs verbatim `[ADR-0003, ADR-0014]`.
+- **One notion of valid** `[ADR-0040]`: "compliant" = the export document (`buildExportDocument`)
+  validates against the vendored NIST schema of its model. Never write a second validity check;
+  use `checkRecordCompliance` / `checkArtifactCompliance` (src/data/complianceCheck.ts) and render
+  issues with `src/shared/complianceMessages.ts`. Serialize for download only via
+  `serializeArtifact` (it writes `"$schema"` and drops empty arrays).
+- **Every new workflow input goes through the compliance gate** `[ADR-0040]`: a picker that feeds an
+  artifact into a later step uses `useInputGate` (commit-on-pick → `await admit(record)`) or
+  `useGatedSelection` (held selection → `usable` gates the action), shows `markerFor(uuid)` on the
+  options and renders `notice`. Add the consumption point to ADR-0040 §6 and TEST-SCHEMA-08.
+- **Valid by construction** `[ADR-0040]`: blank factories, assistants and generators never write an
+  empty required array or omit a required field they can fill (seed it, or let the compliance check
+  name what only a human can supply). Model types mark OSCAL-required fields as required.
+- Never relax the CSP for validation: validators are generated at build time (`tools/oscalValidators.mjs`).
 - All entity pickers use the shared entity-search `[ADR-0013]`.
 
 ## UI

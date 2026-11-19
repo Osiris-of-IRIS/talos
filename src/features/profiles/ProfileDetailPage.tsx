@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
-import { downloadArtifact } from '@/data/fileIo';
 import { MarkupView } from '@/shared/MarkupView';
 import { ControlDisplay } from '@/features/shared/ControlDisplay';
 import { useWorkspaceCatalogs } from '@/features/shared/useWorkspaceCatalogs';
@@ -10,26 +9,23 @@ import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
 import { resolveProfileImportSource, resolveProfileImportControls, unresolvedProfileImportHrefs } from '@/data/profileImportResolution';
 import { controlMatchesSearch } from '@/models/controlDisplay';
 import { useI18n } from '@/shared/i18n';
-import { useToast } from '@/shared/toast';
+import { useExportDownload } from '@/features/shared/compliance/useExportDownload';
+import { useRecordCompliance } from '@/features/shared/compliance/useCompliance';
+import { ComplianceBadge } from '@/features/shared/compliance/ComplianceBadge';
 import type { StoredArtifact } from '@/data/db';
 import type { Profile } from '@/models/profile';
 
 export function ProfileDetailPage() {
   const { uuid = '' } = useParams();
   const { t } = useI18n();
-  const { showToast } = useToast();
   const [record, setRecord] = useState<StoredArtifact<Profile> | null | undefined>(undefined);
+  // Validate on export + compliance status (ADR-0040).
+  const { requestDownload, dialog: exportDialog } = useExportDownload();
+  const compliance = useRecordCompliance(record);
   const [filter, setFilter] = useState('');
   const workspaceCatalogs = useWorkspaceCatalogs();
   const workspaceProfiles = useWorkspaceProfiles();
 
-  function onDownload(r: StoredArtifact<Profile>) {
-    try {
-      downloadArtifact(r);
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : String(e), 'error');
-    }
-  }
 
   useEffect(() => {
     let active = true;
@@ -80,9 +76,11 @@ export function ProfileDetailPage() {
           ✎ {t('common_edit')}
         </Link>
       )}{' '}
-      <button type="button" onClick={() => onDownload(record)}>
+      <button type="button" data-testid="download-artifact" onClick={() => void requestDownload(record)}>
         ⭳ {t('common_download')}
-      </button>
+      </button>{' '}
+      <ComplianceBadge report={compliance} title={record.artifact.metadata.title} />
+      {exportDialog}
       {unresolvedCount > 0 && (
         <p role="status" data-testid="profile-detail-unresolved-banner" style={{ color: 'var(--color-warning, #a15c00)' }}>
           ⚠️ {t('profile_imports_unresolved_detail_banner', { count: unresolvedCount })}

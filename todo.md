@@ -12,24 +12,11 @@ Effort: S / M / L
 
 - [x] **#1 Repair BSI library integration after the upstream layout change.** PR #1, ADR-0039.
 - [x] **#2 OSCAL 1.2.3: authoring/export bump, 1.2.x import policy, new component types.** PR #2, ADR-0007 amended.
+- [x] **#3 Schema-valid export and schema check.** Branch `feat/schema-valid-export`, ADR-0040 (amends ADR-0003/0007/0018/0019). NIST 1.2.3 schemas vendored and compiled at build time; validate on export with draft download naming every non-compliant field; compliance gate at every workflow-input consumption point (G1–G8); valid by construction; `$schema` in exports.
 
 ---
 
 ## Next, in priority order
-
-### [ ] #3 Schema-valid export and schema check (M–L)
-- **Value:** files TALOS writes are valid OSCAL; workflows only consume valid artifacts.
-- **Scope:**
-  - Bundle the NIST OSCAL 1.2.3 JSON schemas. Pre-build validators at build time, because the page's Content-Security-Policy blocks Ajv's runtime compilation. The docs and ADRs already claim Ajv validation, but it doesn't exist yet.
-  - Output is valid by construction where TALOS authors it:
-    - SSPs have no empty `system-ids`, `information-types`, `users` or `by-components`.
-    - The component-definition assistant writes the required `description`.
-    - Editors can fill every required SSP field.
-  - Validate on export. A file that isn't compliant can still be downloaded as a draft, with a warning that names every non-compliant field.
-  - Only compliant artifacts can be used as input to later steps and workflows (profile → SSP, SSP → assessment, bootstrap, assistants, …). The UI explains why a non-compliant artifact is blocked and which fields to fix.
-  - Write `"$schema"` (the NIST 1.2.3 schema id) into exported files.
-- **PO decisions:** Q4 (2026-11-16), `$schema` yes (2026-11-18).
-- **ADRs:** new ADR (schema validation and the compliance gate); update ADR-0007 and the technical design.
 
 ### [ ] #4 Example environment button on the assets page (S)
 - **Value:** try TALOS in one click, without preparing your own asset list.
@@ -98,18 +85,28 @@ Each ticket generates from SSP + catalog and adds a table editor (PO Q10). Each 
 
 ## Follow-ups and smaller items
 
+- [ ] **Gate tests G2c/G2d (S).** "Apply to…" propagation and by-component prefill are gated (ADR-0040 §6) but only code-reviewed; add dedicated tests.
 - [ ] **Localization sweep (S–M).** Move every remaining hard-coded user-facing string into `src/locales/de.json` / `en.json`, and add a harness check that fails on new ones. Known strings:
   - the store's type-mismatch message;
   - the `fileIo` errors (invalid JSON, missing uuid/title);
   - the library loader's "not supported", type-mismatch and offline warnings;
   - the bootstrap generator warnings;
   - the mapping-collection upload error.
+  - (done in #3: the ADR-0019 creator problems in the metadata editor and on export are now localized.)
 - [ ] **Library cache freshness (S).** Re-check cached library files against BSI on adopt with a conditional GET (ETag). PO-approved, ADR-0039.
 - [ ] **Weekly drift check (S).** A scheduled GitHub Actions job runs `npm run check:library -- --json`. It only reports and never blocks a deploy. PO-approved, ADR-0039.
 - [ ] **Unknown-category warning in the Profile Assistant picker (S).** Today only the bootstrap warns.
 - [ ] **Index generator API mode (S).** Run `tools/gen-library-index.mjs` in its GitHub Trees API mode once with a token; only `--clone` mode is verified.
 - [ ] **`tests/tests.yaml` cleanup (S).** TEST-MODEL-01 has duplicate `type`/`runner` keys.
 - [ ] **Low priority (S).** Detail pages show "exports as 1.2.3" next to an older stored `oscal-version`.
+- [ ] **Follow-ups from #3 (ADR-0040):**
+  - [ ] **OSCAL metaschema constraints (M–L).** The compliance check is JSON-schema only. Allowed values with `allow-other="no"` (e.g. TALOS props without `ns`, fixed by #6), cardinality rules (`by-component` for a `this-system` component) and cross-reference checks are not validated.
+  - [ ] **Transitive compliance gate (S).** A compliant profile is accepted as an SSP baseline even when a catalog it resolves through is not compliant; gate the resolved chain, not only the picked artifact.
+  - [ ] **`this-system` component default (S).** Needs a decision: seed a `this-system` component in new SSPs (metaschema cardinality) or keep "components only by import" (ADR-0023).
+  - [ ] **Assessment-layer schemas (#11).** Bundle the AP/AR/POA&M schemas with #11a–c; SSP → AP is a new consumption point (`useGatedSelection`).
+  - [ ] **Entity-search re-open (S).** After picking a result, typing into the still-focused `<EntitySearchField>` does not reopen the result list until it is blurred and focused again (found while testing the gate).
+  - [ ] **Validation in a Web Worker (S), only if needed.** Large catalogs build their export document on the main thread (see docs/performance.md).
+  - [ ] **Catalog fix path (S).** Non-compliant catalogs cannot be edited in TALOS; consider a minimal metadata editor (e.g. `last-modified`, `version`) so imported catalogs can be made compliant without leaving TALOS.
 
 ---
 
@@ -117,8 +114,6 @@ Each ticket generates from SSP + catalog and adds a table editor (PO Q10). Each 
 
 | Date | Topic | Decision | ADR goes with |
 |------|-------|----------|---------------|
-| 2026-11-16 | Schema errors at export | Validate on export; drafts can be downloaded with a warning naming the non-compliant fields; only compliant artifacts feed later workflow steps | #3 |
-| 2026-11-18 | `$schema` in exports | Yes | #3 |
 | 2026-11-16 | implementation-status | Native OSCAL field, TALOS namespace for props, no old form | #6 |
 | 2026-11-18 | TALOS namespace URI | `https://osiris-of-iris.github.io/talos/ns` | #6 |
 | 2026-11-16 | Bootstrap re-run | Ask: create from scratch or update existing SSPs | #7 |

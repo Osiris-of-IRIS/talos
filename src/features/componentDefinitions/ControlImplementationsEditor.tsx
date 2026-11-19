@@ -15,7 +15,7 @@
  * field offers every option, not just the current value (item 3, ADR-0024).
  * Decision IDs: ADR-0003, ADR-0013, ADR-0016, ADR-0012, ADR-0024, ADR-0032 (feature IMPL-001, T-101/T-142/T-161/T-205).
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   sourceOptions,
@@ -52,6 +52,12 @@ interface Props {
   backMatter?: BackMatter;
   /** Ensures a back-matter resource exists for a picked catalog or profile and returns `#<resourceUuid>`. */
   onEnsureSource?: (uuid: string, title: string) => string;
+  /** Compliance gate (ADR-0040, G6): resolves false when the picked catalog/profile may not be used. */
+  admitSource?: (uuid: string) => Promise<boolean>;
+  /** Marker text for a non-compliant source option ('' when usable). */
+  sourceMarker?: (uuid: string) => string;
+  /** Why the last picked source was refused (rendered above the control-implementations). */
+  sourceNotice?: ReactNode;
 }
 
 function uuid(): string {
@@ -154,14 +160,25 @@ export function SetParameterRow({
   );
 }
 
-export function ControlImplementationsEditor({ value, onChange, catalogIndex, backMatter, onEnsureSource }: Props) {
+export function ControlImplementationsEditor({
+  value,
+  onChange,
+  catalogIndex,
+  backMatter,
+  onEnsureSource,
+  admitSource,
+  sourceMarker,
+  sourceNotice,
+}: Props) {
   const { t } = useI18n();
   const cis = value.controlImplementations ?? [];
   const sourceSearchItems: SearchItem[] = catalogIndex
     ? sourceOptions(catalogIndex).map((o) => ({
         id: o.ref,
         title: o.title,
-        badge: t(o.kind === 'catalog' ? 'ci_source_kind_catalog' : 'ci_source_kind_profile'),
+        badge: [t(o.kind === 'catalog' ? 'ci_source_kind_catalog' : 'ci_source_kind_profile'), sourceMarker?.(o.uuid)]
+          .filter(Boolean)
+          .join(' · '),
       }))
     : [];
 
@@ -187,16 +204,19 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
       c.controlImplementations![ciIdx]!.implementedRequirements.push({
         uuid: uuid(),
         controlId: '',
+        // OSCAL requires the description (ADR-0040); empty text is valid markup-multiline.
+        description: '',
       } satisfies ImplementedRequirement);
     });
   }
 
-  function setSource(ciIdx: number, typed: string) {
+  async function setSource(ciIdx: number, typed: string) {
     // If the typed/picked value directly names a workspace catalog's or profile's own uuid (T-205),
     // transparently "upgrade" it to a proper back-matter-mediated reference (item 5) instead of
     // storing the uuid directly; free text and already-resolved refs pass through unchanged.
     const refUuid = sourceToRefUuid(typed);
     const matched = catalogIndex && refUuid ? findSourceEntryByUuid(catalogIndex, refUuid) : undefined;
+    if (matched && admitSource && !(await admitSource(matched.uuid))) return;
     const resolved = matched && onEnsureSource ? onEnsureSource(matched.uuid, matched.title) : typed;
     update((c) => (c.controlImplementations![ciIdx]!.source = resolved));
   }
@@ -204,6 +224,7 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
   return (
     <div data-testid="control-implementations">
       <strong>{t('ci_heading', { count: cis.length })}</strong>
+      {sourceNotice}
       {cis.map((ci, ciIdx) => {
         const resolvedSource = catalogIndex ? findSourceEntry(catalogIndex, ci.source, backMatter) : undefined;
         return (
@@ -216,7 +237,7 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
               value={ci.source}
               placeholder={t('ci_source_placeholder')}
               items={sourceSearchItems}
-              onChange={(v) => setSource(ciIdx, v)}
+              onChange={(v) => void setSource(ciIdx, v)}
             />
             {catalogIndex &&
               (resolvedSource ? (
@@ -309,8 +330,7 @@ export function ControlImplementationsEditor({ value, onChange, catalogIndex, ba
                             onChange={(v) =>
                               update(
                                 (c) =>
-                                  (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.description =
-                                    v || undefined),
+                                  (c.controlImplementations![ciIdx]!.implementedRequirements[irIdx]!.description = v),
                               )
                             }
                           />

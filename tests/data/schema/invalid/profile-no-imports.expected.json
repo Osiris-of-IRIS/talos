@@ -1,0 +1,8 @@
+{
+  "note": "Empty imports (TALOS blank profile before backlog #3) and a version with leading whitespace. Decision IDs: ADR-0040.",
+  "status": "non-compliant",
+  "issues": [
+    { "pointer": "/profile/metadata/version", "code": "datatype" },
+    { "pointer": "/profile/imports", "code": "required" }
+  ]
+}

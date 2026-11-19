@@ -6,7 +6,9 @@ import { VIEWER_URL } from '@/config';
 import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/toast';
 import { formatImportWarnings, importErrorMessage } from '@/shared/importMessages';
-import { downloadArtifactsAsZip } from '@/data/bulkExport';
+import { useBulkExportDownload } from '@/features/shared/compliance/useExportDownload';
+import { useImportComplianceWarning, useRecordsCompliance } from '@/features/shared/compliance/useCompliance';
+import { ComplianceBadge } from '@/features/shared/compliance/ComplianceBadge';
 import { BulkActionsBar } from '@/features/shared/BulkActionsBar';
 
 export function CatalogsListPage() {
@@ -18,6 +20,10 @@ export function CatalogsListPage() {
   const { items, loading, error, warnings, selected, load, importFromText, remove, toggleSelected, selectAll, removeMany } =
     useCatalogsStore();
   const fileInput = useRef<HTMLInputElement>(null);
+  // Per-row OSCAL compliance, validate-on-export, and the post-import compliance warning (ADR-0040).
+  const complianceByUuid = useRecordsCompliance(items);
+  const { requestBulkDownload, dialog: bulkExportDialog } = useBulkExportDownload();
+  const warnImportCompliance = useImportComplianceWarning();
 
   useEffect(() => {
     void load();
@@ -39,7 +45,8 @@ export function CatalogsListPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      await importFromText(await file.text());
+      const uuid = await importFromText(await file.text());
+      await warnImportCompliance('catalog', uuid);
     } catch (err) {
       showToast(importErrorMessage(t, err), 'error');
     } finally {
@@ -49,10 +56,7 @@ export function CatalogsListPage() {
 
   function onDownloadSelected() {
     const records = items.filter((r) => selected.has(r.uuid));
-    const skipped = downloadArtifactsAsZip(records, `catalogs-export-${Date.now()}.zip`);
-    if (skipped.length > 0) {
-      showToast(t('bulk_download_warning', { count: String(skipped.length), details: skipped.join('; ') }), 'warning');
-    }
+    void requestBulkDownload(records, `catalogs-export-${Date.now()}.zip`);
   }
 
   async function onDeleteSelected() {
@@ -124,6 +128,7 @@ export function CatalogsListPage() {
               data-testid="catalog-select-item"
             />{' '}
             {r.artifact.metadata.title} <small>({r.origin})</small>{' '}
+            <ComplianceBadge report={complianceByUuid.get(r.uuid)} title={r.artifact.metadata.title} />{' '}
             <a href={VIEWER_URL} target="_blank" rel="noopener noreferrer">
               ≡ {t('catalog_view_in_viewer')}
             </a>{' '}
@@ -137,6 +142,7 @@ export function CatalogsListPage() {
           </li>
         ))}
       </ul>
+      {bulkExportDialog}
     </main>
   );
 }

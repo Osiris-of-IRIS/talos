@@ -1,4 +1,4 @@
-%% TALOS architecture (diagram-as-code). Decision IDs: ADR-0002..0008, 0010, 0015, 0047, 0053, 0099
+%% TALOS architecture (diagram-as-code). Decision IDs: ADR-0002..0008, 0010, 0015, 0040, 0047, 0053, 0099
 %% Render: any Mermaid renderer; also embedded in readme.md.
 flowchart TB
     classDef ui fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
@@ -30,7 +30,7 @@ flowchart TB
         subgraph Domain["Domain — src/models"]
             Base["OscalArtifact base: metadata + back-matter (ADR-0003)"]:::domain
             Types["Per-type models + codecs"]:::domain
-            Valid["Version policy + (planned) Ajv validators — OSCAL v1.2.3 (ADR-0007)"]:::domain
+            Valid["Version policy (ADR-0007) + OSCAL 1.2.3 schema compliance:\nbuild-time Ajv standalone validators, lazy per model (ADR-0040)"]:::domain
         end
 
         subgraph DataL["Data — src/data + src/stores"]

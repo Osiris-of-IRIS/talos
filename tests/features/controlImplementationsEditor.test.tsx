@@ -62,7 +62,7 @@ function makeComponent(controlId: string): DefinedComponent {
         source: `#${CATALOG_UUID}`,
         description: 'CI description',
         implementedRequirements: [
-          { uuid: 'ir-1', controlId, setParameters: [] },
+          { uuid: 'ir-1', controlId, description: '', setParameters: [] },
         ],
       },
     ],

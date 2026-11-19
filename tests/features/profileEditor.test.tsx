@@ -38,7 +38,7 @@ async function seedCatalog() {
     origin: 'user',
     artifact: {
       uuid: catalogUuid,
-      metadata: { title: 'Grundschutz Test', version: '1.0.0', oscalVersion: '1.2.2' },
+      metadata: { title: 'Grundschutz Test', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
       controls: [
         { id: 'APP.1.1.1', title: 'Secure web apps' },
         { id: 'APP.1.1.2', title: 'Inventory apps' },
@@ -171,14 +171,14 @@ describe('imports', () => {
 
   it('a profile-sourced import gets the real checklist, not the plain-text fallback (T-206, ADR-0032 §5)', async () => {
     await seedCatalog();
-    const baselineUuid = 'pppppppp-0000-4000-8000-000000000003';
+    const baselineUuid = 'dededede-0000-4000-8000-000000000003';
     await repo().create({
       uuid: baselineUuid,
       type: 'profile',
       origin: 'user',
       artifact: {
         uuid: baselineUuid,
-        metadata: { title: 'Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         imports: [{ href: `#${catalogUuid}`, includeAll: {} }],
       },
     });
@@ -197,19 +197,20 @@ describe('imports', () => {
 
     await user.click(checkboxes[0]!);
     await user.click(screen.getByTestId('save-profile'));
-    const rec = (await repo().getAll())[0]!;
+    // Two profiles are stored (the seeded baseline too): pick the new one by title, not by key order.
+    const rec = (await repo().getAll()).find((r) => r.artifact.metadata.title === 'My Profile')!;
     expect(rec.artifact.imports[0]!.includeControls?.[0]?.withIds).toEqual(['APP.1.1.1']);
   });
 
   it("shows a hint (doesn't crash) when a profile-sourced import's own chain has a dangling reference", async () => {
-    const brokenUuid = 'pppppppp-0000-4000-8000-000000000004';
+    const brokenUuid = 'dededede-0000-4000-8000-000000000004';
     await repo().create({
       uuid: brokenUuid,
       type: 'profile',
       origin: 'user',
       artifact: {
         uuid: brokenUuid,
-        metadata: { title: 'Broken Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Broken Profile', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         imports: [{ href: '#does-not-exist', includeAll: {} }],
       },
     });
@@ -225,13 +226,13 @@ describe('imports', () => {
   });
 
   it('proactively excludes a profile import that would create a cycle (mirrors T-102/ADR-0014)', async () => {
-    const editorUuid = 'pppppppp-0000-4000-8000-000000000001';
-    const otherUuid = 'pppppppp-0000-4000-8000-000000000002';
+    const editorUuid = 'dededede-0000-4000-8000-000000000001';
+    const otherUuid = 'dededede-0000-4000-8000-000000000002';
     await repo().create({
       uuid: editorUuid,
       type: 'profile',
       origin: 'user',
-      artifact: { uuid: editorUuid, metadata: { title: 'Editor Profile', version: '1.0.0', oscalVersion: '1.2.2' }, imports: [] },
+      artifact: { uuid: editorUuid, metadata: { title: 'Editor Profile', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' }, imports: [] },
     });
     await repo().create({
       uuid: otherUuid,
@@ -239,7 +240,7 @@ describe('imports', () => {
       origin: 'user',
       artifact: {
         uuid: otherUuid,
-        metadata: { title: 'Other Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Other Profile', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         imports: [{ href: `#${editorUuid}`, includeAll: {} }],
       },
     });

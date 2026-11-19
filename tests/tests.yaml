@@ -47,6 +47,7 @@ adr_coverage_required:
   - ADR-0034 # management dashboard page shell, Recharts, control coverage per-control aggregation
   - ADR-0035 # risk coverage: threat catalog loader, per-SSP bucket reduction, workspace averages
   - ADR-0039 # BSI upstream: follow live main, layout-aware index, non-silent upstream errors
+  - ADR-0040 # OSCAL schema validation (build-time validators), draft export, compliance gate
 
 # Golden OSCAL fixtures under tests/data/ (ADR-0001 golden-data rule).
 #   kind: oscal-document -> full document with a single wrapper key == artifact_type;
@@ -86,6 +87,24 @@ golden_data:
   - path: tests/data/oscal-1.2.3-component-types.json
     kind: fragment
     id_field: values
+  # Deliberately schema-invalid fixtures (ADR-0040): base fields are not asserted; each ships the
+  # golden compliance report TALOS must produce for it (<name>.expected.json, TEST-SCHEMA-02).
+  - path: tests/data/schema/invalid/ssp-talos-draft.json
+    kind: oscal-document
+    artifact_type: system-security-plan
+    schema_verdict: invalid
+  - path: tests/data/schema/invalid/component-definition-links-not-array.json
+    kind: oscal-document
+    artifact_type: component-definition
+    schema_verdict: invalid
+  - path: tests/data/schema/invalid/profile-no-imports.json
+    kind: oscal-document
+    artifact_type: profile
+    schema_verdict: invalid
+  - path: tests/data/schema/invalid/catalog-bad-ids.json
+    kind: oscal-document
+    artifact_type: catalog
+    schema_verdict: invalid
 
 suites:
   # ---- Shared platform (PLAT-004) -------------------------------------------------
@@ -1052,3 +1071,103 @@ suites:
     status: planned
     feature: DASH-003
     adr_refs: [ADR-0001, ADR-0006, ADR-0011]
+
+  # ---- OSCAL schema compliance: validate on export, compliance gate (PLAT-007, ADR-0040) -----
+  - id: TEST-SCHEMA-01
+    title: "Vendored NIST OSCAL 1.2.3 schemas (sha256/$id per MANIFEST) + build-time standalone validator generation is CSP-safe (no eval/new Function/require)"
+    file: tests/tools/oscalValidators.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-007
+    adr_refs: [ADR-0001, ADR-0040, ADR-0007, ADR-0002]
+
+  - id: TEST-SCHEMA-02
+    title: "Schema contract: every valid golden fixture validates (as-is and through import → export); every invalid fixture yields exactly its golden .expected.json report; 1000-control catalog within budget"
+    file: tests/data/schemaContract.test.ts
+    type: contract
+    runner: vitest
+    status: implemented
+    feature: PLAT-007
+    adr_refs: [ADR-0001, ADR-0040, ADR-0007, ADR-0018]
+    golden:
+      - tests/data/catalog-minimal.json
+      - tests/data/catalog-target-object-categories.json
+      - tests/data/component-definition-minimal.json
+      - tests/data/component-definition-referencing.json
+      - tests/data/component-definition-with-creator.json
+      - tests/data/component-definition-with-import.json
+      - tests/data/component-definition-v1_1.json
+      - tests/data/profile-minimal.json
+      - tests/data/ssp-minimal.json
+      - tests/data/schema/invalid/ssp-talos-draft.json
+      - tests/data/schema/invalid/component-definition-links-not-array.json
+      - tests/data/schema/invalid/profile-no-imports.json
+      - tests/data/schema/invalid/catalog-bad-ids.json
+
+  - id: TEST-SCHEMA-03
+    title: "Compliance model: Ajv errors → issues (required pointer, datatype/empty, anyOf collapse, hints, dedupe) and the fail-closed compliance-gate decision"
+    file: tests/models/compliance.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-007
+    adr_refs: [ADR-0001, ADR-0040]
+
+  - id: TEST-SCHEMA-04
+    title: "Export document: \"$schema\" (NIST 1.2.3 $id) first, empty arrays dropped, oscal-version normalized, lossless re-import"
+    file: tests/models/exportDocument.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-007
+    adr_refs: [ADR-0001, ADR-0040, ADR-0007, ADR-0003]
+    golden: [tests/data/ssp-minimal.json]
+
+  - id: TEST-SCHEMA-05
+    title: "Localized compliance wording (de/en): field paths, reasons per datatype/format, creator blockers"
+    file: tests/shared/complianceMessages.test.ts
+    type: unit
+    runner: vitest
+    status: implemented
+    feature: PLAT-007
+    adr_refs: [ADR-0001, ADR-0040, ADR-0012, ADR-0019]
+
+  - id: TEST-SCHEMA-06
+    title: "Valid by construction: blank factories report only human-supplied fields; SSP editor, component-definition assistant + editor, profile assistant + editor produce compliant artifacts; bootstrap SSPs are flagged drafts with stable system-ids"
+    file: tests/features/validByConstruction.test.tsx
+    type: contract
+    runner: vitest
+    status: implemented
+    feature: PLAT-007
+    adr_refs: [ADR-0001, ADR-0040, ADR-0026, ADR-0036, ADR-0032, ADR-0017]
+    golden: [tests/data/catalog-minimal.json, tests/data/component-definition-minimal.json]
+
+  - id: TEST-SCHEMA-07
+    title: "Validate on export: compliant downloads directly; non-compliant opens the draft dialog naming every field (de/en); creator still blocks; bulk zip asks once; files carry $schema"
+    file: tests/features/exportCompliance.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-007
+    adr_refs: [ADR-0001, ADR-0040, ADR-0019, ADR-0027, ADR-0012]
+    golden: [tests/data/ssp-minimal.json]
+
+  - id: TEST-SCHEMA-08
+    title: "Compliance gate at every workflow-input consumption point (G1–G8): non-compliant inputs marked, refused, explained with the fields to fix; compliant inputs accepted"
+    file: tests/features/complianceGate.test.tsx
+    type: component
+    runner: vitest
+    status: implemented
+    feature: PLAT-007
+    adr_refs: [ADR-0001, ADR-0040, ADR-0032, ADR-0036, ADR-0026, ADR-0014, ADR-0023]
+
+  - id: TEST-SCHEMA-09
+    title: "E2E under the real CSP: draft download dialog + $schema in the file; non-compliant profile refused as SSP baseline with explanation"
+    file: tests/e2e/compliance.spec.ts
+    type: e2e
+    runner: playwright
+    status: implemented
+    feature: PLAT-007
+    adr_refs: [ADR-0001, ADR-0040, ADR-0019]
+    golden: [tests/data/schema/invalid/ssp-talos-draft.json, tests/data/schema/invalid/profile-no-imports.json]

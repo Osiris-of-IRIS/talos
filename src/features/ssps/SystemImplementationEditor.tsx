@@ -19,6 +19,7 @@ import {
   getComponentProvenance,
 } from './componentImport';
 import { ApplyToControl } from './ApplyToControl';
+import { useGatedSelection } from '@/features/shared/compliance/useInputGate';
 import { SYSTEM_STATUS_STATES } from '@/models/systemStatus';
 import type { PropagationScope, PropagationResult } from './propagateChange';
 import type { StoredArtifact } from '@/data/db';
@@ -62,21 +63,25 @@ export function SystemImplementationEditor({
     onChange(draft);
   }
 
+  // Compliance gate (ADR-0040, G2): components are imported — and refreshed or propagated — only
+  // from OSCAL-compliant component-definitions.
+  const cdGate = useGatedSelection(workspaceComponentDefs, selectedCdUuid, 'ssp-component-import');
   const selectedCd = workspaceComponentDefs.find((r) => r.uuid === selectedCdUuid);
-  const importableComponents = selectedCd?.artifact.components ?? [];
+  const importableComponents = cdGate.usable ? (selectedCd?.artifact.components ?? []) : [];
 
   /** The live source component-definition component an imported SystemComponent came from
    * (ADR-0023 provenance), for "Apply to..." — same lookup `refreshComponent` already does. */
   function resolveSource(sc: SystemComponent): { componentDefinitionUuid: string; component: DefinedComponent } | undefined {
     const prov = getComponentProvenance(sc);
     const cd = workspaceComponentDefs.find((r) => r.uuid === prov?.componentDefinitionUuid);
-    const source = cd?.artifact.components?.find((c) => c.uuid === prov?.componentUuid);
+    if (!cd || !cdGate.decisionFor(cd.uuid)?.usable) return undefined;
+    const source = cd.artifact.components?.find((c) => c.uuid === prov?.componentUuid);
     return prov && source ? { componentDefinitionUuid: prov.componentDefinitionUuid, component: source } : undefined;
   }
 
   function doImport() {
     const comp = importableComponents.find((c) => c.uuid === selectedComponentUuid);
-    if (!selectedCd || !comp) return;
+    if (!selectedCd || !comp || !cdGate.usable) return;
     const sc = importComponentFromDefinition(selectedCd.uuid, comp);
     patch((d) => {
       d.components.push(sc);
@@ -93,12 +98,13 @@ export function SystemImplementationEditor({
     onComponentRemoved?.(uuid);
   }
 
-  function refreshComponent(idx: number) {
+  async function refreshComponent(idx: number) {
     const sc = value.components[idx]!;
     const prov = getComponentProvenance(sc);
     const cd = workspaceComponentDefs.find((r) => r.uuid === prov?.componentDefinitionUuid);
     const source = cd?.artifact.components?.find((c) => c.uuid === prov?.componentUuid);
-    if (!source) return;
+    if (!cd || !source) return;
+    if (!(await cdGate.admit(cd))) return;
     patch((d) => {
       d.components[idx] = refreshComponentFromSource(sc, source);
     });
@@ -132,6 +138,7 @@ export function SystemImplementationEditor({
               {workspaceComponentDefs.map((r) => (
                 <option key={r.uuid} value={r.uuid}>
                   {r.artifact.metadata.title}
+                  {cdGate.markerFor(r.uuid) && ` — ${cdGate.markerFor(r.uuid)}`}
                 </option>
               ))}
             </select>
@@ -152,11 +159,13 @@ export function SystemImplementationEditor({
             <button
               type="button"
               data-testid="si-import"
-              disabled={!selectedCdUuid || !selectedComponentUuid}
+              disabled={!selectedCdUuid || !selectedComponentUuid || !cdGate.usable}
               onClick={doImport}
             >
               ⭳ {t('si_import_button')}
             </button>
+            {cdGate.pending && <small> {t('gate_checking')}</small>}
+            {cdGate.notice}
           </>
         )}
       </fieldset>
@@ -209,7 +218,7 @@ export function SystemImplementationEditor({
                     />
                   </label>
                   {staleness === 'stale' && (
-                    <button type="button" data-testid="si-refresh-component" onClick={() => refreshComponent(idx)}>
+                    <button type="button" data-testid="si-refresh-component" onClick={() => void refreshComponent(idx)}>
                       {t('si_refresh_button')}
                     </button>
                   )}

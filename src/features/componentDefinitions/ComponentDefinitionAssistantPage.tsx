@@ -16,6 +16,9 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
 import { useCatalogIndex } from '@/features/shared/useCatalogIndex';
+import { useWorkspaceCatalogs } from '@/features/shared/useWorkspaceCatalogs';
+import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
+import { useGatedSelection } from '@/features/shared/compliance/useInputGate';
 import {
   sourceOptions,
   findSourceEntryByUuid,
@@ -56,6 +59,11 @@ export function ComponentDefinitionAssistantPage() {
   const [sourceUuid, setSourceUuid] = useState('');
   const [requirements, setRequirements] = useState<ImplementedRequirement[]>([]);
   const [saving, setSaving] = useState(false);
+  // Compliance gate (ADR-0040, G7): only an OSCAL-compliant catalog/profile can be the source.
+  const workspaceCatalogs = useWorkspaceCatalogs();
+  const workspaceProfiles = useWorkspaceProfiles();
+  const sourceGate = useGatedSelection([...workspaceCatalogs, ...workspaceProfiles], sourceUuid, 'cdef-assistant-source');
+  const sourceUsable = sourceGate.usable;
 
   const sourceEntry = sourceUuid && catalogIndex ? findSourceEntryByUuid(catalogIndex, sourceUuid) : undefined;
 
@@ -63,7 +71,9 @@ export function ComponentDefinitionAssistantPage() {
     ? sourceOptions(catalogIndex).map((o) => ({
         id: o.uuid,
         title: o.title,
-        badge: t(o.kind === 'catalog' ? 'ci_source_kind_catalog' : 'ci_source_kind_profile'),
+        badge: [t(o.kind === 'catalog' ? 'ci_source_kind_catalog' : 'ci_source_kind_profile'), sourceGate.markerFor(o.uuid)]
+          .filter(Boolean)
+          .join(' · '),
       }))
     : [];
 
@@ -74,7 +84,7 @@ export function ComponentDefinitionAssistantPage() {
   // `findSourceEntryByUuid` (via `combinedSourceEntries`) allocates a fresh wrapper object on
   // every call, so using it as a dependency would re-fire this effect on every render.
   useEffect(() => {
-    if (!sourceUuid || !catalogIndex) {
+    if (!sourceUuid || !catalogIndex || !sourceUsable) {
       setRequirements([]);
       return;
     }
@@ -84,8 +94,10 @@ export function ComponentDefinitionAssistantPage() {
       return;
     }
     const unique = uniqueCatalogControlEntries(entry.controlsById);
-    setRequirements(unique.map(([id]): ImplementedRequirement => ({ uuid: uuid(), controlId: id })));
-  }, [sourceUuid, catalogIndex]);
+    // Every generated requirement carries the OSCAL-required description from the start (ADR-0040):
+    // empty text is valid markup-multiline, so a row the user leaves blank still exports compliant.
+    setRequirements(unique.map(([id]): ImplementedRequirement => ({ uuid: uuid(), controlId: id, description: '' })));
+  }, [sourceUuid, catalogIndex, sourceUsable]);
 
   function patchRequirement(idx: number, mutator: (r: ImplementedRequirement) => void) {
     setRequirements((prev) => {
@@ -98,7 +110,7 @@ export function ComponentDefinitionAssistantPage() {
   }
 
   async function onCreate() {
-    if (!componentTitle.trim() || !sourceEntry) return;
+    if (!componentTitle.trim() || !sourceEntry || !sourceUsable) return;
     setSaving(true);
     try {
       let cd = createBlankComponentDefinition();
@@ -130,7 +142,7 @@ export function ComponentDefinitionAssistantPage() {
     }
   }
 
-  const canCreate = !!componentTitle.trim() && !!sourceEntry;
+  const canCreate = !!componentTitle.trim() && !!sourceEntry && sourceUsable;
 
   return (
     <main data-testid="cdef-assistant">
@@ -188,6 +200,8 @@ export function ComponentDefinitionAssistantPage() {
             onChange={setSourceUuid}
           />
         </label>
+        {sourceGate.pending && <small> {t('gate_checking')}</small>}
+        {sourceGate.notice}
         {catalogIndex && catalogIndex.catalogCount === 0 && (
           <p data-testid="cdefa-no-catalogs-hint">
             {t('ci_no_catalogs_hint_pre')}{' '}
@@ -198,7 +212,7 @@ export function ComponentDefinitionAssistantPage() {
         )}
       </fieldset>
 
-      {sourceEntry && (
+      {sourceEntry && sourceUsable && (
         <fieldset>
           <legend>{t('cdefa_requirements_heading', { count: requirements.length })}</legend>
           <table className="control-requirements-table" data-testid="cdefa-requirements-table">
@@ -281,7 +295,7 @@ export function ComponentDefinitionAssistantPage() {
                           value={req.description ?? ''}
                           onChange={(v) =>
                             patchRequirement(idx, (r) => {
-                              r.description = v || undefined;
+                              r.description = v;
                             })
                           }
                         />

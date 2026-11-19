@@ -13,6 +13,7 @@ import { generateNist } from './generateNist';
 import { generateBsi } from './generateBsi';
 import { generateSingleSystem, type SingleSystemSource } from './generateSingleSystem';
 import { applyBootstrapPlans, type ApplyResult } from './applyPlans';
+import { useGatedSelection } from '@/features/shared/compliance/useInputGate';
 
 const ISMS_SYSTEM_NAME = 'ISMS';
 
@@ -36,6 +37,11 @@ export function BootstrapAssistantPage() {
   const [generating, setGenerating] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [result, setResult] = useState<ApplyResult | null>(null);
+  // Compliance gate (ADR-0040, G8): the baseline (catalog, or catalog/profile for single-system)
+  // must be OSCAL-compliant. Bootstrap *output* is not gated: generated SSPs are drafts, flagged.
+  const catalogGate = useGatedSelection(catalogs, catalogUuid, 'bootstrap-baseline');
+  const singleSourceGate = useGatedSelection([...catalogs, ...profiles], singleSourceUuid, 'bootstrap-baseline');
+  const baselineGate = methodology === 'single-system' ? singleSourceGate : catalogGate;
 
   useEffect(() => {
     void loadAssets();
@@ -59,6 +65,7 @@ export function BootstrapAssistantPage() {
 
   async function onGenerate() {
     setResult(null);
+    if (!baselineGate.usable) return;
 
     if (methodology === 'single-system') {
       const asset = assets.find((a) => a.assetId === singleAssetId);
@@ -113,7 +120,8 @@ export function BootstrapAssistantPage() {
   const hasAssets = assets.length > 0;
   const hasCatalogs = catalogs.length > 0;
   const canGenerate =
-    methodology === 'single-system' ? Boolean(singleAssetId && singleSourceUuid) : Boolean(catalogUuid);
+    (methodology === 'single-system' ? Boolean(singleAssetId && singleSourceUuid) : Boolean(catalogUuid)) &&
+    baselineGate.usable;
 
   return (
     <main data-testid="bootstrap-page">
@@ -219,6 +227,7 @@ export function BootstrapAssistantPage() {
                     {catalogs.map((c) => (
                       <option key={c.uuid} value={c.uuid}>
                         {c.artifact.metadata.title}
+                        {singleSourceGate.markerFor(c.uuid) && ` — ${singleSourceGate.markerFor(c.uuid)}`}
                       </option>
                     ))}
                   </optgroup>
@@ -226,6 +235,7 @@ export function BootstrapAssistantPage() {
                     {profiles.map((p) => (
                       <option key={p.uuid} value={p.uuid}>
                         {p.artifact.metadata.title}
+                        {singleSourceGate.markerFor(p.uuid) && ` — ${singleSourceGate.markerFor(p.uuid)}`}
                       </option>
                     ))}
                   </optgroup>
@@ -246,6 +256,7 @@ export function BootstrapAssistantPage() {
                   {catalogs.map((c) => (
                     <option key={c.uuid} value={c.uuid}>
                       {c.artifact.metadata.title}
+                      {catalogGate.markerFor(c.uuid) && ` — ${catalogGate.markerFor(c.uuid)}`}
                     </option>
                   ))}
                 </select>
@@ -255,6 +266,13 @@ export function BootstrapAssistantPage() {
               </p>
             </fieldset>
           )}
+
+          {baselineGate.pending && (
+            <p>
+              <small>{t('gate_checking')}</small>
+            </p>
+          )}
+          {baselineGate.notice}
 
           <button
             type="button"

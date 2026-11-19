@@ -1,0 +1,37 @@
+{
+  "system-security-plan": {
+    "uuid": "5a5a5a5a-0000-4000-8000-000000000001",
+    "metadata": {
+      "title": "Draft SSP as TALOS wrote it before backlog #3",
+      "last-modified": "2026-11-19T10:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.2.3",
+      "roles": [{ "id": "creator", "title": "Creator" }],
+      "parties": [
+        {
+          "uuid": "5a5a5a5a-0000-4000-8000-0000000000c1",
+          "type": "person",
+          "name": "Erika Mustermann",
+          "email-addresses": ["erika@example.org"]
+        }
+      ],
+      "responsible-parties": [{ "role-id": "creator", "party-uuids": ["5a5a5a5a-0000-4000-8000-0000000000c1"] }]
+    },
+    "import-profile": { "href": "" },
+    "system-characteristics": {
+      "system-ids": [],
+      "system-name": "",
+      "description": "",
+      "system-information": { "information-types": [] },
+      "status": { "state": "operational" },
+      "authorization-boundary": { "description": "" }
+    },
+    "system-implementation": { "users": [], "components": [] },
+    "control-implementation": {
+      "description": "",
+      "implemented-requirements": [
+        { "uuid": "5a5a5a5a-0000-4000-8000-000000000002", "control-id": "IA-5", "by-components": [] }
+      ]
+    }
+  }
+}

@@ -7,11 +7,11 @@ the order decisions were made.
 |-----|-------|--------|--------------|
 | [ADR-0001](adr/ADR-0001-tdd-methodology.md) | Test-Driven Development Methodology | Approved | ADR-0001 |
 | [ADR-0002](adr/ADR-0002-static-clientside-architecture.md) | Static Client-Side Architecture (React + Vite + TS, GitHub Pages) | Approved | ADR-0002 |
-| [ADR-0003](adr/ADR-0003-oscal-artifact-data-model.md) | Reusable OSCAL Artifact Data Model | Approved | ADR-0003 |
+| [ADR-0003](adr/ADR-0003-oscal-artifact-data-model.md) | Reusable OSCAL Artifact Data Model | Approved — validation section implemented by ADR-0040 | ADR-0003 |
 | [ADR-0004](adr/ADR-0004-clientside-persistence.md) | Client-Side Persistence (IndexedDB + File I/O) | Approved | ADR-0004 |
 | [ADR-0005](adr/ADR-0005-bsi-library-integration.md) | BSI Stand-der-Technik-Bibliothek Integration | Approved — amended by ADR-0039 (layout, manifest semantics, refresh policy, errors) | ADR-0005 |
 | [ADR-0006](adr/ADR-0006-landing-page-navigation.md) | Landing Page & Feature Navigation Hub | Approved | ADR-0006 |
-| [ADR-0007](adr/ADR-0007-oscal-version-support.md) | OSCAL Version Support & Compatibility | Approved — amended 2026-11-16 by the product owner (authoring/export 1.2.3; 1.2.x imports silent; library loads use the same policy) | ADR-0007 |
+| [ADR-0007](adr/ADR-0007-oscal-version-support.md) | OSCAL Version Support & Compatibility | Approved — amended 2026-11-16 by the product owner (authoring/export 1.2.3; 1.2.x imports silent; library loads use the same policy); schema validation/bundling implemented by ADR-0040 | ADR-0007 |
 | [ADR-0008](adr/ADR-0008-external-catalog-viewer.md) | Catalog & Control Viewing via External SdT-Viewer | Approved | ADR-0008 |
 | [ADR-0009](adr/ADR-0009-oscal-markdown-rendering.md) | OSCAL Markdown Rendering Strategy | Approved | ADR-0009 |
 | [ADR-0010](adr/ADR-0010-color-palette.md) | Color Palette (OSCAL layers) | Approved | ADR-0010 |
@@ -22,8 +22,8 @@ the order decisions were made.
 | [ADR-0015](adr/ADR-0015-back-matter-resources.md) | Back-Matter Resource Management & Embedded-File Limits | Approved | ADR-0015 |
 | [ADR-0016](adr/ADR-0016-control-display-helper.md) | Reusable Control-Display Helper | Approved | ADR-0016 |
 | [ADR-0017](adr/ADR-0017-authoring-scope-phase1.md) | Authoring Scope & Cross-Artifact Reference-Picking (Phase 1) | Approved | ADR-0017 |
-| [ADR-0018](adr/ADR-0018-test-harness-scope.md) | Test-Harness Scope (Python contract & traceability checker) | Approved | ADR-0018 |
-| [ADR-0019](adr/ADR-0019-mandatory-creator-identity.md) | Mandatory Creator Identity (name + email), enforced at export | Approved | ADR-0019 |
+| [ADR-0018](adr/ADR-0018-test-harness-scope.md) | Test-Harness Scope (Python contract & traceability checker) | Approved — amended by ADR-0040 (schema-snapshot check, invalid golden fixtures) | ADR-0018 |
+| [ADR-0019](adr/ADR-0019-mandatory-creator-identity.md) | Mandatory Creator Identity (name + email), enforced at export | Approved — amended by ADR-0040 (only remaining hard export blocker) | ADR-0019 |
 | [ADR-0020](adr/ADR-0020-visual-theme-cretan-bronze.md) | Visual Theme — "Ancient Guardian" (Cretan Bronze Motif) | Approved | ADR-0020 |
 | [ADR-0021](adr/ADR-0021-control-id-resolution.md) | Control-ID Resolution (Literal ID vs. Alt-Identifier UUID Reference) | Approved | ADR-0021 |
 | [ADR-0022](adr/ADR-0022-markup-truncate-expand.md) | Markup Truncate-and-Expand Display Helper | Approved | ADR-0022 |
@@ -44,6 +44,7 @@ the order decisions were made.
 | [ADR-0037](adr/ADR-0037-ssp-groups-apply-to-propagation.md) | SSP Groups & "Apply to..." Change Propagation | Approved | ADR-0037 |
 | [ADR-0038](adr/ADR-0038-profile-detail-control-filter.md) | Profile Detail Page Control Text Filter | Approved | ADR-0038 |
 | [ADR-0039](adr/ADR-0039-bsi-upstream-live-main-resilience.md) | BSI Upstream — Follow Live `main`, Layout-Aware Index, Non-Silent Failures (PO Q1) | Approved | ADR-0039 |
+| [ADR-0040](adr/ADR-0040-oscal-schema-validation-compliance-gate.md) | OSCAL Schema Validation, Draft Export and the Compliance Gate for Workflow Inputs (PO Q4, `$schema`) | Approved — amends ADR-0003, ADR-0007, ADR-0018, ADR-0019 | ADR-0040 |
 
 ## Notes
 

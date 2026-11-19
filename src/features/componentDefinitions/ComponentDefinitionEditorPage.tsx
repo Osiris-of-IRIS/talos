@@ -1,4 +1,9 @@
 // Component-definition editor (create + edit). Decision IDs: ADR-0003, ADR-0015 (feature IMPL-001, T-101).
+import { useDraftCompliance } from '@/features/shared/compliance/useCompliance';
+import { ComplianceBadge } from '@/features/shared/compliance/ComplianceBadge';
+import { useInputGate } from '@/features/shared/compliance/useInputGate';
+import { useWorkspaceCatalogs } from '@/features/shared/useWorkspaceCatalogs';
+import { useWorkspaceProfiles } from '@/features/shared/useWorkspaceProfiles';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArtifactRepository } from '@/data/artifactRepository';
@@ -43,6 +48,20 @@ export function ComponentDefinitionEditorPage() {
   // import index — independent of importPick, which is only for the add-new-import picker.
   const [resolvePicks, setResolvePicks] = useState<Record<number, string>>({});
   useSeedDefaultCreator(isNew, setDraft);
+  // Live OSCAL compliance of the unsaved draft, debounced (ADR-0040) — never blocks editing or saving.
+  const draftCompliance = useDraftCompliance('componentDefinition', draft);
+  // Compliance gate (ADR-0040): imports (G5) and control-implementation sources (G6) must be
+  // OSCAL-compliant artifacts.
+  const workspaceCatalogs = useWorkspaceCatalogs();
+  const workspaceProfiles = useWorkspaceProfiles();
+  const importGate = useInputGate(workspaceComponentDefs, 'cdef-import');
+  const sourceCandidates = [...workspaceCatalogs, ...workspaceProfiles];
+  const sourceGate = useInputGate(sourceCandidates, 'cdef-control-implementation-source');
+  async function admitSource(uuid: string): Promise<boolean> {
+    const record = sourceCandidates.find((r) => r.uuid === uuid);
+    // A source that is not a workspace artifact (free text, a library path) is not an input TALOS reads.
+    return record ? sourceGate.admit(record) : true;
+  }
 
   useEffect(() => {
     if (isNew || !uuid) return;
@@ -138,7 +157,7 @@ export function ComponentDefinitionEditorPage() {
   /** Add an import of the picked workspace component-definition (ADR-0014): rejects a self-import
    * or a cycle before committing, then references the target via a back-matter resource
    * (never the target's own uuid directly). */
-  function addImport() {
+  async function addImport() {
     const targetUuid = importPick.trim();
     if (!targetUuid) return;
     if (wouldCreateCycle(draft!.uuid, targetUuid, workspaceComponentDefs)) {
@@ -147,6 +166,7 @@ export function ComponentDefinitionEditorPage() {
     }
     const target = workspaceComponentDefs.find((w) => w.uuid === targetUuid);
     if (!target) return;
+    if (!(await importGate.admit(target))) return;
     setDraft((prev) => {
       if (!prev) return prev;
       const next = structuredClone(prev);
@@ -162,7 +182,7 @@ export function ComponentDefinitionEditorPage() {
    * workspace target via a back-matter resource, preserving remarks — same cycle guard as adding
    * a fresh import. Once resolved, the next save() clears it from the unresolvedReferences store
    * (unresolvedImportHrefs no longer lists it). */
-  function resolveDanglingImport(idx: number) {
+  async function resolveDanglingImport(idx: number) {
     const targetUuid = resolvePicks[idx]?.trim();
     if (!targetUuid) return;
     if (wouldCreateCycle(draft!.uuid, targetUuid, workspaceComponentDefs)) {
@@ -171,6 +191,7 @@ export function ComponentDefinitionEditorPage() {
     }
     const target = workspaceComponentDefs.find((w) => w.uuid === targetUuid);
     if (!target) return;
+    if (!(await importGate.admit(target))) return;
     setDraft((prev) => {
       if (!prev) return prev;
       const next = structuredClone(prev);
@@ -238,7 +259,11 @@ export function ComponentDefinitionEditorPage() {
   const imports = draft.importComponentDefinitions ?? [];
   const importSearchItems: SearchItem[] = workspaceComponentDefs
     .filter((w) => w.uuid !== draft.uuid && !wouldCreateCycle(draft.uuid, w.uuid, workspaceComponentDefs))
-    .map((w) => ({ id: w.uuid, title: w.artifact.metadata.title, badge: w.origin }));
+    .map((w) => ({
+      id: w.uuid,
+      title: w.artifact.metadata.title,
+      badge: [w.origin, importGate.markerFor(w.uuid)].filter(Boolean).join(' · '),
+    }));
   const unresolvedCount = unresolvedImportHrefs(imports, draft.backMatter, workspaceComponentDefs).length;
 
   return (
@@ -288,7 +313,7 @@ export function ComponentDefinitionEditorPage() {
                         onChange={(v) => setResolvePicks((prev) => ({ ...prev, [i]: v }))}
                       />
                     </label>{' '}
-                    <button type="button" data-testid="cdef-import-resolve" onClick={() => resolveDanglingImport(i)}>
+                    <button type="button" data-testid="cdef-import-resolve" onClick={() => void resolveDanglingImport(i)}>
                       ✓ {t('cdef_imports_resolve_button')}
                     </button>{' '}
                   </>
@@ -315,7 +340,7 @@ export function ComponentDefinitionEditorPage() {
             onChange={setImportPick}
           />
         </label>{' '}
-        <button type="button" data-testid="cdef-import-add" onClick={addImport}>
+        <button type="button" data-testid="cdef-import-add" onClick={() => void addImport()}>
           ➕ {t('cdef_imports_add_label')}
         </button>
         {importError && (
@@ -323,6 +348,7 @@ export function ComponentDefinitionEditorPage() {
             ⚠️ {importError}
           </p>
         )}
+        {importGate.notice}
       </fieldset>
 
       <fieldset>
@@ -383,6 +409,9 @@ export function ComponentDefinitionEditorPage() {
                   catalogIndex={catalogIndex}
                   backMatter={draft.backMatter}
                   onEnsureSource={ensureSource}
+                  admitSource={admitSource}
+                  sourceMarker={sourceGate.markerFor}
+                  sourceNotice={sourceGate.notice}
                 />
                 <button
                   type="button"
@@ -408,6 +437,10 @@ export function ComponentDefinitionEditorPage() {
           💾 {t('common_save')}
         </button>{' '}
         {!draft.metadata.title.trim() && <small>{t('cdef_title_required')}</small>}
+              <p data-testid="compliance-panel">
+          <ComplianceBadge report={draftCompliance} title={draft.metadata.title} />{' '}
+          <small>{t('compliance_panel_draft_note')}</small>
+        </p>
       </div>
     </main>
   );

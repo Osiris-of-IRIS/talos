@@ -22,7 +22,13 @@ hand-offs** (library fetch, external viewer).
 - **Supply chain:** pinned lockfile; `npm audit` in CI; minimal dependencies (prefer the
   dependency-free markup renderer); review before adding libraries.
 - **Subresource integrity / CSP:** ship a restrictive `<meta http-equiv="Content-Security-Policy">`
-  (self + the BSI raw origin for fetch); no inline event handlers.
+  (self + the BSI raw origin for fetch); no inline event handlers. `script-src 'self'` without
+  `'unsafe-eval'` is kept deliberately: OSCAL schema validators are generated at **build time**
+  (Ajv standalone code from the vendored NIST schemas, ADR-0040) because Ajv's runtime compiler
+  needs `new Function`. Never add `'unsafe-eval'` to make a validator work.
+- **Untrusted OSCAL input:** uploads and BSI library files are parsed defensively and validated
+  against the vendored 1.2.3 schemas; non-compliant content stays editable but cannot feed later
+  workflow steps (compliance gate, ADR-0040).
 
 ## Non-goals
 No authentication/authorization (single-user, on-device); no server secrets. RBAC/multi-user

@@ -1,0 +1,38 @@
+{
+  "component-definition": {
+    "uuid": "5b5b5b5b-0000-4000-8000-000000000001",
+    "metadata": {
+      "title": "Synthetic component-definition with the upstream Lieferkettensicherheit defect",
+      "last-modified": "2026-11-19T10:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.1.2"
+    },
+    "components": [
+      {
+        "uuid": "5b5b5b5b-0000-4000-8000-000000000002",
+        "type": "policy",
+        "title": "Supplier policy",
+        "description": "Policy for supplier selection.",
+        "control-implementations": [
+          {
+            "uuid": "5b5b5b5b-0000-4000-8000-000000000003",
+            "source": "#5b5b5b5b-0000-4000-8000-000000000009",
+            "description": "Implements supply-chain controls.",
+            "implemented-requirements": [
+              {
+                "uuid": "5b5b5b5b-0000-4000-8000-000000000004",
+                "control-id": "LKS.1.1",
+                "description": "Suppliers are vetted.",
+                "links": { "href": "https://example.org/policy", "rel": "reference" }
+              },
+              {
+                "uuid": "5b5b5b5b-0000-4000-8000-000000000005",
+                "control-id": "LKS.1.2"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

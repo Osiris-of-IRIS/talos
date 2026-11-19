@@ -13,7 +13,7 @@ Decision IDs: ADR-0001 (TDD), plus per-feature ADRs.
 |---|---|---|
 | Unit / component | Vitest + React Testing Library (jsdom) | codecs, validators, renderer, search, editors, stores |
 | Golden round-trip | Vitest + fixtures | `import(json) → model → export(json)` deep-equal per artifact type |
-| Contract / schema | Ajv + vendored NIST v1.2.3 schemas (planned, backlog #3 — not implemented yet) | every import/export validated |
+| Contract / schema | Vitest + the build-time generated validators over the vendored NIST v1.2.3 schemas (ADR-0040) | golden fixtures (valid, and invalid with golden `.expected.json` reports, TEST-SCHEMA-02); valid-by-construction contract for every factory/editor/assistant/bootstrap path (TEST-SCHEMA-06) |
 | Integration | Vitest (fake-indexeddb) | persistence repositories, library loader, file I/O |
 | E2E | Playwright | one major user flow per feature (see E2E convention below) |
 | YAML harness | `tests/test_harness/runner.py` | reads `tests/tests.yaml`; **contract & traceability gate** (ADR-0018) — not a JS-runner wrapper; JSON logs + JUnit XML |
@@ -53,8 +53,11 @@ traceability (`Covers TEST-*` headers ↔ catalog), feature-linkage, adr-coverag
 `adr_coverage_required` keeps ≥1 implemented test), and golden-data (fixtures parse + correct
 wrapper/base-fields/`oscal-version` == `OSCAL_AUTHORING_VERSION`, read from
 `src/models/oscalBase.ts` — currently 1.2.3; fixtures that test older-version import, e.g.
-`component-definition-v1_1.json`, are deliberately not registered as golden documents). Full NIST JSON-Schema validation is deferred to
-T-030. It emits `test-results/harness-log.jsonl` + `test-results/harness-junit.xml`, exits
+`component-definition-v1_1.json`, are deliberately not registered as golden documents), plus
+`schema-snapshot` (vendored NIST schemas match their recorded sha256/`$id`, ADR-0040). A golden
+fixture with `schema_verdict: invalid` (under `tests/data/schema/invalid/`) skips the base-field
+assertions but must ship its `<name>.expected.json` compliance report. Full NIST JSON-Schema
+validation of the fixtures runs in Vitest with the production validators (TEST-SCHEMA-02). It emits `test-results/harness-log.jsonl` + `test-results/harness-junit.xml`, exits
 non-zero on failure, and gates CI ahead of the JS suite.
 
 - **Run locally:** `npm run test:harness` (needs `pip install -r tests/test_harness/requirements.txt`).
@@ -63,7 +66,13 @@ non-zero on failure, and gates CI ahead of the JS suite.
   the build if a test is uncatalogued or a required ADR loses coverage.
 
 ## Golden data & snapshots
-- `tests/data/` holds golden OSCAL artifacts and JSON-Schema snapshots.
+- `tests/data/` holds golden OSCAL artifacts; `tests/data/schema/invalid/` holds deliberately
+  schema-invalid fixtures, each with the golden compliance report TALOS must produce
+  (`<name>.expected.json`). The vendored NIST schemas themselves live in `schemas/oscal/<version>/`
+  (build input, sha256 in `MANIFEST.json`).
+- Seeded test artifacts that a test *uses as a workflow input* (picked as a profile, source,
+  baseline, component-definition) must be OSCAL-compliant (`lastModified`, RFC 4122 v4/v5 uuids,
+  required fields) — the compliance gate refuses anything else (ADR-0040).
 - Intentional output changes update the golden file **in the same commit**, with rationale.
 - BSI-derived fixtures retain CC-BY-SA-4.0 attribution.
 
@@ -71,7 +80,9 @@ non-zero on failure, and gates CI ahead of the JS suite.
 - OSCAL fidelity (no dropped/mangled fields), XSS in markup `[ADR-0009]`, cycle handling in
   imports `[ADR-0014]`, uuid-collision behavior `[ADR-0004]`, version-warning on import
   `[ADR-0007]`, mandatory-creator validation + export gate `[ADR-0019]`, referential integrity of
-  responsible-parties `[ADR-0017]`, i18n key parity `[ADR-0012]`, unresolved-reference preservation.
+  responsible-parties `[ADR-0017]`, i18n key parity `[ADR-0012]`, unresolved-reference preservation,
+  schema compliance of everything TALOS writes + the compliance gate at every consumption point
+  `[ADR-0040]`.
 
 ## CI gate
 GitHub Actions runs lint + typecheck + the full suite; a failure **blocks** the Pages deploy

@@ -1,11 +1,15 @@
-// Blank-artifact factory for SSPs. Decision IDs: ADR-0003, ADR-0007, ADR-0017, ADR-0019.
+// Blank-artifact factory for SSPs. Decision IDs: ADR-0003, ADR-0007, ADR-0017, ADR-0019, ADR-0040.
 import { OSCAL_AUTHORING_VERSION } from '@/models/oscalBase';
-import type { SystemSecurityPlan } from '@/models/ssp';
+import { uuidSystemId, type SystemSecurityPlan } from '@/models/ssp';
 import { CREATOR_ROLE_ID } from '@/models/creator';
 
+// Valid by construction (ADR-0040): no empty required arrays — a UUID system id is seeded (the SSP's
+// own uuid), `users` (optional since OSCAL 1.2.0) is not emitted. What only a human can supply
+// (system name, information types, components, requirements) is reported by the compliance check.
 export function createBlankSsp(): SystemSecurityPlan {
+  const uuid = globalThis.crypto.randomUUID();
   return {
-    uuid: globalThis.crypto.randomUUID(),
+    uuid,
     metadata: {
       title: '',
       version: '1.0.0',
@@ -16,7 +20,7 @@ export function createBlankSsp(): SystemSecurityPlan {
     },
     importProfile: { href: '' },
     systemCharacteristics: {
-      systemIds: [],
+      systemIds: [uuidSystemId(uuid)],
       systemName: '',
       description: '',
       systemInformation: { informationTypes: [] },
@@ -24,7 +28,6 @@ export function createBlankSsp(): SystemSecurityPlan {
       authorizationBoundary: { description: '' },
     },
     systemImplementation: {
-      users: [],
       components: [],
     },
     controlImplementation: {

@@ -51,7 +51,7 @@ async function seedCatalog() {
     origin: 'user',
     artifact: {
       uuid: catalogUuid,
-      metadata: { title: 'Grundschutz Test', version: '1.0.0', oscalVersion: '1.2.2' },
+      metadata: { title: 'Grundschutz Test', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
       controls: [
         { id: 'C1', title: 'Root-tagged control', props: [{ name: 'target_object_categories', value: 'Standorte' }] },
         { id: 'C2', title: 'Child-tagged control', props: [{ name: 'target_object_categories', value: 'Gebäude' }] },
@@ -86,7 +86,7 @@ async function seedOtherCatalog() {
     origin: 'user',
     artifact: {
       uuid: otherCatalogUuid,
-      metadata: { title: 'Other Catalog', version: '1.0.0', oscalVersion: '1.2.2' },
+      metadata: { title: 'Other Catalog', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
       controls: [{ id: 'X1', title: 'Unrelated control' }],
     } as Catalog,
   });
@@ -184,7 +184,7 @@ describe('profile source (recursive resolution, T-206, ADR-0032 §5)', () => {
       origin: 'user',
       artifact: {
         uuid: baselineUuid,
-        metadata: { title: 'Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2' },
+        metadata: { title: 'Baseline Profile', version: '1.0.0', oscalVersion: '1.2.2', lastModified: '2026-07-02T10:00:00Z' },
         imports: [{ href: `#${catalogUuid}`, includeAll: {} }],
       },
     });
